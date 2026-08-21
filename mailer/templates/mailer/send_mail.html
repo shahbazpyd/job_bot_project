@@ -26,7 +26,15 @@
         <div class="col-lg-5 col-md-5 d-flex flex-column desktop-h-100">
             <div class="card shadow-sm border-0 d-flex flex-column desktop-h-100">
                 <div class="card-body p-4 d-flex flex-column scrollable-area" style="overflow-y: auto;">
-                    <h4 class="card-title fw-bold mb-3">Job Application Dispatcher</h4>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="card-title fw-bold mb-0">Job Application Dispatcher</h4>
+                        <form method="post" action="{% url 'logout' %}" class="m-0">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-secondary fw-semibold">
+                                Logout ({{ request.user.username }})
+                            </button>
+                        </form>
+                    </div>
                     <p class="text-muted small mb-4">Select target parameters to compile and dispatch application packets.</p>
 
                     {% if messages %}
