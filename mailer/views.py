@@ -6,6 +6,9 @@ from django.conf import settings
 from .forms import ApplicationDispatchForm
 from .models import ApplicationLog
 
+from django.contrib.auth.decorators import login_required
+
+@login_required
 def send_application_view(request):
     if request.method == 'POST':
         form = ApplicationDispatchForm(request.POST, request.FILES)
