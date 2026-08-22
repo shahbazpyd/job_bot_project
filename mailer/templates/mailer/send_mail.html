@@ -169,7 +169,7 @@
     const resumeData = {
         {% for r in resumes %}
         "{{ r.id }}": {
-            "url": "{{ r.file.url|escapejs }}"
+            "url": "/media/{{ r.filename|escapejs }}"
         }{% if not forloop.last %},{% endif %}
         {% endfor %}
     };
