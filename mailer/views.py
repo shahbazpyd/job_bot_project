@@ -1,5 +1,7 @@
 import os
 import threading
+import mimetypes
+from django.http import FileResponse, Http404
 from django.shortcuts import render, redirect
 from django.core.mail import EmailMessage, get_connection
 from django.contrib import messages
@@ -92,3 +94,23 @@ def send_application_view(request):
         'templates': templates,
         'resumes': resumes
     })
+
+@login_required
+def serve_protected_document(request, file_path):
+    """
+    Securely serves media files from the persistent disk in production.
+    Requires the user to be logged in.
+    """
+    document_path = os.path.join(settings.MEDIA_ROOT, file_path)
+    
+    # Security: Ensure the requested file is actually inside the MEDIA_ROOT
+    # to prevent directory traversal attacks (e.g. file_path = "../../../etc/passwd")
+    if not os.path.normpath(document_path).startswith(os.path.normpath(settings.MEDIA_ROOT)):
+        raise Http404("Invalid file path")
+        
+    if os.path.exists(document_path):
+        content_type, encoding = mimetypes.guess_type(document_path)
+        content_type = content_type or 'application/octet-stream'
+        return FileResponse(open(document_path, 'rb'), content_type=content_type)
+    else:
+        raise Http404(f"Document does not exist: {file_path}")
