@@ -64,5 +64,5 @@ def send_application_view(request):
     else:
         form = ApplicationDispatchForm()
 
-    recent_logs = ApplicationLog.objects.order_by('-sent_at')[:5]
+    recent_logs = ApplicationLog.objects.order_by('-sent_at')
     return render(request, 'mailer/send_mail.html', {'form': form, 'logs': recent_logs})
