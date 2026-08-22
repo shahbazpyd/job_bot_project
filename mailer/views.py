@@ -16,11 +16,10 @@ def send_emails_in_background(parsed_emails, template_obj, resume_obj):
     success_count = 0
     failure_count = 0
 
-    # Optimization: Read file into memory once, rather than reading from disk in the loop
+    # Optimization: Read file into memory once
     try:
-        with open(resume_obj.file.path, 'rb') as f:
-            resume_content = f.read()
-        resume_filename = os.path.basename(resume_obj.file.path)
+        resume_content = resume_obj.pdf_content
+        resume_filename = resume_obj.filename
     except Exception as e:
         # If we can't read the file, log a failure for all and abort
         for email in parsed_emails:
@@ -67,10 +66,6 @@ def send_application_view(request):
             template_obj = form.cleaned_data['template']
             resume_obj = form.cleaned_data['resume']
 
-            if not os.path.exists(resume_obj.file.path):
-                messages.error(request, f"Resume file not found at {resume_obj.file.path}")
-                return redirect('send_application')
-
             # Spawn a background thread to handle the slow network calls
             thread = threading.Thread(
                 target=send_emails_in_background, 
@@ -98,19 +93,14 @@ def send_application_view(request):
 @login_required
 def serve_protected_document(request, file_path):
     """
-    Securely serves media files from the persistent disk in production.
+    Securely serves media files from the database in production.
     Requires the user to be logged in.
     """
-    document_path = os.path.join(settings.MEDIA_ROOT, file_path)
+    import io
     
-    # Security: Ensure the requested file is actually inside the MEDIA_ROOT
-    # to prevent directory traversal attacks (e.g. file_path = "../../../etc/passwd")
-    if not os.path.normpath(document_path).startswith(os.path.normpath(settings.MEDIA_ROOT)):
-        raise Http404("Invalid file path")
-        
-    if os.path.exists(document_path):
-        content_type, encoding = mimetypes.guess_type(document_path)
-        content_type = content_type or 'application/octet-stream'
-        return FileResponse(open(document_path, 'rb'), content_type=content_type)
-    else:
+    try:
+        resume_obj = ResumeDocument.objects.get(filename=file_path)
+    except ResumeDocument.DoesNotExist:
         raise Http404(f"Document does not exist: {file_path}")
+        
+    return FileResponse(io.BytesIO(resume_obj.pdf_content), content_type='application/pdf')

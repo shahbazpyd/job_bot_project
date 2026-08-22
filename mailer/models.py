@@ -10,7 +10,8 @@ class EmailTemplate(models.Model):
 
 class ResumeDocument(models.Model):
     title = models.CharField(max_length=100, unique=True)
-    file = models.FileField(upload_to='resumes/')
+    pdf_content = models.BinaryField()
+    filename = models.CharField(max_length=255)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
