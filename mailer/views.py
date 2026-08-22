@@ -5,7 +5,7 @@ from django.core.mail import EmailMessage, get_connection
 from django.contrib import messages
 from django.conf import settings
 from .forms import ApplicationDispatchForm
-from .models import ApplicationLog, EmailTemplate, Resume
+from .models import ApplicationLog, EmailTemplate, ResumeDocument
 
 from django.contrib.auth.decorators import login_required
 
@@ -84,7 +84,7 @@ def send_application_view(request):
 
     recent_logs = ApplicationLog.objects.order_by('-sent_at')
     templates = EmailTemplate.objects.all()
-    resumes = Resume.objects.all()
+    resumes = ResumeDocument.objects.all()
     
     return render(request, 'mailer/send_mail.html', {
         'form': form, 
