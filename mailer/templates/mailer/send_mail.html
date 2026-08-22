@@ -28,12 +28,17 @@
                 <div class="card-body p-4 d-flex flex-column scrollable-area" style="overflow-y: auto;">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4 class="card-title fw-bold mb-0">Job Application Dispatcher</h4>
-                        <form method="post" action="{% url 'logout' %}" class="m-0">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-outline-secondary fw-semibold">
-                                Logout ({{ request.user.username }})
-                            </button>
-                        </form>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'admin:index' %}" class="btn btn-sm btn-outline-primary fw-semibold">
+                                Admin Panel
+                            </a>
+                            <form method="post" action="{% url 'logout' %}" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-secondary fw-semibold">
+                                    Logout ({{ request.user.username }})
+                                </button>
+                            </form>
+                        </div>
                     </div>
                     <p class="text-muted small mb-4">Select target parameters to compile and dispatch application packets.</p>
 
@@ -78,6 +83,26 @@
                             <label class="form-label fw-semibold small">{{ form.resume.label }}</label>
                             {{ form.resume }}
                         </div>
+
+                        <!-- Live Preview Box -->
+                        <div id="preview-box" class="d-none mb-3 p-3 bg-white border rounded shadow-sm">
+                            <h6 class="fw-bold mb-3 text-primary border-bottom pb-2">Live Preview</h6>
+                            <div class="mb-2">
+                                <strong class="small text-muted text-uppercase">Subject</strong>
+                                <div id="preview-subject" class="fw-semibold"></div>
+                            </div>
+                            <div class="mb-3">
+                                <strong class="small text-muted text-uppercase">Body</strong>
+                                <div id="preview-body" class="small text-muted" style="white-space: pre-wrap;"></div>
+                            </div>
+                            <div>
+                                <strong class="small text-muted text-uppercase">Resume Attachment</strong>
+                                <div class="ratio ratio-16x9 mt-2">
+                                    <iframe id="preview-resume" src="" class="border rounded bg-light"></iframe>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mt-auto pt-3">
                             <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Send Job Application</button>
                         </div>
@@ -130,5 +155,68 @@
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Inject Django context data into JS dictionary
+    const templateData = {
+        {% for t in templates %}
+        "{{ t.id }}": {
+            "subject": "{{ t.subject|escapejs }}",
+            "body": "{{ t.body|escapejs }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+    
+    const resumeData = {
+        {% for r in resumes %}
+        "{{ r.id }}": {
+            "url": "{{ r.file.url|escapejs }}"
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const templateSelect = document.getElementById('id_template');
+        const resumeSelect = document.getElementById('id_resume');
+        const previewBox = document.getElementById('preview-box');
+        const previewSubject = document.getElementById('preview-subject');
+        const previewBody = document.getElementById('preview-body');
+        const previewResume = document.getElementById('preview-resume');
+
+        function updatePreview() {
+            const tempId = templateSelect.value;
+            const resId = resumeSelect.value;
+
+            // Show box if either dropdown is selected
+            if (tempId || resId) {
+                previewBox.classList.remove('d-none');
+                
+                if (tempId && templateData[tempId]) {
+                    previewSubject.textContent = templateData[tempId].subject;
+                    previewBody.textContent = templateData[tempId].body;
+                } else {
+                    previewSubject.textContent = 'Select a template...';
+                    previewBody.textContent = 'Select a template...';
+                }
+
+                if (resId && resumeData[resId]) {
+                    previewResume.src = resumeData[resId].url;
+                    previewResume.parentElement.classList.remove('d-none');
+                } else {
+                    previewResume.src = '';
+                    previewResume.parentElement.classList.add('d-none');
+                }
+            } else {
+                previewBox.classList.add('d-none');
+            }
+        }
+
+        // Attach listeners
+        templateSelect.addEventListener('change', updatePreview);
+        resumeSelect.addEventListener('change', updatePreview);
+        
+        // Run once on load to show preview if fields are already selected (e.g. after validation error)
+        updatePreview();
+    });
+</script>
 </body>
 </html>
