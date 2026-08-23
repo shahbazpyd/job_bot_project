@@ -113,7 +113,6 @@
 
         <!-- Right Column: Recent Dispatches -->
         <div class="col-lg-7 col-md-7 d-flex flex-column desktop-h-100">
-            {% if logs %}
             <div class="card shadow-sm border-0 d-flex flex-column desktop-h-100">
                 <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
                     <h6 class="fw-bold mb-0">Recent Dispatches</h6>
@@ -128,28 +127,13 @@
                                     <th>Timestamp</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% for log in logs %}
-                                <tr>
-                                    <td class="small">{{ log.recipient_email }}</td>
-                                    <td>
-                                        <span class="badge {% if log.status == 'SUCCESS' %}bg-success{% else %}bg-danger{% endif %}">
-                                            {{ log.status|truncatechars:20 }}
-                                        </span>
-                                    </td>
-                                    <td class="small text-muted" style="white-space: nowrap;">{{ log.sent_at|date:"M d, H:i" }}</td>
-                                </tr>
-                                {% endfor %}
+                            <tbody id="recent-logs-body">
+                                {% include 'mailer/partials/recent_logs.html' %}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-            {% else %}
-            <div class="card shadow-sm border-0 d-flex flex-column desktop-h-100 align-items-center justify-content-center bg-transparent" style="border: 2px dashed #dee2e6 !important;">
-                <div class="text-muted small">No recent dispatches found.</div>
-            </div>
-            {% endif %}
         </div>
 
     </div>
@@ -216,6 +200,16 @@
         
         // Run once on load to show preview if fields are already selected (e.g. after validation error)
         updatePreview();
+
+        // Polling for recent logs (every 3 seconds)
+        setInterval(function() {
+            fetch("{% url 'recent_logs_partial' %}")
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('recent-logs-body').innerHTML = html;
+                })
+                .catch(err => console.error('Error fetching recent logs:', err));
+        }, 3000);
     });
 </script>
 </body>

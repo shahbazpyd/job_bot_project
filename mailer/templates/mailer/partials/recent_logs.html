@@ -1,0 +1,15 @@
+{% for log in logs %}
+<tr>
+    <td class="small">{{ log.recipient_email }}</td>
+    <td>
+        <span class="badge {% if log.status == 'SUCCESS' %}bg-success{% else %}bg-danger{% endif %}">
+            {{ log.status|truncatechars:20 }}
+        </span>
+    </td>
+    <td class="small text-muted" style="white-space: nowrap;">{{ log.sent_at|date:"M d, H:i" }}</td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="3" class="text-center text-muted small py-3">No recent dispatches found.</td>
+</tr>
+{% endfor %}

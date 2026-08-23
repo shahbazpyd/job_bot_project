@@ -75,15 +75,27 @@ def send_application_view(request):
             template_obj = form.cleaned_data['template']
             resume_obj = form.cleaned_data['resume']
 
-            # Spawn a background thread to handle the slow network calls
-            thread = threading.Thread(
-                target=send_emails_in_background, 
-                args=(parsed_emails, template_obj.id, resume_obj.id)
-            )
-            thread.daemon = True  # Allows Django to shut down even if thread is running
-            thread.start()
-            
-            messages.success(request, f"Started sending applications to {len(parsed_emails)} recipients in the background! Refresh the page in a moment to check the logs.")
+            # Filter out existing emails
+            existing_emails = set(ApplicationLog.objects.filter(recipient_email__in=parsed_emails).values_list('recipient_email', flat=True))
+            new_emails = [email for email in parsed_emails if email not in existing_emails]
+            skipped_count = len(parsed_emails) - len(new_emails)
+
+            if new_emails:
+                # Spawn a background thread to handle the slow network calls
+                thread = threading.Thread(
+                    target=send_emails_in_background, 
+                    args=(new_emails, template_obj.id, resume_obj.id)
+                )
+                thread.daemon = True  # Allows Django to shut down even if thread is running
+                thread.start()
+                
+                msg = f"Started sending applications to {len(new_emails)} new recipients in the background!"
+                if skipped_count > 0:
+                    msg += f" Skipped {skipped_count} emails that are already in the database."
+                messages.success(request, msg)
+            else:
+                messages.warning(request, f"All {skipped_count} recipients were already in the database. No new emails sent.")
+
             return redirect('send_application')
     else:
         form = ApplicationDispatchForm()
@@ -113,3 +125,9 @@ def serve_protected_document(request, file_path):
         raise Http404(f"Document does not exist: {file_path}")
         
     return FileResponse(io.BytesIO(resume_obj.pdf_content), content_type='application/pdf')
+
+@login_required
+def recent_logs_partial(request):
+    """Returns the HTML table rows of the most recent logs for JS polling."""
+    recent_logs = ApplicationLog.objects.order_by('-sent_at')[:20]
+    return render(request, 'mailer/partials/recent_logs.html', {'logs': recent_logs})
