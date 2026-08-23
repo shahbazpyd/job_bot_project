@@ -1,0 +1,345 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ title }} | Job Bot Admin{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">Job Bot Admin</a>
+</h1>
+{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    /* =========================================
+       ROYAL & PROFESSIONAL DESIGN SYSTEM
+       ========================================= */
+
+    :root {
+        /* Colors: Slate & Royal Blue */
+        --slate-50: #f8fafc;
+        --slate-100: #f1f5f9;
+        --slate-400: #94a3b8;
+        --slate-800: #1e293b;
+        --slate-900: #0f172a;
+        --royal-blue: #2563eb;
+        --royal-hover: #1d4ed8;
+        --border-color: #e2e8f0;
+        
+        /* Django Variables Overrides */
+        --primary: var(--royal-blue);
+        --secondary: #64748b;
+        --link-color: var(--royal-blue);
+        --link-hover-color: var(--royal-hover);
+        
+        --body-bg: var(--slate-100);
+        --body-quiet-color: #64748b;
+        --body-loud-color: #0f172a;
+        
+        --header-bg: #ffffff;
+        --header-color: #0f172a;
+        --header-link-color: var(--royal-blue);
+        
+        --breadcrumbs-bg: transparent;
+        --breadcrumbs-fg: #64748b;
+        --breadcrumbs-link-fg: var(--royal-blue);
+        
+        --button-bg: var(--royal-blue);
+        --button-hover-bg: var(--royal-hover);
+        --default-button-bg: var(--royal-blue);
+        --default-button-hover-bg: var(--royal-hover);
+        
+        --object-tools-bg: var(--royal-blue);
+        --object-tools-hover-bg: var(--royal-hover);
+        
+        --darkened-bg: var(--slate-50);
+        --selected-bg: #eff6ff;
+        --selected-row: #eff6ff;
+    }
+
+    /* 1. Global & Layout */
+    html, body {
+        background-color: var(--body-bg);
+        color: var(--body-loud-color);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    #header {
+        background-color: var(--header-bg);
+        color: var(--header-color);
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        border-bottom: none;
+        padding: 0.75rem 2rem;
+    }
+
+    #branding h1, #branding h1 a:link, #branding h1 a:visited {
+        color: #0f172a;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+    }
+
+    /* 2. Navigation & Sidebar */
+    #nav-sidebar {
+        background-color: var(--slate-900);
+        border-right: none;
+    }
+    
+    /* Fix: Sidebar modules shouldn't be white cards */
+    #nav-sidebar .module {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        margin-bottom: 0;
+        border-radius: 0;
+    }
+    
+    /* Fix global table rules breaking the sidebar */
+    #nav-sidebar table, #nav-sidebar tr, #nav-sidebar tr.alt, #nav-sidebar tbody td, #nav-sidebar tbody th {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+    
+    #nav-sidebar tr:hover {
+        background: transparent !important;
+    }
+    
+    .main > #nav-sidebar {
+        box-shadow: 1px 0 3px 0 rgb(0 0 0 / 0.1);
+    }
+
+    #nav-sidebar .module th, #nav-sidebar .module caption {
+        background: transparent;
+    }
+    
+    #nav-sidebar caption {
+        color: var(--slate-400);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 1.5rem 1.5rem 0.5rem;
+    }
+
+    #nav-sidebar a:link, #nav-sidebar a:visited {
+        color: #cbd5e1;
+        padding: 0.5rem 1.5rem;
+        display: block;
+        transition: all 0.2s;
+        border-left: 3px solid transparent;
+    }
+
+    #nav-sidebar a:hover, #nav-sidebar a:focus {
+        color: #ffffff;
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    #nav-sidebar .current-app, #nav-sidebar .current-model, #nav-sidebar tr.current-model th a {
+        background-color: var(--slate-800) !important;
+        color: #ffffff !important;
+        border-left: 3px solid var(--royal-blue) !important;
+    }
+
+    /* 3. Header Buttons (#user-tools) */
+    #user-tools {
+        color: transparent; /* hide | */
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    #user-tools > strong {
+        color: #475569;
+        margin-right: 0.5rem;
+        font-weight: 500;
+    }
+    #user-tools form { display: inline; margin: 0; }
+    #user-tools a, #user-tools button {
+        display: inline-block;
+        padding: 0.375rem 0.875rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 0.375rem;
+        transition: all 0.2s ease;
+        border: 1px solid var(--border-color);
+        background: #ffffff;
+        color: #475569;
+        cursor: pointer;
+        line-height: 1.5;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    #user-tools a:hover, #user-tools button:hover {
+        background-color: var(--slate-50);
+        color: #0f172a;
+        border-color: #cbd5e1;
+    }
+
+    /* 4. Breadcrumbs */
+    div.breadcrumbs {
+        background: transparent;
+        border: none;
+        padding: 1.5rem 2rem 0.5rem;
+        font-weight: 500;
+        color: var(--slate-400);
+        box-shadow: none;
+    }
+
+    /* 5. Modules & Cards */
+    .module {
+        background: #ffffff;
+        border: none;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    
+    .module h2, .module caption, .inline-group h2 {
+        background: transparent;
+        color: #0f172a;
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    /* 6. Tables */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    
+    thead th {
+        background-color: var(--slate-50);
+        color: #475569;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.875rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        border-top: none;
+        font-weight: 600;
+    }
+    
+    tbody td, tbody th {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    tr, tr.alt {
+        background: #ffffff !important;
+    }
+    
+    tr:hover {
+        background-color: var(--slate-50) !important;
+    }
+
+    /* 7. Forms & UI Elements */
+    input, textarea, select {
+        border: 1px solid #cbd5e1;
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        transition: border-color 0.2s;
+    }
+    
+    input:focus, textarea:focus, select:focus {
+        border-color: var(--royal-blue);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .submit-row {
+        background: var(--slate-50);
+        border: none;
+        border-top: 1px solid var(--border-color);
+        border-radius: 0 0 0.5rem 0.5rem;
+        padding: 1rem 1.5rem;
+        box-shadow: none;
+        margin: 0;
+    }
+    
+    .button, input[type=submit], input[type=button], .submit-row input, a.button {
+        background: var(--royal-blue);
+        border: none;
+        border-radius: 0.375rem;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        transition: all 0.2s;
+        color: #ffffff;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    
+    .button.default, input[type=submit].default, .submit-row input.default {
+        background: var(--royal-blue);
+    }
+    
+    .button:hover, input[type=submit]:hover, input[type=button]:hover, a.button:hover {
+        background: var(--royal-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+
+    /* 8. Messages (Toasts) */
+    ul.messagelist {
+        padding: 1rem 2rem 0;
+        margin: 0;
+    }
+    ul.messagelist li {
+        border-radius: 0.375rem;
+        padding: 1rem;
+        font-weight: 500;
+        box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        border: none;
+        margin-bottom: 0.5rem;
+    }
+    ul.messagelist li.success {
+        background: #ecfdf5;
+        color: #065f46;
+        border-left: 4px solid #10b981;
+    }
+    ul.messagelist li.error {
+        background: #fef2f2;
+        color: #991b1b;
+        border-left: 4px solid #ef4444;
+    }
+
+    /* 9. Typography & Links */
+    #content h1, h1, h2, h3, h4, h5 {
+        color: var(--slate-900);
+        font-weight: 700;
+    }
+    
+    #content h1 {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    p, ul, ol, li, dt, dd, blockquote, code, pre {
+        color: var(--slate-800);
+    }
+    
+    a:link, a:visited {
+        color: var(--royal-blue);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.15s ease-in-out;
+    }
+    
+    a:hover, a:focus {
+        color: var(--royal-hover);
+    }
+
+    /* Action Links (Add/Change/Delete icons) */
+    .addlink, .changelink, .deletelink, .viewlink {
+        font-weight: 600;
+        color: var(--royal-blue);
+    }
+    
+    /* Ensure action links in sidebar are light */
+    #nav-sidebar .addlink, #nav-sidebar .changelink, #nav-sidebar .viewlink {
+        color: var(--slate-400);
+    }
+    #nav-sidebar .addlink:hover, #nav-sidebar .changelink:hover, #nav-sidebar .viewlink:hover {
+        color: #ffffff;
+    }
+</style>
+{% endblock %}
