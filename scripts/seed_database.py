@@ -1,8 +1,8 @@
 """
 scripts/seed_database.py
 
-Utility script to populate the Neon PostgreSQL database with Shahbaz's resume PDF
-and the high-converting outreach email template.
+Utility script to populate the Neon PostgreSQL database with Shahbaz's two location-specific
+resume PDFs (Hyderabad & Gurugram) and two concise, humanized outreach email templates.
 """
 import os
 import sys
@@ -19,78 +19,122 @@ django.setup()
 
 from mailer.models import ResumeDocument, EmailTemplate
 
-def seed_data():
-    # 1. Locate source resume PDF
-    source_pdf = Path(r"C:\Users\sbzal\.gemini\antigravity\brain\4ed218cf-5cf1-4e3e-a759-64663f81c925\.user_uploaded\media_1794305392152_8975066f.pdf")
-    target_media_dir = BASE_DIR / "media"
-    target_media_dir.mkdir(exist_ok=True)
-    target_pdf = target_media_dir / "Shahbaz_Alam_Resume.pdf"
-
-    if source_pdf.exists():
-        print(f"Reading resume from: {source_pdf}")
-        with open(source_pdf, 'rb') as f:
-            pdf_bytes = f.read()
-        # Save a local reference copy in media/
-        shutil.copy2(source_pdf, target_pdf)
-        print(f"Stored local backup at: {target_pdf}")
-    elif target_pdf.exists():
-        print(f"Reading resume from existing media file: {target_pdf}")
-        with open(target_pdf, 'rb') as f:
-            pdf_bytes = f.read()
-    else:
-        raise FileNotFoundError(f"Resume PDF not found at {source_pdf} or {target_pdf}")
-
-    # 2. Persist ResumeDocument into Database (Idempotent update_or_create)
-    resume_obj, created = ResumeDocument.objects.update_or_create(
-        title="Shahbaz Alam - Python Full Stack Developer",
-        defaults={
-            'filename': 'Shahbaz_Alam_Resume.pdf',
-            'pdf_content': pdf_bytes
-        }
-    )
-    status_str = "Created" if created else "Updated"
-    print(f"[OK] ResumeDocument {status_str}: ID={resume_obj.id}, Title='{resume_obj.title}' (size={len(pdf_bytes):,} bytes)")
-
-    # 3. Outreach Email Template with Dynamic Placeholders
-    template_title = "Python Full-Stack Outreach (FastAPI / Django / React)"
-    template_subject = "Application: {{ role|default:\"Python / Full Stack Developer\" }} - Shahbaz Alam"
-    template_body = (
-        "Hi {{ name|default:\"Hiring Manager\" }},\n\n"
-        "I hope you are having a productive week.\n\n"
-        "I am writing to express my strong interest in the {{ role|default:\"Python / Full Stack Developer\" }} "
-        "opportunity at {{ company|default:\"your team\" }}. With over 1.5 years of hands-on experience building "
-        "production-ready applications with Python (FastAPI, Django, DRF), React.js, and PostgreSQL, I specialize "
-        "in architecting high-throughput APIs and scalable backends.\n\n"
-        "Here are a few highlights of my recent engineering work:\n"
-        "• B2B Platform Architecture: Architected and deployed the live platform for SS Enterprises (https://www.ssenterprisesncr.in), "
-        "developing asynchronous FastAPI and Neon PostgreSQL workflows that reduced manual quote processing by 15 hours/week.\n"
-        "• Enterprise Backend & DB Optimization: At GISFY, engineered high-throughput RESTful APIs and executed query optimization "
-        "on PostgreSQL models, cutting response times by 35% while enforcing strict RBAC security with JWT/OAuth2.\n"
-        "• Modern Frontend & CDN: Built modular React.js user interfaces with Tailwind CSS and integrated Cloudinary CDN, cutting "
-        "page asset load times by 45%.\n\n"
-        "I have attached my resume for your review. You can also explore my code and live deployments here:\n"
-        "• GitHub: https://github.com/shahbazpyd\n"
-        "• LinkedIn: https://www.linkedin.com/in/shahbazpyd\n"
-        "• Live Project: https://www.ssenterprisesncr.in\n\n"
-        "I would welcome the opportunity to discuss how my full-stack skills can add immediate value to {{ company|default:\"your team\" }}. "
-        "Would you be open to a brief 10-minute introductory call this week?\n\n"
-        "Warm regards,\n\n"
+def get_email_body(location: str) -> str:
+    """Generates the concise, humanized outreach email body for a given location."""
+    return (
+        "Hi {{ name|default:\"there\" }},\n\n"
+        "I hope you're having a good week.\n\n"
+        "I’m reaching out to express my interest in the {{ role|default:\"Python / Full Stack Developer\" }} "
+        "role at {{ company|default:\"your team\" }}.\n\n"
+        "I have 1.5+ years of experience building production web applications using Python (FastAPI, Django) "
+        "and React.js. A few quick highlights of my work:\n\n"
+        "• Built and deployed a live B2B platform (https://www.ssenterprisesncr.in) using FastAPI and Serverless "
+        "PostgreSQL, reducing manual quote processing by 15 hours/week.\n"
+        "• Optimized PostgreSQL database queries and backend APIs at GISFY, reducing query response times by 35% "
+        "with robust RBAC security.\n"
+        "• Developed responsive user interfaces in React.js and Tailwind CSS integrated with Cloudinary CDN for fast asset delivery.\n\n"
+        "I have attached my resume for your review. If my profile aligns with what you're looking for, I would love the "
+        "chance to connect for a brief 10-minute chat this week.\n\n"
+        "Best regards,\n\n"
         "Shahbaz Alam\n"
         "Python Backend / Full Stack Developer\n"
         "+91-7079619717 | sbzalam2025@gmail.com\n"
-        "Hyderabad, Telangana"
+        f"{location}\n"
+        "GitHub: https://github.com/shahbazpyd | LinkedIn: https://www.linkedin.com/in/shahbazpyd"
     )
 
-    template_obj, created = EmailTemplate.objects.update_or_create(
-        title=template_title,
+def seed_data():
+    target_media_dir = BASE_DIR / "media"
+    target_media_dir.mkdir(exist_ok=True)
+
+    # -------------------------------------------------------------
+    # 1. Ingest Resume 1 (Hyderabad)
+    # -------------------------------------------------------------
+    source_hyd_pdf = Path(r"C:\Users\sbzal\.gemini\antigravity\brain\4ed218cf-5cf1-4e3e-a759-64663f81c925\.user_uploaded\media_1794305392152_8975066f.pdf")
+    fallback_hyd_pdf = target_media_dir / "Shahbaz_Alam_Resume.pdf"
+    dest_hyd_pdf = target_media_dir / "Shahbaz_Alam_Resume_Hyderabad.pdf"
+
+    if source_hyd_pdf.exists():
+        with open(source_hyd_pdf, 'rb') as f:
+            hyd_bytes = f.read()
+        shutil.copy2(source_hyd_pdf, dest_hyd_pdf)
+    elif fallback_hyd_pdf.exists():
+        with open(fallback_hyd_pdf, 'rb') as f:
+            hyd_bytes = f.read()
+        shutil.copy2(fallback_hyd_pdf, dest_hyd_pdf)
+    else:
+        raise FileNotFoundError(f"Hyderabad resume PDF not found at {source_hyd_pdf}")
+
+    resume_hyd, created = ResumeDocument.objects.update_or_create(
+        title="Shahbaz Alam - Python Full Stack Developer (Hyderabad)",
         defaults={
-            'subject': template_subject,
-            'body': template_body
+            'filename': 'Shahbaz_Alam_Resume_Hyderabad.pdf',
+            'pdf_content': hyd_bytes
         }
     )
     status_str = "Created" if created else "Updated"
-    print(f"[OK] EmailTemplate {status_str}: ID={template_obj.id}, Title='{template_obj.title}'")
-    print("\nDatabase seeding completed successfully!")
+    print(f"[OK] Resume (Hyderabad) {status_str}: ID={resume_hyd.id}, Title='{resume_hyd.title}' ({len(hyd_bytes):,} bytes)")
+
+    # -------------------------------------------------------------
+    # 2. Ingest Resume 2 (Gurugram)
+    # -------------------------------------------------------------
+    source_gur_pdf = Path(r"C:\Users\sbzal\.gemini\antigravity\brain\4ed218cf-5cf1-4e3e-a759-64663f81c925\.user_uploaded\media_1794308596213_e70c8f24.pdf")
+    dest_gur_pdf = target_media_dir / "Shahbaz_Alam_Resume_Gurugram.pdf"
+
+    if source_gur_pdf.exists():
+        with open(source_gur_pdf, 'rb') as f:
+            gur_bytes = f.read()
+        shutil.copy2(source_gur_pdf, dest_gur_pdf)
+    elif dest_gur_pdf.exists():
+        with open(dest_gur_pdf, 'rb') as f:
+            gur_bytes = f.read()
+    else:
+        raise FileNotFoundError(f"Gurugram resume PDF not found at {source_gur_pdf}")
+
+    resume_gur, created = ResumeDocument.objects.update_or_create(
+        title="Shahbaz Alam - Python Full Stack Developer (Gurugram)",
+        defaults={
+            'filename': 'Shahbaz_Alam_Resume_Gurugram.pdf',
+            'pdf_content': gur_bytes
+        }
+    )
+    status_str = "Created" if created else "Updated"
+    print(f"[OK] Resume (Gurugram) {status_str}: ID={resume_gur.id}, Title='{resume_gur.title}' ({len(gur_bytes):,} bytes)")
+
+    # -------------------------------------------------------------
+    # 3. Ingest Email Template 1 (Hyderabad)
+    # -------------------------------------------------------------
+    subject = "Application: {{ role|default:\"Python / Full Stack Developer\" }} - Shahbaz Alam"
+    template_hyd, created = EmailTemplate.objects.update_or_create(
+        title="Python Full Stack Outreach (Hyderabad)",
+        defaults={
+            'subject': subject,
+            'body': get_email_body("Hyderabad, Telangana")
+        }
+    )
+    status_str = "Created" if created else "Updated"
+    print(f"[OK] Template (Hyderabad) {status_str}: ID={template_hyd.id}, Title='{template_hyd.title}'")
+
+    # -------------------------------------------------------------
+    # 4. Ingest Email Template 2 (Gurugram)
+    # -------------------------------------------------------------
+    template_gur, created = EmailTemplate.objects.update_or_create(
+        title="Python Full Stack Outreach (Gurugram)",
+        defaults={
+            'subject': subject,
+            'body': get_email_body("Gurugram, Haryana")
+        }
+    )
+    status_str = "Created" if created else "Updated"
+    print(f"[OK] Template (Gurugram) {status_str}: ID={template_gur.id}, Title='{template_gur.title}'")
+
+    # -------------------------------------------------------------
+    # 5. Optional Cleanup of Old Generic Initial Records
+    # -------------------------------------------------------------
+    ResumeDocument.objects.filter(title="Shahbaz Alam - Python Full Stack Developer").delete()
+    EmailTemplate.objects.filter(title="Python Full-Stack Outreach (FastAPI / Django / React)").delete()
+
+    print("\nDatabase synchronization completed successfully!")
 
 if __name__ == '__main__':
     seed_data()

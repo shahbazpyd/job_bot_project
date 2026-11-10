@@ -53,12 +53,12 @@ To create an administrative account to manage templates and resumes:
 
 ---
 
-## 4. Seeding Initial Resume & Outreach Templates
-To populate or refresh your default resume PDF and personalized email outreach templates into the PostgreSQL database:
+## 4. Seeding Location-Specific Resumes & Outreach Templates
+To populate or refresh your location-targeted resumes and concise outreach templates into the PostgreSQL database:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/seed_database.py
 ```
 This utility idempotently creates or updates:
-- **`ResumeDocument`**: Ingests `Shahbaz_Alam_Resume.pdf` as a binary BLOB into Neon PostgreSQL.
-- **`EmailTemplate`**: Creates the high-converting outreach email template supporting dynamic personalization placeholders (`{{ name }}`, `{{ company }}`, `{{ role }}`).
+- **`ResumeDocument` (Hyderabad & Gurugram)**: Ingests `Shahbaz_Alam_Resume_Hyderabad.pdf` and `Shahbaz_Alam_Resume_Gurugram.pdf` as binary BLOBs into Neon PostgreSQL.
+- **`EmailTemplate` (Hyderabad & Gurugram)**: Creates concise, humanized outreach email templates supporting dynamic personalization placeholders (`{{ name }}`, `{{ company }}`, `{{ role }}`) with location-tailored signatures.
