@@ -24,6 +24,6 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('', include('mailer.urls')),
     
-    # Custom secure view for serving media files from the persistent disk
-    re_path(r'^media/(?P<file_path>.*)$', serve_protected_document, name='serve_protected_document'),
+    # Custom secure view for serving media files by unique resume ID
+    path('media/<int:resume_id>/', serve_protected_document, name='serve_protected_document'),
 ]

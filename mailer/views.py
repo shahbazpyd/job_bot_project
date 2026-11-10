@@ -75,9 +75,14 @@ def send_application_view(request):
             template_obj = form.cleaned_data['template']
             resume_obj = form.cleaned_data['resume']
 
-            # Filter out existing emails
-            existing_emails = set(ApplicationLog.objects.filter(recipient_email__in=parsed_emails).values_list('recipient_email', flat=True))
-            new_emails = [email for email in parsed_emails if email not in existing_emails]
+            # Filter out only successfully sent emails to allow retrying previously failed dispatches
+            existing_successful_emails = set(
+                ApplicationLog.objects.filter(
+                    recipient_email__in=parsed_emails,
+                    status="SUCCESS"
+                ).values_list('recipient_email', flat=True)
+            )
+            new_emails = [email for email in parsed_emails if email not in existing_successful_emails]
             skipped_count = len(parsed_emails) - len(new_emails)
 
             if new_emails:
@@ -89,12 +94,12 @@ def send_application_view(request):
                 thread.daemon = True  # Allows Django to shut down even if thread is running
                 thread.start()
                 
-                msg = f"Started sending applications to {len(new_emails)} new recipients in the background!"
+                msg = f"Started sending applications to {len(new_emails)} recipients in the background!"
                 if skipped_count > 0:
-                    msg += f" Skipped {skipped_count} emails that are already in the database."
+                    msg += f" Skipped {skipped_count} emails that were already successfully contacted."
                 messages.success(request, msg)
             else:
-                messages.warning(request, f"All {skipped_count} recipients were already in the database. No new emails sent.")
+                messages.warning(request, f"All {skipped_count} recipients were already successfully contacted. No new emails sent.")
 
             return redirect('send_application')
     else:
@@ -112,19 +117,20 @@ def send_application_view(request):
     })
 
 @login_required
-def serve_protected_document(request, file_path):
+def serve_protected_document(request, resume_id):
     """
     Securely serves media files from the database in production.
-    Requires the user to be logged in.
+    Requires the user to be logged in. Lookups are performed by primary key
+    to avoid collisions when multiple documents share the same filename.
     """
     import io
+    from django.shortcuts import get_object_or_404
     
-    try:
-        resume_obj = ResumeDocument.objects.get(filename=file_path)
-    except ResumeDocument.DoesNotExist:
-        raise Http404(f"Document does not exist: {file_path}")
-        
-    return FileResponse(io.BytesIO(resume_obj.pdf_content), content_type='application/pdf')
+    resume_obj = get_object_or_404(ResumeDocument, id=resume_id)
+    response = FileResponse(io.BytesIO(resume_obj.pdf_content), content_type='application/pdf')
+    # Set inline header so the iframe previews cleanly, with original filename for download
+    response['Content-Disposition'] = f'inline; filename="{resume_obj.filename}"'
+    return response
 
 @login_required
 def recent_logs_partial(request):

@@ -12,7 +12,8 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure--gro9xw$iuk8e1rabn=_sq4&x74pt!%0+*xjt-9@p$$u1$jqmf'
+# Load SECRET_KEY from environment with a development fallback
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure--gro9xw$iuk8e1rabn=_sq4&x74pt!%0+*xjt-9@p$$u1$jqmf')
 
 DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
