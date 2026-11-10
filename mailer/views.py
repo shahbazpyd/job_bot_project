@@ -1,4 +1,6 @@
 import os
+import time
+import random
 import threading
 import mimetypes
 from django.http import FileResponse, Http404
@@ -7,13 +9,14 @@ from django.core.mail import EmailMessage, get_connection
 from django.contrib import messages
 from django.conf import settings
 from django.template import Template, Context
+from django.utils import timezone
 from .forms import ApplicationDispatchForm
 from .models import ApplicationLog, EmailTemplate, ResumeDocument
 
 from django.contrib.auth.decorators import login_required
 
 def send_emails_in_background(parsed_recipients, template_id, resume_id):
-    """Handles the slow SMTP network calls and per-recipient template interpolation in a separate background thread."""
+    """Handles SMTP network calls with delay jitter and per-recipient template interpolation in a separate background thread."""
     success_count = 0
     failure_count = 0
 
@@ -38,7 +41,12 @@ def send_emails_in_background(parsed_recipients, template_id, resume_id):
         return
 
     with get_connection() as connection:
-        for recipient in parsed_recipients:
+        for index, recipient in enumerate(parsed_recipients):
+            # Anti-spam delay jitter: Pause between consecutive sends to avoid triggering spam burst filters
+            if index > 0:
+                delay = random.uniform(4.0, 8.0)
+                time.sleep(delay)
+
             # Handle both dictionary payload and fallback string email
             if isinstance(recipient, dict):
                 to_email = recipient.get('email', '')
@@ -135,11 +143,20 @@ def send_application_view(request):
     templates = EmailTemplate.objects.all()
     resumes = ResumeDocument.objects.all()
     
+    # Calculate daily sending quota for sender reputation protection
+    today = timezone.now().date()
+    sent_today = ApplicationLog.objects.filter(sent_at__date=today, status="SUCCESS").count()
+    daily_limit = 300  # Default daily limit for Brevo / standard relay accounts
+    quota_percent = min(100, int((sent_today / daily_limit) * 100)) if daily_limit > 0 else 0
+
     return render(request, 'mailer/send_mail.html', {
         'form': form, 
         'logs': recent_logs,
         'templates': templates,
-        'resumes': resumes
+        'resumes': resumes,
+        'sent_today': sent_today,
+        'daily_limit': daily_limit,
+        'quota_percent': quota_percent,
     })
 
 @login_required

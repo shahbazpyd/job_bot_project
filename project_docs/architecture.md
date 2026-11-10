@@ -44,9 +44,9 @@ The **Job Application Dispatcher** (`job_bot_project`) is a Django 6.1 web appli
 ### A. Frontend Layer
 - **Framework**: Bootstrap 5.3 (Responsive Grid).
 - **Layout**: Two-column layout:
-  - **Left Pane**: Dispatch parameters (Email input / CSV file uploader, template selector, resume selector, live preview iframe).
+  - **Left Pane**: Dispatch parameters (Email input / CSV file uploader with column detection, template selector, resume selector, daily quota monitor, live preview iframe).
   - **Right Pane**: Real-time dispatch monitor (`#recent-logs-body`).
-- **Real-Time Updates**: Client-side JavaScript polling (`/recent-logs/`) fetching HTML row partials.
+- **Real-Time Updates**: Client-side JavaScript adaptive polling (`/recent-logs/`): 3s frequency during active dispatch windows, stepping down to 15s idle polling to conserve serverless DB compute.
 
 ### B. Application & Routing Layer
 - **Web Server**: Gunicorn WSGI HTTP Server.
@@ -58,7 +58,9 @@ The **Job Application Dispatcher** (`job_bot_project`) is a Django 6.1 web appli
   - `/admin/` -> Django Administrative Dashboard.
 
 ### C. Background Processing & Dispatch
-- **Current Mechanism**: In-memory daemon thread (`threading.Thread`) handling SMTP connection pooling and email attachment preparation.
+- **Worker Mechanism**: In-memory daemon thread (`threading.Thread`) handling SMTP connection pooling and email attachment preparation.
+- **Dynamic Personalization**: Renders email subjects and bodies with Django's `Template` engine, interpolating `{{ name }}`, `{{ company }}`, and `{{ role }}` per recipient with graceful fallback defaults.
+- **Anti-Spam Rate Pacing**: Injects non-deterministic delay jitter (`random.uniform(4.0, 8.0)`) between consecutive email handshakes to simulate natural sending patterns and bypass MTA burst-detection rules.
 - **SMTP Gateway**: Brevo Relay (`smtp-relay.brevo.com:2525`) / Gmail SMTP with TLS.
 
 ### D. Persistence Layer

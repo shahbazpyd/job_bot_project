@@ -27,8 +27,23 @@
             <div class="card shadow-sm border-0 d-flex flex-column desktop-h-100">
                 <div class="card-body p-4 d-flex flex-column scrollable-area" style="overflow-y: auto;">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h4 class="card-title fw-bold mb-0">Job Application Dispatcher</h4>
-                        <div class="d-flex gap-2">
+                        <div>
+                            <h4 class="card-title fw-bold mb-0">Job Application Dispatcher</h4>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <span class="badge bg-light text-dark border">
+                                    Today: <strong>{{ sent_today }}</strong> / {{ daily_limit }} sent
+                                </span>
+                                <div class="progress" style="width: 80px; height: 6px;" title="{{ quota_percent }}% of daily limit">
+                                    <div class="progress-bar {% if quota_percent > 85 %}bg-danger{% elif quota_percent > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ quota_percent }}%;" 
+                                         aria-valuenow="{{ quota_percent }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 align-items-start">
                             <a href="{% url 'admin:index' %}" class="btn btn-sm btn-outline-primary fw-semibold">
                                 Admin Panel
                             </a>
@@ -205,15 +220,28 @@
         // Run once on load to show preview if fields are already selected (e.g. after validation error)
         updatePreview();
 
-        // Polling for recent logs (every 3 seconds)
-        setInterval(function() {
+        // Adaptive polling for recent logs
+        // Runs at high frequency (3s) for the first 60 seconds (20 cycles) after page load/dispatch,
+        // then relaxes to 15s idle polling to conserve serverless DB compute.
+        let activeCountdown = 20;
+
+        function pollLogs() {
             fetch("{% url 'recent_logs_partial' %}")
                 .then(response => response.text())
                 .then(html => {
                     document.getElementById('recent-logs-body').innerHTML = html;
                 })
-                .catch(err => console.error('Error fetching recent logs:', err));
-        }, 3000);
+                .catch(err => console.error('Error fetching recent logs:', err))
+                .finally(() => {
+                    if (activeCountdown > 0) {
+                        activeCountdown--;
+                        setTimeout(pollLogs, 3000);
+                    } else {
+                        setTimeout(pollLogs, 15000);
+                    }
+                });
+        }
+        setTimeout(pollLogs, 3000);
     });
 </script>
 </body>

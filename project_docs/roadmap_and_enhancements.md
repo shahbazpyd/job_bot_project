@@ -27,10 +27,10 @@ This document tracks planned and active upgrades to transform `job_bot_project` 
 
 ---
 
-## Phase 3: Anti-Spam Resilience & Dispatch Safety
-- [ ] **Delay Jitter & Rate Limiting**:
-  - Introduce random sleep intervals (e.g. 5-15 seconds) between sends to simulate organic sending patterns and protect domain reputation.
-- [ ] **Daily Quota Counter & Warning**:
-  - Track emails sent in the last 24 hours against SMTP tier limits (e.g. Brevo 300/day).
-- [ ] **Smart Polling Control**:
-  - Deactivate continuous 3-second client polling when no batch is actively executing.
+## Phase 3: Anti-Spam Resilience & Dispatch Safety (Completed)
+- [x] **Delay Jitter & Rate Limiting**:
+  - Introduced non-deterministic randomized delay intervals (4.0 - 8.0s) between consecutive emails to simulate human pacing and avoid spam-burst filters on recipient MTAs.
+- [x] **Daily Quota Counter & Warning**:
+  - Live progress counter and visual progress bar tracking dispatches sent today against relay thresholds (300/day).
+- [x] **Adaptive Polling Control**:
+  - Replaced persistent 3-second polling with adaptive stepping: high frequency (3s) during active 60-second dispatch window, stepping down to 15s idle polling to conserve Neon serverless compute.
