@@ -26,3 +26,24 @@ class ApplicationLog(models.Model):
 
     def __str__(self):
         return f"{self.recipient_email} - {self.status} at {self.sent_at.strftime('%Y-%m-%d %H:%M')}"
+
+class RecruiterLead(models.Model):
+    LOCATION_CHOICES = [
+        ('Hyderabad', 'Hyderabad'),
+        ('Gurugram', 'Gurugram'),
+        ('Remote', 'Remote'),
+        ('Other', 'Other'),
+    ]
+
+    email = models.EmailField(unique=True)
+    name = models.CharField(max_length=150, blank=True)
+    company = models.CharField(max_length=150, blank=True)
+    role = models.CharField(max_length=150, blank=True)
+    location = models.CharField(max_length=50, choices=LOCATION_CHOICES, default='Remote')
+    source_url = models.URLField(max_length=500, blank=True)
+    is_verified = models.BooleanField(default=False, help_text="True if domain has active MX records")
+    is_contacted = models.BooleanField(default=False, help_text="True if email dispatched successfully")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.email} ({self.company or 'Unknown Co'} - {self.location})"

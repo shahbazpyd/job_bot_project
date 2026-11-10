@@ -66,6 +66,9 @@ DATABASES = {
         conn_health_checks=True,
     )
 }
+# Neon Serverless PostgreSQL / PgBouncer Pooler Support:
+# Disables connection-scoped named cursors to prevent InvalidCursorName errors in transaction pooling mode.
+DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
 
 AUTH_PASSWORD_VALIDATORS = [
     {

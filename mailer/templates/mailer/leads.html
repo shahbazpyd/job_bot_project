@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Harvester - Job Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .scrollable-area::-webkit-scrollbar { width: 6px; }
+        .scrollable-area::-webkit-scrollbar-thumb { background-color: #dee2e6; border-radius: 4px; }
+        .lead-card { transition: transform 0.15s ease, opacity 0.15s ease; }
+        .lead-card:hover { transform: translateY(-2px); }
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-light py-4">
+<div class="container-fluid px-md-4" style="max-width: 1400px;">
+
+    <!-- Top Navigation Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom bg-white p-3 rounded shadow-sm">
+        <div class="d-flex align-items-center gap-3">
+            <h4 class="fw-bold mb-0 text-primary">Recruiter Lead Harvester</h4>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Phase 4 Active</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'send_application' %}" class="btn btn-sm btn-outline-primary fw-semibold">
+                &larr; Application Dispatcher
+            </a>
+            <a href="{% url 'admin:index' %}" class="btn btn-sm btn-outline-secondary fw-semibold">
+                Admin Panel
+            </a>
+            <form method="post" action="{% url 'logout' %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-danger fw-semibold">
+                    Logout
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    {% if messages %}
+        {% for msg in messages %}
+            <div class="alert alert-{{ msg.tags }} alert-dismissible fade show py-2 small" role="alert">
+                {{ msg }}
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Top Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3">
+                <span class="text-muted small text-uppercase fw-semibold">Total Discovered Leads</span>
+                <h3 class="fw-bold mb-0 text-dark">{{ total_leads }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3">
+                <span class="text-muted small text-uppercase fw-semibold">DNS MX Verified (Zero Bounce)</span>
+                <h3 class="fw-bold mb-0 text-success">{{ verified_count }}</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3">
+                <span class="text-muted small text-uppercase fw-semibold">Already Contacted</span>
+                <h3 class="fw-bold mb-0 text-info">{{ contacted_count }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column: Harvester Control Panels -->
+        <div class="col-lg-5">
+            
+            <!-- Panel 1: Automated Hiring Feed Scraper -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                    <h6 class="fw-bold mb-0">1. Automated Tech Feed Harvester</h6>
+                    <small class="text-muted">Queries public tech hiring feeds (Hacker News "Who is Hiring" API & direct hiring posts).</small>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <form method="post" action="{% url 'lead_harvester' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="harvest_feed">
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Role / Keyword</label>
+                            <input type="text" name="query" class="form-control form-control-sm" value="Python" placeholder="e.g. Python, FastAPI, Django, Full Stack">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Target Location</label>
+                            <select name="location" class="form-select form-select-sm">
+                                <option value="All">Any / Remote</option>
+                                <option value="Gurugram">Gurugram / Delhi-NCR</option>
+                                <option value="Hyderabad">Hyderabad / Telangana</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-sm btn-primary w-100 py-2 fw-semibold">
+                            Run Automated Feed Harvester
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Panel 2: Text / Google Dorking Parser -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
+                    <h6 class="fw-bold mb-0">2. Text / Google Dorking Parser</h6>
+                    <small class="text-muted">Paste search snippets from Google Dorking or LinkedIn posts to extract and MX-verify emails.</small>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <form method="post" action="{% url 'lead_harvester' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="harvest_text">
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Location Tag</label>
+                            <select name="location" class="form-select form-select-sm">
+                                <option value="Gurugram">Gurugram</option>
+                                <option value="Hyderabad">Hyderabad</option>
+                                <option value="Remote">Remote</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold">Pasted Text Block</label>
+                            <textarea name="raw_text" rows="5" class="form-control form-control-sm" placeholder="Paste recruiter posts or search text containing recruiter emails..."></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-sm btn-outline-primary w-100 py-2 fw-semibold">
+                            Extract & Verify Pasted Contacts
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Discovered Leads Table & Action Bar -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100 d-flex flex-column">
+                <form method="post" action="{% url 'lead_harvester' %}" id="transfer-form" class="h-100 d-flex flex-column m-0">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="transfer_selected">
+
+                    <div class="card-header bg-white border-0 pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="fw-bold mb-0">Verified Leads Queue</h6>
+                            <small class="text-muted">Select leads to load directly into the Application Dispatcher.</small>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-success fw-semibold px-3 py-2">
+                            🚀 Dispatch Selected Leads
+                        </button>
+                    </div>
+
+                    <div class="card-body px-4 py-0 flex-grow-1 overflow-auto scrollable-area" style="max-height: 600px;">
+                        <table class="table table-hover table-sm align-middle mb-0">
+                            <thead class="sticky-top bg-white border-bottom">
+                                <tr class="text-muted small">
+                                    <th style="width: 35px;">
+                                        <input type="checkbox" id="select-all-leads" class="form-check-input">
+                                    </th>
+                                    <th>Recruiter / Email</th>
+                                    <th>Company & Role</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lead in leads %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="selected_leads" value="{{ lead.id }}" class="form-check-input lead-checkbox" {% if lead.is_contacted %}disabled{% else %}checked{% endif %}>
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-dark small">{{ lead.email }}</div>
+                                        {% if lead.name %}
+                                            <div class="text-muted" style="font-size: 0.75rem;">{{ lead.name }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="small fw-semibold text-truncate" style="max-width: 180px;">{{ lead.company|default:"Tech Company" }}</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">{{ lead.role|default:"Python Developer" }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if lead.location == 'Gurugram' %}bg-info-subtle text-info border border-info-subtle{% elif lead.location == 'Hyderabad' %}bg-primary-subtle text-primary border border-primary-subtle{% else %}bg-secondary-subtle text-secondary border border-secondary-subtle{% endif %}">
+                                            {{ lead.location }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if lead.is_contacted %}
+                                            <span class="badge bg-secondary">Contacted</span>
+                                        {% elif lead.is_verified %}
+                                            <span class="badge bg-success">MX Verified</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Unverified</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-5 small">
+                                        No recruiter leads discovered yet.<br>
+                                        Use the feed harvester or text parser on the left to start collecting verified leads!
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('select-all-leads');
+        const checkboxes = document.querySelectorAll('.lead-checkbox:not(:disabled)');
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            });
+        }
+    });
+</script>
+</body>
+</html>

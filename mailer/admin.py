@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from .models import EmailTemplate, ResumeDocument, ApplicationLog
+from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead
 
 class ResumeDocumentForm(forms.ModelForm):
     upload_file = forms.FileField(required=True, help_text="Upload your PDF resume here. It will be stored securely in the database.")
@@ -32,3 +32,9 @@ class ResumeDocumentAdmin(admin.ModelAdmin):
 class ApplicationLogAdmin(admin.ModelAdmin):
     list_display = ('recipient_email', 'status', 'sent_at', 'template', 'resume')
     readonly_fields = ('sent_at',)
+
+@admin.register(RecruiterLead)
+class RecruiterLeadAdmin(admin.ModelAdmin):
+    list_display = ('email', 'company', 'role', 'location', 'is_verified', 'is_contacted', 'created_at')
+    list_filter = ('location', 'is_verified', 'is_contacted')
+    search_fields = ('email', 'company', 'role', 'name')

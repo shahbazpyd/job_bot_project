@@ -11,7 +11,7 @@ from django.conf import settings
 from django.template import Template, Context
 from django.utils import timezone
 from .forms import ApplicationDispatchForm
-from .models import ApplicationLog, EmailTemplate, ResumeDocument
+from .models import ApplicationLog, EmailTemplate, ResumeDocument, RecruiterLead
 
 from django.contrib.auth.decorators import login_required
 
@@ -88,6 +88,8 @@ def send_emails_in_background(parsed_recipients, template_id, resume_id):
                     resume=resume_obj,
                     status="SUCCESS"
                 )
+                # Mark lead as contacted in Harvester registry
+                RecruiterLead.objects.filter(email=to_email).update(is_contacted=True)
                 success_count += 1
 
             except Exception as e:
@@ -137,7 +139,20 @@ def send_application_view(request):
 
             return redirect('send_application')
     else:
-        form = ApplicationDispatchForm()
+        # Check if leads or templates were transferred from the Harvester
+        prefill_emails = request.session.pop('prefill_dispatch_emails', '')
+        prefill_template_id = request.session.pop('prefill_template_id', None)
+        prefill_resume_id = request.session.pop('prefill_resume_id', None)
+
+        initial_data = {}
+        if prefill_emails:
+            initial_data['recipient_emails'] = prefill_emails
+        if prefill_template_id:
+            initial_data['template'] = prefill_template_id
+        if prefill_resume_id:
+            initial_data['resume'] = prefill_resume_id
+
+        form = ApplicationDispatchForm(initial=initial_data)
 
     recent_logs = ApplicationLog.objects.order_by('-sent_at')
     templates = EmailTemplate.objects.all()
@@ -157,6 +172,89 @@ def send_application_view(request):
         'sent_today': sent_today,
         'daily_limit': daily_limit,
         'quota_percent': quota_percent,
+    })
+
+@login_required
+def lead_harvester_view(request):
+    """
+    Dashboard for discovering, validating, and managing recruiter leads.
+    Supports automated scraping from public tech hiring feeds as well as
+    manual pasted text/Google Dork extraction with DNS MX verification.
+    """
+    from .services.harvester import harvest_from_hacker_news, harvest_from_text_block, process_and_save_leads
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'harvest_feed':
+            query = request.POST.get('query', 'Python').strip() or 'Python'
+            location = request.POST.get('location', 'All')
+            candidates = harvest_from_hacker_news(query=query, location_filter=location)
+            stats = process_and_save_leads(candidates)
+            messages.success(
+                request, 
+                f"Harvester finished: {stats['saved']} new leads saved (MX verified), "
+                f"{stats['skipped_duplicate']} skipped (duplicates), {stats['failed_mx']} discarded (invalid MX)."
+            )
+            return redirect('lead_harvester')
+
+        elif action == 'harvest_text':
+            raw_text = request.POST.get('raw_text', '')
+            location = request.POST.get('location', 'Remote')
+            if raw_text:
+                candidates = harvest_from_text_block(raw_text, default_location=location)
+                stats = process_and_save_leads(candidates)
+                messages.success(
+                    request,
+                    f"Text extraction finished: {stats['saved']} verified leads saved, "
+                    f"{stats['skipped_duplicate']} skipped, {stats['failed_mx']} failed MX check."
+                )
+            else:
+                messages.warning(request, "Please paste search results or recruiter post text.")
+            return redirect('lead_harvester')
+
+        elif action == 'transfer_selected':
+            selected_ids = request.POST.getlist('selected_leads')
+            if selected_ids:
+                leads = RecruiterLead.objects.filter(id__in=selected_ids)
+                emails_str = "\n".join(leads.values_list('email', flat=True))
+                request.session['prefill_dispatch_emails'] = emails_str
+
+                # Determine dominant location to pair template & resume
+                locations = [l.location for l in leads]
+                dominant_loc = max(set(locations), key=locations.count) if locations else 'Hyderabad'
+
+                if dominant_loc == 'Gurugram':
+                    gur_template = EmailTemplate.objects.filter(title__icontains="Gurugram").first()
+                    gur_resume = ResumeDocument.objects.filter(title__icontains="Gurugram").first()
+                    if gur_template:
+                        request.session['prefill_template_id'] = gur_template.id
+                    if gur_resume:
+                        request.session['prefill_resume_id'] = gur_resume.id
+                else:
+                    hyd_template = EmailTemplate.objects.filter(title__icontains="Hyderabad").first()
+                    hyd_resume = ResumeDocument.objects.filter(title__icontains="Hyderabad").first()
+                    if hyd_template:
+                        request.session['prefill_template_id'] = hyd_template.id
+                    if hyd_resume:
+                        request.session['prefill_resume_id'] = hyd_resume.id
+
+                messages.info(request, f"Transferred {len(leads)} verified leads into the Application Dispatcher.")
+                return redirect('send_application')
+            else:
+                messages.warning(request, "No leads selected to transfer.")
+                return redirect('lead_harvester')
+
+    leads = RecruiterLead.objects.order_by('-created_at')[:100]
+    total_leads = RecruiterLead.objects.count()
+    verified_count = RecruiterLead.objects.filter(is_verified=True).count()
+    contacted_count = RecruiterLead.objects.filter(is_contacted=True).count()
+
+    return render(request, 'mailer/leads.html', {
+        'leads': leads,
+        'total_leads': total_leads,
+        'verified_count': verified_count,
+        'contacted_count': contacted_count,
     })
 
 @login_required
