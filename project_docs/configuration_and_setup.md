@@ -50,3 +50,15 @@ To create an administrative account to manage templates and resumes:
 ```powershell
 .\.venv\Scripts\python.exe manage.py createsuperuser
 ```
+
+---
+
+## 4. Seeding Initial Resume & Outreach Templates
+To populate or refresh your default resume PDF and personalized email outreach templates into the PostgreSQL database:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/seed_database.py
+```
+This utility idempotently creates or updates:
+- **`ResumeDocument`**: Ingests `Shahbaz_Alam_Resume.pdf` as a binary BLOB into Neon PostgreSQL.
+- **`EmailTemplate`**: Creates the high-converting outreach email template supporting dynamic personalization placeholders (`{{ name }}`, `{{ company }}`, `{{ role }}`).
