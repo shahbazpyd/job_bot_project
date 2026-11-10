@@ -40,7 +40,11 @@
                             </form>
                         </div>
                     </div>
-                    <p class="text-muted small mb-4">Select target parameters to compile and dispatch application packets.</p>
+                    <p class="text-muted small mb-3">Select target parameters to compile and dispatch application packets.</p>
+
+                    <div class="alert alert-info py-2 px-3 small mb-3">
+                        <strong>💡 Template Placeholders:</strong> Use <code>{{ name }}</code>, <code>{{ company }}</code>, and <code>{{ role }}</code> in your template subject/body. They auto-populate from your CSV!
+                    </div>
 
                     {% if messages %}
                         {% for msg in messages %}

@@ -17,7 +17,7 @@ class ApplicationDispatchForm(forms.Form):
         })
     )
     csv_file = forms.FileField(
-        label="Or Upload CSV File (Emails in first column)",
+        label="Or Upload CSV File (Optional columns: Email, Name, Company, Role)",
         required=False,
         widget=forms.FileInput(attrs={
             'class': 'form-control',
@@ -40,48 +40,95 @@ class ApplicationDispatchForm(forms.Form):
         recipient_emails_text = cleaned_data.get('recipient_emails', '')
         csv_file = cleaned_data.get('csv_file')
 
-        all_emails = set()
+        # We store recipients as dict: {email: {'email': ..., 'name': ..., 'company': ..., 'role': ...}}
+        recipients_map = {}
 
-        # 1. Parse text area
+        # 1. Parse text area (plain emails)
         if recipient_emails_text:
             # Split by commas, newlines, or spaces
             raw_emails = re.split(r'[,\n\s]+', recipient_emails_text)
             for raw_email in raw_emails:
                 email = raw_email.strip()
-                if email:
-                    all_emails.add(email)
+                if email and email not in recipients_map:
+                    recipients_map[email] = {
+                        'email': email,
+                        'name': '',
+                        'company': '',
+                        'role': ''
+                    }
 
-        # 2. Parse CSV file
+        # 2. Parse CSV file with header detection
         if csv_file:
             try:
-                # Read file as text
-                decoded_file = csv_file.read().decode('utf-8')
+                decoded_file = csv_file.read().decode('utf-8-sig')  # utf-8-sig handles UTF-8 with BOM
                 io_string = io.StringIO(decoded_file)
                 reader = csv.reader(io_string)
-                for row in reader:
-                    if row:
-                        # Assuming emails are in the first column
-                        email = row[0].strip()
-                        if email:
-                            all_emails.add(email)
+                rows = [row for row in reader if any(field.strip() for field in row)]
+
+                if rows:
+                    first_row = [cell.strip().lower() for cell in rows[0]]
+                    
+                    # Detect if first row is a header row
+                    email_keywords = {'email', 'e-mail', 'mail', 'recipient'}
+                    name_keywords = {'name', 'recruiter', 'recruiter name', 'hiring manager', 'contact'}
+                    company_keywords = {'company', 'company name', 'organization', 'firm'}
+                    role_keywords = {'role', 'position', 'job title', 'title', 'job'}
+
+                    email_col = None
+                    name_col = None
+                    company_col = None
+                    role_col = None
+
+                    for idx, cell in enumerate(first_row):
+                        if cell in email_keywords and email_col is None:
+                            email_col = idx
+                        elif cell in name_keywords and name_col is None:
+                            name_col = idx
+                        elif cell in company_keywords and company_col is None:
+                            company_col = idx
+                        elif cell in role_keywords and role_col is None:
+                            role_col = idx
+
+                    # If header detected, start data rows from index 1, else from index 0 (default col 0 as email)
+                    if email_col is not None:
+                        data_rows = rows[1:]
+                    else:
+                        email_col = 0
+                        data_rows = rows
+
+                    for row in data_rows:
+                        if len(row) > email_col:
+                            email = row[email_col].strip()
+                            if email:
+                                name = row[name_col].strip() if (name_col is not None and len(row) > name_col) else ''
+                                company = row[company_col].strip() if (company_col is not None and len(row) > company_col) else ''
+                                role = row[role_col].strip() if (role_col is not None and len(row) > role_col) else ''
+
+                                recipients_map[email] = {
+                                    'email': email,
+                                    'name': name,
+                                    'company': company,
+                                    'role': role
+                                }
             except Exception as e:
                 raise ValidationError(f"Error reading CSV file: {str(e)}")
 
-        if not all_emails:
+        if not recipients_map:
             raise ValidationError("You must provide at least one recipient email (via text or CSV).")
 
         # 3. Validate all collected emails
-        valid_emails = []
+        valid_recipients = []
         invalid_emails = []
-        for email in all_emails:
+        for email, recipient_data in recipients_map.items():
             try:
                 validate_email(email)
-                valid_emails.append(email)
+                valid_recipients.append(recipient_data)
             except ValidationError:
                 invalid_emails.append(email)
 
         if invalid_emails:
             raise ValidationError(f"Invalid email addresses found: {', '.join(invalid_emails)}")
 
-        cleaned_data['parsed_emails'] = valid_emails
+        cleaned_data['parsed_recipients'] = valid_recipients
+        cleaned_data['parsed_emails'] = [r['email'] for r in valid_recipients]
         return cleaned_data

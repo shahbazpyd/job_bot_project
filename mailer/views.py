@@ -2,17 +2,18 @@ import os
 import threading
 import mimetypes
 from django.http import FileResponse, Http404
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.core.mail import EmailMessage, get_connection
 from django.contrib import messages
 from django.conf import settings
+from django.template import Template, Context
 from .forms import ApplicationDispatchForm
 from .models import ApplicationLog, EmailTemplate, ResumeDocument
 
 from django.contrib.auth.decorators import login_required
 
-def send_emails_in_background(parsed_emails, template_id, resume_id):
-    """Handles the slow SMTP network calls in a separate background thread."""
+def send_emails_in_background(parsed_recipients, template_id, resume_id):
+    """Handles the slow SMTP network calls and per-recipient template interpolation in a separate background thread."""
     success_count = 0
     failure_count = 0
 
@@ -31,16 +32,40 @@ def send_emails_in_background(parsed_emails, template_id, resume_id):
         resume_filename = resume_obj.filename
     except Exception as e:
         # If we can't read the file, log a failure for all and abort
-        for email in parsed_emails:
-            ApplicationLog.objects.create(recipient_email=email, template=template_obj, resume=resume_obj, status=f"FAILED IO: {str(e)[:25]}")
+        for recipient in parsed_recipients:
+            to_email = recipient['email'] if isinstance(recipient, dict) else str(recipient)
+            ApplicationLog.objects.create(recipient_email=to_email, template=template_obj, resume=resume_obj, status=f"FAILED IO: {str(e)[:25]}")
         return
 
     with get_connection() as connection:
-        for to_email in parsed_emails:
+        for recipient in parsed_recipients:
+            # Handle both dictionary payload and fallback string email
+            if isinstance(recipient, dict):
+                to_email = recipient.get('email', '')
+                context_data = {
+                    'email': to_email,
+                    'name': recipient.get('name', '').strip() or 'Hiring Manager',
+                    'company': recipient.get('company', '').strip() or 'your company',
+                    'role': recipient.get('role', '').strip() or 'the open position',
+                }
+            else:
+                to_email = str(recipient)
+                context_data = {
+                    'email': to_email,
+                    'name': 'Hiring Manager',
+                    'company': 'your company',
+                    'role': 'the open position',
+                }
+
             try:
+                # Render personalized subject and body using Django's template engine
+                context = Context(context_data)
+                personalized_subject = Template(template_obj.subject).render(context)
+                personalized_body = Template(template_obj.body).render(context)
+
                 email = EmailMessage(
-                    subject=template_obj.subject,
-                    body=template_obj.body,
+                    subject=personalized_subject,
+                    body=personalized_body,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     to=[to_email],
                     connection=connection,
@@ -71,30 +96,31 @@ def send_application_view(request):
     if request.method == 'POST':
         form = ApplicationDispatchForm(request.POST, request.FILES)
         if form.is_valid():
-            parsed_emails = form.cleaned_data['parsed_emails']
+            parsed_recipients = form.cleaned_data['parsed_recipients']
+            all_emails = [r['email'] for r in parsed_recipients]
             template_obj = form.cleaned_data['template']
             resume_obj = form.cleaned_data['resume']
 
             # Filter out only successfully sent emails to allow retrying previously failed dispatches
             existing_successful_emails = set(
                 ApplicationLog.objects.filter(
-                    recipient_email__in=parsed_emails,
+                    recipient_email__in=all_emails,
                     status="SUCCESS"
                 ).values_list('recipient_email', flat=True)
             )
-            new_emails = [email for email in parsed_emails if email not in existing_successful_emails]
-            skipped_count = len(parsed_emails) - len(new_emails)
+            new_recipients = [r for r in parsed_recipients if r['email'] not in existing_successful_emails]
+            skipped_count = len(parsed_recipients) - len(new_recipients)
 
-            if new_emails:
+            if new_recipients:
                 # Spawn a background thread to handle the slow network calls
                 thread = threading.Thread(
                     target=send_emails_in_background, 
-                    args=(new_emails, template_obj.id, resume_obj.id)
+                    args=(new_recipients, template_obj.id, resume_obj.id)
                 )
                 thread.daemon = True  # Allows Django to shut down even if thread is running
                 thread.start()
                 
-                msg = f"Started sending applications to {len(new_emails)} recipients in the background!"
+                msg = f"Started sending applications to {len(new_recipients)} recipients in the background!"
                 if skipped_count > 0:
                     msg += f" Skipped {skipped_count} emails that were already successfully contacted."
                 messages.success(request, msg)

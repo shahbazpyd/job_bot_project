@@ -16,13 +16,14 @@ This document tracks planned and active upgrades to transform `job_bot_project` 
 
 ---
 
-## Phase 2: Dynamic Personalization & CSV Column Mapping
-- [ ] **Template Variable Engine**:
-  - Support syntax like `{{ name }}`, `{{ company }}`, and `{{ role }}` in email subjects and bodies.
-  - Provide fallback defaults when fields are blank (e.g. `{{ name|default:"Hiring Team" }}`).
-- [ ] **Rich CSV Parsing**:
-  - Auto-detect CSV headers (`Email`, `Name`, `Company`, `Position`).
-  - Provide preview of personalized payload before dispatch.
+## Phase 2: Dynamic Personalization & CSV Column Mapping (Completed)
+- [x] **Template Variable Engine**:
+  - Support syntax like `{{ name }}`, `{{ company }}`, and `{{ role }}` in email subjects and bodies using Django's template engine.
+  - Fallback defaults for missing fields (`Hiring Manager`, `your company`, `the open position`).
+- [x] **Rich CSV Parsing**:
+  - Auto-detect CSV headers (`Email`, `Name`, `Company`, `Role`) case-insensitively.
+  - Gracefully parse both headered and headerless CSVs, plus text-area inputs into normalized dictionaries.
+  - Clean UI hints in dashboard displaying placeholder syntax.
 
 ---
 
