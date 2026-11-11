@@ -98,9 +98,14 @@
                         <div class="mb-3">
                             <label class="form-label small fw-semibold">Target Location</label>
                             <select name="location" class="form-select form-select-sm">
-                                <option value="All">Any / Remote</option>
+                                <option value="All">All Locations / Any</option>
+                                <option value="Remote">Remote (Pan-India)</option>
                                 <option value="Gurugram">Gurugram / Delhi-NCR</option>
                                 <option value="Hyderabad">Hyderabad / Telangana</option>
+                                <option value="Bengaluru">Bengaluru / Bangalore</option>
+                                <option value="Pune">Pune</option>
+                                <option value="Mumbai">Mumbai / MMR</option>
+                                <option value="Pan-India">Pan-India (Other Hubs)</option>
                             </select>
                         </div>
 
@@ -115,20 +120,35 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
                     <h6 class="fw-bold mb-0">2. Text / Google Dorking Parser</h6>
-                    <small class="text-muted">Paste search snippets from Google Dorking or LinkedIn posts to extract and MX-verify emails.</small>
+                    <small class="text-muted">Paste search snippets from Google Dorking or LinkedIn posts to extract, classify, and MX-verify emails.</small>
                 </div>
                 <div class="card-body px-4 pb-4">
                     <form method="post" action="{% url 'lead_harvester' %}">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="harvest_text">
 
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold">Location Tag</label>
-                            <select name="location" class="form-select form-select-sm">
-                                <option value="Gurugram">Gurugram</option>
-                                <option value="Hyderabad">Hyderabad</option>
-                                <option value="Remote">Remote</option>
-                            </select>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Location</label>
+                                <select name="location" class="form-select form-select-sm">
+                                    <option value="Remote" selected>Remote</option>
+                                    <option value="Gurugram">Gurugram</option>
+                                    <option value="Hyderabad">Hyderabad</option>
+                                    <option value="Bengaluru">Bengaluru</option>
+                                    <option value="Pune">Pune</option>
+                                    <option value="Mumbai">Mumbai</option>
+                                    <option value="Pan-India">Pan-India</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-semibold">Experience Tag</label>
+                                <select name="experience" class="form-select form-select-sm">
+                                    <option value="0-3 Years" selected>0–3 Years (Entry/Mid)</option>
+                                    <option value="3-5 Years">3–5 Years</option>
+                                    <option value="5+ Years">5+ Years</option>
+                                    <option value="Unspecified">Unspecified</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -171,7 +191,7 @@
                                     </th>
                                     <th>Recruiter / Email</th>
                                     <th>Company & Role</th>
-                                    <th>Location</th>
+                                    <th>Target & Experience</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -188,13 +208,18 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <div class="small fw-semibold text-truncate" style="max-width: 180px;">{{ lead.company|default:"Tech Company" }}</div>
+                                        <div class="small fw-semibold text-truncate" style="max-width: 170px;">{{ lead.company|default:"Tech Company" }}</div>
                                         <div class="text-muted" style="font-size: 0.75rem;">{{ lead.role|default:"Python Developer" }}</div>
                                     </td>
                                     <td>
-                                        <span class="badge {% if lead.location == 'Gurugram' %}bg-info-subtle text-info border border-info-subtle{% elif lead.location == 'Hyderabad' %}bg-primary-subtle text-primary border border-primary-subtle{% else %}bg-secondary-subtle text-secondary border border-secondary-subtle{% endif %}">
-                                            {{ lead.location }}
-                                        </span>
+                                        <div class="d-flex flex-column gap-1">
+                                            <span class="badge {% if lead.location == 'Gurugram' %}bg-info-subtle text-info border border-info-subtle{% elif lead.location == 'Hyderabad' %}bg-primary-subtle text-primary border border-primary-subtle{% elif lead.location == 'Remote' %}bg-success-subtle text-success border border-success-subtle{% elif lead.location == 'Bengaluru' %}bg-warning-subtle text-dark border border-warning-subtle{% else %}bg-secondary-subtle text-secondary border border-secondary-subtle{% endif %}" style="width: fit-content;">
+                                                {{ lead.location }}
+                                            </span>
+                                            <span class="badge {% if lead.experience_tag == '0-3 Years' %}bg-success text-white{% else %}bg-light text-muted border{% endif %}" style="font-size: 0.68rem; width: fit-content;">
+                                                {{ lead.experience_tag }}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td>
                                         {% if lead.is_contacted %}

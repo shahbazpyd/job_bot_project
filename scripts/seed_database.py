@@ -43,6 +43,32 @@ def get_email_body(location: str) -> str:
         "GitHub: https://github.com/shahbazpyd | LinkedIn: https://www.linkedin.com/in/shahbazpyd"
     )
 
+def get_pan_india_email_body() -> str:
+    """Generates the concise, humanized outreach email body for Pan-India and Remote applications."""
+    return (
+        "Hi {{ name|default:\"there\" }},\n\n"
+        "I hope you're having a good week.\n\n"
+        "I’m reaching out to express my interest in the {{ role|default:\"Python / Full Stack Developer\" }} "
+        "role at {{ company|default:\"your team\" }}.\n\n"
+        "I have 1.5+ years of experience building production web applications using Python (FastAPI, Django) "
+        "and React.js. A few quick highlights of my work:\n\n"
+        "• Built and deployed a live B2B platform (https://www.ssenterprisesncr.in) using FastAPI and Serverless "
+        "PostgreSQL, reducing manual quote processing by 15 hours/week.\n"
+        "• Optimized PostgreSQL database queries and backend APIs at GISFY, reducing query response times by 35% "
+        "with robust RBAC security.\n"
+        "• Developed responsive user interfaces in React.js and Tailwind CSS integrated with Cloudinary CDN for fast asset delivery.\n\n"
+        "I am actively open to Remote opportunities across India, as well as immediate relocation for hybrid or on-site roles "
+        "(Current primary residential bases: Gurugram & Hyderabad).\n\n"
+        "I have attached my resume for your review. If my profile aligns with what you're looking for, I would love the "
+        "chance to connect for a brief 10-minute chat this week.\n\n"
+        "Best regards,\n\n"
+        "Shahbaz Alam\n"
+        "Python Backend / Full Stack Developer\n"
+        "+91-7079619717 | sbzalam2025@gmail.com\n"
+        "Open to Remote (Pan-India) & Immediate Relocation | Bases: Gurugram & Hyderabad\n"
+        "GitHub: https://github.com/shahbazpyd | LinkedIn: https://www.linkedin.com/in/shahbazpyd"
+    )
+
 def seed_data():
     target_media_dir = BASE_DIR / "media"
     target_media_dir.mkdir(exist_ok=True)
@@ -129,7 +155,20 @@ def seed_data():
     print(f"[OK] Template (Gurugram) {status_str}: ID={template_gur.id}, Title='{template_gur.title}'")
 
     # -------------------------------------------------------------
-    # 5. Optional Cleanup of Old Generic Initial Records
+    # 5. Ingest Email Template 3 (Pan-India / Remote)
+    # -------------------------------------------------------------
+    template_pan, created = EmailTemplate.objects.update_or_create(
+        title="Python Full Stack Outreach (Pan-India / Remote)",
+        defaults={
+            'subject': subject,
+            'body': get_pan_india_email_body()
+        }
+    )
+    status_str = "Created" if created else "Updated"
+    print(f"[OK] Template (Pan-India / Remote) {status_str}: ID={template_pan.id}, Title='{template_pan.title}'")
+
+    # -------------------------------------------------------------
+    # 6. Optional Cleanup of Old Generic Initial Records
     # -------------------------------------------------------------
     ResumeDocument.objects.filter(title="Shahbaz Alam - Python Full Stack Developer").delete()
     EmailTemplate.objects.filter(title="Python Full-Stack Outreach (FastAPI / Django / React)").delete()

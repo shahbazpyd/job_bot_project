@@ -7,8 +7,8 @@
 
 ## 1. Project Status Summary
 - **Project**: `job_bot_project` (Job Application Dispatcher & Lead Harvester)
-- **Active Phase**: **All Core Phases (1–5) Completed & Verified**
-- **System State**: Production-Ready, Fully Tested (18/18 tests passing), Cloud-Indexed, Documented
+- **Active Phase**: **Phase 6 Completed & Verified**
+- **System State**: Pan-India & Remote Enabled, 0–3 YOE Tagged, Production-Ready, 100% Test Coverage (20/20 tests passing)
 - **Primary Database**: Neon Serverless PostgreSQL (`ep-calm-heart...`)
 - **Active Environment**: `.venv` (Python 3.15, Django 6.1, `psycopg` 3.3.8)
 
@@ -44,6 +44,13 @@
   - Configured WhiteNoise `CompressedManifestStaticFilesStorage` in `settings.py` via `STORAGES` dictionary for immutable content-hashed browser caching.
   - Authored production deployment manifests: [Procfile](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/Procfile) for Gunicorn and [render.yaml](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/render.yaml) for Render cloud infrastructure.
   - Authored comprehensive GitHub [README.md](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/README.md) showcasing architecture, system design, and setup guides.
+- **Phase 6 (Pan-India & Remote Expansion with 0–3 YOE Tagging)**:
+  - Added `experience_tag` and expanded `LOCATION_CHOICES` (`Bengaluru`, `Pune`, `Mumbai`, `Remote`, `Pan-India`) on `RecruiterLead` with B-Tree index `(experience_tag, is_contacted)`. Applied migration `0005` to Neon PostgreSQL.
+  - Ingested 3rd email template: `Python Full Stack Outreach (Pan-India / Remote)` (ID 4) positioning open-to-remote and immediate relocation with bases in Gurugram & Hyderabad.
+  - Implemented regex heuristic extraction for experience (`detect_experience`) and multi-city location detection (`detect_location`) in `mailer/services/harvester.py`.
+  - Updated `transfer_selected` action in `mailer/views.py` to route Remote and Pan-India leads to the Pan-India template while maintaining Gurugram/Hyderabad resume flexibility.
+  - Enhanced Harvester UI in `mailer/templates/mailer/leads.html` with `0–3 YOE` experience badges and multi-location tags.
+  - Expanded test suite to 20 tests in `mailer/tests.py` with 100% pass rate (`Ran 20 tests ... OK`).
 
 ---
 
@@ -64,6 +71,5 @@
 ---
 
 ## 5. Next Immediate Steps (Operational Recommendations)
-1. **User Operational Verification**: Shahbaz can start the local development server manually (`python manage.py runserver`) to test the lead harvester and email dispatcher.
-2. **Git Commit & Push**: Stage and commit all completed phases, migrations, deployment configurations, and documentation to GitHub.
-3. **Cloud Deployment (Optional)**: Connect the GitHub repository to Render using `render.yaml` for live 24/7 cloud hosting.
+1. **User Operational Verification**: Shahbaz can launch the development server (`python manage.py runserver`) to test Pan-India lead harvesting, experience tag classification, and dispatch routing.
+2. **Git Commit & Push**: Commit all changes across Phase 1–6 to the Git repository.

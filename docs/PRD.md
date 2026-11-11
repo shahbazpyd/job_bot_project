@@ -11,10 +11,11 @@ Finding and applying to high-quality software engineering roles is time-consumin
 
 ### The Solution
 A unified, private Django platform that:
-- Harvests and validates active recruiter and hiring manager leads across target tech hubs (Hyderabad and Gurugram).
+- Harvests and validates active recruiter and hiring manager leads across target tech hubs (Hyderabad, Gurugram, Bengaluru, Pune, Mumbai, Remote, and Pan-India).
+- Tags and filters leads by experience range (specifically identifying roles matching 0 to 3 years of experience).
 - Verifies recipient email syntax and DNS MX records prior to outreach.
 - Ingests multiple location-targeted resume PDF variants directly into PostgreSQL.
-- Dynamically personalizes outreach emails using Django's template engine (`{{ name }}`, `{{ company }}`, `{{ role }}`).
+- Dynamically personalizes outreach emails using Django's template engine (`{{ name }}`, `{{ company }}`, `{{ role }}`) with regional variants (Hyderabad, Gurugram, and Pan-India / Remote).
 - Dispatches applications with anti-spam pacing jitter (4–8 seconds) and daily quota monitoring.
 
 ---
@@ -23,12 +24,13 @@ A unified, private Django platform that:
 
 ### User Persona
 - **Primary User**: Shahbaz Alam (Full-Stack / Python Developer).
-- **Goal**: Secure targeted full-stack / backend engineering interviews in Hyderabad and Gurugram with minimal manual repetitive labor.
-- **Key Pain Points**: High bounce rates from unverified emails, manual data entry fatigue, and tracking application status across multiple companies.
+- **Goal**: Secure targeted full-stack / backend engineering interviews in Hyderabad, Gurugram, Bengaluru, Pune, Mumbai, Remote, and across India with minimal manual repetitive labor.
+- **Experience Level**: 1.5+ years of production experience (targeting 0–3 years of experience roles).
+- **Key Pain Points**: High bounce rates from unverified emails, manual data entry fatigue, tracking application status across multiple companies, and targeting roles outside primary residential hubs.
 
 ### Key User Journey
-1. **Lead Discovery**: The user triggers or inputs search criteria (e.g. "Python Developer", "Gurugram" or "Hyderabad"). The Harvester scrapes and verifies active recruiter leads, populating the Lead Queue.
-2. **Review & Targeting**: The user selects the targeted location (e.g. Gurugram), automatically pairing the Gurugram resume PDF with the Gurugram-tailored email template.
+1. **Lead Discovery & Experience Filtering**: The user triggers or inputs search criteria (e.g. "Python Developer", "0-3 Years", "Remote" or "Bengaluru"). The Harvester scrapes, extracts experience brackets, and verifies active recruiter leads, populating the Lead Queue.
+2. **Review & Targeting**: The user selects targeted leads. The system automatically pairs the appropriate resume and email template (e.g., Gurugram for NCR, Hyderabad for Telangana, or Pan-India/Remote with flexible relocation statements).
 3. **Automated Dispatch**: The user submits the batch. The background worker iterates through recipients, interpolating personalized variables and spacing requests with anti-spam delay jitter.
 4. **Live Monitoring**: The dashboard displays live progress via adaptive polling and updates daily quota consumption.
 
@@ -38,14 +40,15 @@ A unified, private Django platform that:
 
 ### In-Scope (MVP & Current Iteration)
 - **Multi-Region Resume Storage**: Binary BLOB storage for PDF resumes (Hyderabad & Gurugram).
-- **Personalized Template Engine**: Dynamic placeholder interpolation (`{{ name }}`, `{{ company }}`, `{{ role }}`) with graceful fallbacks.
+- **Personalized Template Engine**: Dynamic placeholder interpolation (`{{ name }}`, `{{ company }}`, `{{ role }}`) with graceful fallbacks across 3 regional variants (Hyderabad, Gurugram, Pan-India / Remote).
 - **Smart CSV Normalization**: Automatic detection of `Email`, `Name`, `Company`, and `Role` headers with UTF-8 BOM support.
 - **Anti-Spam Dispatch Engine**: Randomized delay jitter (4.0–8.0s), daily quota tracking (300/day limit), and retry-safe deduplication (allowing retries for failed dispatches).
-- **Lead Harvester & Scraper Module (Phase 4 Active Scope)**:
-  - Query-based recruiter search targeting tech hubs.
+- **Lead Harvester & Experience Classifier Module**:
+  - Query-based recruiter search targeting tech hubs (Hyderabad, Gurugram, Bengaluru, Pune, Mumbai, Remote, Pan-India).
+  - Experience extraction heuristics tagging roles for 0 to 3 years of experience.
   - Regex extraction and normalization of recruiter emails.
   - DNS MX record pre-flight validation using `dnspython` to maintain bounce rates below 2%.
-  - Direct import into the dispatch queue.
+  - 1-click transfer pipeline into the dispatch queue with intelligent template/resume pairing.
 
 ### Post-MVP Scope (Future Phases)
 - Automated follow-up email sequences after 5 days of inactivity.

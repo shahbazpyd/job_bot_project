@@ -201,8 +201,9 @@ def lead_harvester_view(request):
         elif action == 'harvest_text':
             raw_text = request.POST.get('raw_text', '')
             location = request.POST.get('location', 'Remote')
+            experience = request.POST.get('experience', '0-3 Years')
             if raw_text:
-                candidates = harvest_from_text_block(raw_text, default_location=location)
+                candidates = harvest_from_text_block(raw_text, default_location=location, default_experience=experience)
                 stats = process_and_save_leads(candidates)
                 messages.success(
                     request,
@@ -222,7 +223,7 @@ def lead_harvester_view(request):
 
                 # Determine dominant location to pair template & resume
                 locations = [l.location for l in leads]
-                dominant_loc = max(set(locations), key=locations.count) if locations else 'Hyderabad'
+                dominant_loc = max(set(locations), key=locations.count) if locations else 'Remote'
 
                 if dominant_loc == 'Gurugram':
                     gur_template = EmailTemplate.objects.filter(title__icontains="Gurugram").first()
@@ -231,13 +232,21 @@ def lead_harvester_view(request):
                         request.session['prefill_template_id'] = gur_template.id
                     if gur_resume:
                         request.session['prefill_resume_id'] = gur_resume.id
-                else:
+                elif dominant_loc == 'Hyderabad':
                     hyd_template = EmailTemplate.objects.filter(title__icontains="Hyderabad").first()
                     hyd_resume = ResumeDocument.objects.filter(title__icontains="Hyderabad").first()
                     if hyd_template:
                         request.session['prefill_template_id'] = hyd_template.id
                     if hyd_resume:
                         request.session['prefill_resume_id'] = hyd_resume.id
+                else:
+                    # Remote, Bengaluru, Pune, Mumbai, Pan-India, etc.
+                    pan_template = EmailTemplate.objects.filter(title__icontains="Pan-India").first()
+                    pan_resume = ResumeDocument.objects.filter(title__icontains="Gurugram").first() or ResumeDocument.objects.first()
+                    if pan_template:
+                        request.session['prefill_template_id'] = pan_template.id
+                    if pan_resume:
+                        request.session['prefill_resume_id'] = pan_resume.id
 
                 messages.info(request, f"Transferred {len(leads)} verified leads into the Application Dispatcher.")
                 return redirect('send_application')
@@ -245,7 +254,16 @@ def lead_harvester_view(request):
                 messages.warning(request, "No leads selected to transfer.")
                 return redirect('lead_harvester')
 
-    leads = RecruiterLead.objects.order_by('-created_at')[:100]
+    filter_loc = request.GET.get('location', '')
+    filter_exp = request.GET.get('experience', '')
+
+    leads_qs = RecruiterLead.objects.all()
+    if filter_loc:
+        leads_qs = leads_qs.filter(location=filter_loc)
+    if filter_exp:
+        leads_qs = leads_qs.filter(experience_tag=filter_exp)
+
+    leads = leads_qs.order_by('-created_at')[:100]
     total_leads = RecruiterLead.objects.count()
     verified_count = RecruiterLead.objects.filter(is_verified=True).count()
     contacted_count = RecruiterLead.objects.filter(is_contacted=True).count()
@@ -255,6 +273,8 @@ def lead_harvester_view(request):
         'total_leads': total_leads,
         'verified_count': verified_count,
         'contacted_count': contacted_count,
+        'current_filter_loc': filter_loc,
+        'current_filter_exp': filter_exp,
     })
 
 @login_required

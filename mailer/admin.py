@@ -35,6 +35,6 @@ class ApplicationLogAdmin(admin.ModelAdmin):
 
 @admin.register(RecruiterLead)
 class RecruiterLeadAdmin(admin.ModelAdmin):
-    list_display = ('email', 'company', 'role', 'location', 'is_verified', 'is_contacted', 'created_at')
-    list_filter = ('location', 'is_verified', 'is_contacted')
+    list_display = ('email', 'company', 'role', 'location', 'experience_tag', 'is_verified', 'is_contacted', 'created_at')
+    list_filter = ('location', 'experience_tag', 'is_verified', 'is_contacted')
     search_fields = ('email', 'company', 'role', 'name')

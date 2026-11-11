@@ -70,3 +70,24 @@
   - Compiled comprehensive GitHub [README.md](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/README.md) featuring architecture diagrams, feature matrix, setup guide, and portfolio highlights.
 - [x] **Regression & Performance Verification**:
   - Re-executed full automated test suite with `--keepdb`: 18/18 tests passed (execution time reduced from 101s to 47s).
+
+---
+
+## Phase 6: Pan-India & Remote Expansion with 0–3 YOE Tagging (Completed)
+- [x] **Data Model & Schema Evolution**:
+  - Added `experience_tag` to `RecruiterLead` (`0-3 Years`, `3-5 Years`, `5+ Years`, `Unspecified`).
+  - Expanded `LOCATION_CHOICES` on `RecruiterLead` to include `Bengaluru`, `Pune`, `Mumbai`, `Remote`, `Pan-India`.
+  - Added B-Tree composite index `idx_lead_exp_contacted` on `(experience_tag, is_contacted)`.
+  - Generated and applied migration `0005_recruiterlead_experience_tag_and_more` to Neon PostgreSQL.
+- [x] **Pan-India & Remote Email Template Ingestion**:
+  - Seeded `Python Full Stack Outreach (Pan-India / Remote)` template (ID 4) into Neon PostgreSQL.
+  - Positioned candidate profile: open to Remote across India & immediate relocation with bases in Gurugram & Hyderabad.
+- [x] **Heuristic Experience Extractor & Multi-City Detection**:
+  - Implemented `detect_experience(text)` with defensive precedence ordering (early career 0-3 YOE evaluated before senior standalone tokens).
+  - Expanded `detect_location(text)` for Bengaluru, Pune, Mumbai, Remote, and Pan-India.
+- [x] **Smart Dispatcher Routing & Harvester UI**:
+  - Updated `transfer_selected` action in `mailer/views.py` to route Remote, Bengaluru, Pune, Mumbai, and Pan-India leads to the Pan-India template with Gurugram/Hyderabad resume flexibility.
+  - Enhanced `mailer/templates/mailer/leads.html` with experience badges (`0–3 YOE`), expanded location selectors, and visual affordances.
+- [x] **Automated Test Suite Expansion**:
+  - Authored unit and integration tests in `mailer/tests.py` covering experience heuristics, multi-city detection, and Pan-India template session routing.
+  - Verified 100% test pass rate (`Ran 20 tests ... OK`).

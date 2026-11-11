@@ -20,7 +20,7 @@ from django.template import Template, Context
 from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead
 from .forms import ApplicationDispatchForm
 from .services.verifier import verify_email_mx
-from .services.harvester import detect_location, harvest_from_text_block, process_and_save_leads
+from .services.harvester import detect_location, detect_experience, harvest_from_text_block, process_and_save_leads
 
 
 class ApplicationDispatchFormTest(TestCase):
@@ -169,7 +169,20 @@ class HarvesterPipelineTest(TestCase):
         """Verify geographic locations are identified accurately."""
         self.assertEqual(detect_location("Looking for Python devs in Hyderabad / Telangana"), "Hyderabad")
         self.assertEqual(detect_location("Opening in Gurugram / Gurgaon office"), "Gurugram")
+        self.assertEqual(detect_location("Opening in Bengaluru / Bangalore office"), "Bengaluru")
+        self.assertEqual(detect_location("Software Engineer based in Pune"), "Pune")
+        self.assertEqual(detect_location("Fintech company in Mumbai / MMR"), "Mumbai")
         self.assertEqual(detect_location("100% Remote Python role"), "Remote")
+        self.assertEqual(detect_location("Multiple engineering positions across India"), "Pan-India")
+
+    def test_experience_detection_heuristics(self):
+        """Verify regex patterns classify 0-3 YOE early career and senior postings accurately."""
+        self.assertEqual(detect_experience("Looking for a Python dev with 1-3 years experience"), "0-3 Years")
+        self.assertEqual(detect_experience("Hiring freshers and junior developers for backend role"), "0-3 Years")
+        self.assertEqual(detect_experience("Entry level Python developer / 0 to 2 YOE required"), "0-3 Years")
+        self.assertEqual(detect_experience("Mid-level engineer with 3-5 years experience"), "3-5 Years")
+        self.assertEqual(detect_experience("Senior Python engineer with 5+ years of experience"), "5+ Years")
+        self.assertEqual(detect_experience("Lead software architect / 8 yrs yoe"), "5+ Years")
 
     def test_text_block_harvester_extraction(self):
         """Verify extraction of emails from raw recruiter posts."""
@@ -270,3 +283,29 @@ class DispatchSecurityAndDeduplicationTest(TestCase):
         new_emails = [e for e in parsed_emails if e not in existing_successful]
 
         self.assertEqual(new_emails, [])
+
+    def test_transfer_selected_routes_pan_india_template(self):
+        """Verify transferring Remote or Bengaluru leads pairs the Pan-India / Remote template."""
+        self.client.login(username="testuser", password="securepassword123")
+        pan_template = EmailTemplate.objects.create(
+            title="Python Full Stack Outreach (Pan-India / Remote)",
+            subject="Job Inquiry",
+            body="Hello from Job Bot Pan-India"
+        )
+        lead = RecruiterLead.objects.create(
+            email="recruiter.blr@innovate.in",
+            company="Innovate Bangalore",
+            role="Python Engineer",
+            location="Bengaluru",
+            experience_tag="0-3 Years",
+            is_verified=True
+        )
+
+        response = self.client.post(reverse('lead_harvester'), {
+            'action': 'transfer_selected',
+            'selected_leads': [lead.id]
+        })
+        self.assertEqual(response.status_code, 302)
+        session = self.client.session
+        self.assertEqual(session.get('prefill_template_id'), pan_template.id)
+        self.assertIn("recruiter.blr@innovate.in", session.get('prefill_dispatch_emails', ''))

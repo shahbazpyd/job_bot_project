@@ -31,15 +31,51 @@ def clean_html_text(raw_html: str) -> str:
     soup = BeautifulSoup(raw_html, "html.parser")
     return soup.get_text(separator=" ").strip()
 
-def detect_location(text: str, default: str = "Remote") -> str:
-    """Detects target locations in job descriptions or comments."""
+def detect_experience(text: str, default: str = "0-3 Years") -> str:
+    """
+    Infers the required experience level from job descriptions using regex heuristics.
+    Categorizes into:
+      - '0-3 Years': Entry / Junior / 0-1, 1-2, 0-3, 1-3 years / Freshers
+      - '3-5 Years': Mid-Senior (3-5 yrs, 4+ yrs)
+      - '5+ Years': Senior / Lead / Principal / 5+ yrs
+      - default: '0-3 Years'
+    """
     text_lower = text.lower()
-    if "hyderabad" in text_lower or "telangana" in text_lower:
+
+    # 1. Early-career / 0-3 years patterns (check ranges first to avoid false senior matches):
+    if re.search(r'\b(?:0[-–to ]+3|1[-–to ]+3|0[-–to ]+2|0[-–to ]+1|1[-–to ]+2|2[-–to ]+3|[0-2]\+?)\s*(?:years?|yrs?|yoe)\b', text_lower) or \
+       re.search(r'\b(?:fresher|freshers|junior|entry[\s-]*level|early[\s-]*career|associate|graduate)\b', text_lower):
+        return "0-3 Years"
+
+    # 2. Mid-level patterns: 3-5 yrs, 4-6 yrs, 3+ yrs, 4+ yrs
+    if re.search(r'\b(?:3[-–to ]+5|4[-–to ]+6|3\+?|4\+?)\s*(?:years?|yrs?|yoe)\b', text_lower) or \
+       re.search(r'\b(?:mid[\s-]*level|intermediate)\b', text_lower):
+        return "3-5 Years"
+
+    # 3. Senior patterns: 5+, 6+, 7+, 8+, 10+ yrs or senior, lead, staff, principal
+    if re.search(r'(?<![-–to0-9])\b(?:[5-9]|1[0-9])\+?\s*(?:years?|yrs?|yoe)\b', text_lower) or \
+       re.search(r'\b(?:senior|lead|principal|staff|architect)\b', text_lower):
+        return "5+ Years"
+
+    return default
+
+def detect_location(text: str, default: str = "Remote") -> str:
+    """Detects target locations in job descriptions or comments across Indian tech hubs & Remote."""
+    text_lower = text.lower()
+    if any(loc in text_lower for loc in ["hyderabad", "telangana", "secunderabad"]):
         return "Hyderabad"
-    elif "gurugram" in text_lower or "gurgaon" in text_lower or "noida" in text_lower or "delhi" in text_lower:
+    elif any(loc in text_lower for loc in ["gurugram", "gurgaon", "noida", "delhi", "faridabad", "ncr"]):
         return "Gurugram"
-    elif "remote" in text_lower or "anywhere" in text_lower or "wfh" in text_lower:
+    elif any(loc in text_lower for loc in ["bengaluru", "bangalore"]):
+        return "Bengaluru"
+    elif "pune" in text_lower:
+        return "Pune"
+    elif any(loc in text_lower for loc in ["mumbai", "navi mumbai", "thane", "mmr"]):
+        return "Mumbai"
+    elif any(loc in text_lower for loc in ["remote", "anywhere", "wfh", "work from home", "distributed"]):
         return "Remote"
+    elif "india" in text_lower:
+        return "Pan-India"
     return default
 
 def harvest_from_hacker_news(query: str = "Python", location_filter: str = "All", max_leads: int = 15) -> List[Dict[str, Any]]:
@@ -77,9 +113,10 @@ def harvest_from_hacker_news(query: str = "Python", location_filter: str = "All"
                 continue
 
             detected_loc = detect_location(comment_text)
+            detected_exp = detect_experience(comment_text)
 
             # Apply location filter if requested
-            if location_filter in ["Hyderabad", "Gurugram"] and detected_loc != location_filter:
+            if location_filter and location_filter != "All" and detected_loc != location_filter:
                 continue
 
             # First line often contains: Company | Role | Location
@@ -100,6 +137,7 @@ def harvest_from_hacker_news(query: str = "Python", location_filter: str = "All"
                     'company': company,
                     'role': role,
                     'location': detected_loc,
+                    'experience_tag': detected_exp,
                     'source_url': f"https://news.ycombinator.com/item?id={hit.get('objectID', '')}",
                     'raw_text': comment_text[:300]
                 })
@@ -112,7 +150,7 @@ def harvest_from_hacker_news(query: str = "Python", location_filter: str = "All"
 
     return leads_harvested
 
-def harvest_from_text_block(raw_text: str, default_location: str = "Remote") -> List[Dict[str, Any]]:
+def harvest_from_text_block(raw_text: str, default_location: str = "Remote", default_experience: str = "0-3 Years") -> List[Dict[str, Any]]:
     """
     Parses manually pasted recruiter posts, LinkedIn search text, or job boards.
     Extracts emails and attempts to infer company or role from context.
@@ -124,6 +162,7 @@ def harvest_from_text_block(raw_text: str, default_location: str = "Remote") -> 
         emails = EMAIL_REGEX.findall(line)
         if emails:
             loc = detect_location(line, default=default_location)
+            exp = detect_experience(line, default=default_experience)
             for raw_email in set(emails):
                 email = raw_email.lower().strip()
                 domain = email.split('@')[1] if '@' in email else ''
@@ -135,6 +174,7 @@ def harvest_from_text_block(raw_text: str, default_location: str = "Remote") -> 
                     'company': company_guess,
                     'role': "Python / Full Stack Developer",
                     'location': loc,
+                    'experience_tag': exp,
                     'source_url': "",
                     'raw_text': line[:200]
                 })
@@ -177,6 +217,7 @@ def process_and_save_leads(candidate_leads: List[Dict[str, Any]]) -> Dict[str, i
                 company=lead_data.get('company', ''),
                 role=lead_data.get('role', ''),
                 location=lead_data.get('location', 'Remote'),
+                experience_tag=lead_data.get('experience_tag', '0-3 Years'),
                 source_url=lead_data.get('source_url', ''),
                 is_verified=True,
                 is_contacted=False

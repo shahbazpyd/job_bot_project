@@ -101,6 +101,18 @@ job_bot_project/
 - **Database Engine**: Serverless PostgreSQL hosted on Neon.
 - **Connection Strategy**: Configured through `dj-database-url` with connection pooling (`conn_max_age=600`) and continuous health checks. Enforces `DISABLE_SERVER_SIDE_CURSORS = True` to support PgBouncer transaction pooling on Neon without connection-scoped cursor collisions (`InvalidCursorName`).
 - **Binary Storage (`models.BinaryField`)**: Resume PDFs are stored directly as binary bytes within PostgreSQL rows. This eliminates stateful filesystem synchronization on containerized PaaS platforms (e.g. Render, Railway) where local disk is ephemeral.
+- **Recruiter Lead & Experience Schema (`RecruiterLead`)**:
+  - `email`: `EmailField(unique=True)`
+  - `location`: Choices: `Gurugram`, `Hyderabad`, `Bengaluru`, `Pune`, `Mumbai`, `Remote`, `Pan-India`, `Other`.
+  - `experience_tag`: Choices: `0-3 Years`, `3-5 Years`, `5+ Years`, `Unspecified`.
+  - `is_verified`: Active DNS MX verified.
+  - `is_contacted`: Boolean flag updated upon successful outreach dispatch.
+- **Accelerated B-Tree Indexing**:
+  - `idx_applog_email_status` on `ApplicationLog(recipient_email, status)`
+  - `idx_applog_sent_at` on `ApplicationLog(sent_at)`
+  - `idx_lead_contacted_loc` on `RecruiterLead(is_contacted, location)`
+  - `idx_lead_exp_contacted` on `RecruiterLead(experience_tag, is_contacted)`
+  - `idx_lead_created_at` on `RecruiterLead(-created_at)`
 - **Deduplication Constraints**: `EmailTemplate.title` and `ResumeDocument.title` enforce database-level `unique=True` constraints. `ApplicationLog` tracks per-recipient status (`SUCCESS`, `FAILED`) to guarantee idempotent retries.
 
 ---
