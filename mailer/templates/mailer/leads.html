@@ -3,102 +3,419 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lead Harvester - Job Bot</title>
+    <title>Recruiter Lead Harvester - Job Bot</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
     <style>
-        .scrollable-area::-webkit-scrollbar { width: 6px; }
-        .scrollable-area::-webkit-scrollbar-thumb { background-color: #dee2e6; border-radius: 4px; }
-        .lead-card { transition: transform 0.15s ease, opacity 0.15s ease; }
-        .lead-card:hover { transform: translateY(-2px); }
+        :root {
+            --bg-void: #080b11;
+            --surface-glass: rgba(15, 23, 42, 0.7);
+            --surface-glass-elevated: rgba(22, 32, 54, 0.85);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-glass-hover: rgba(99, 102, 241, 0.45);
+            --accent-indigo: #6366f1;
+            --accent-purple: #a855f7;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --text-primary: #f8fafc;
+            --text-muted: #94a3b8;
+            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            background-color: var(--bg-void);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* 1. Scroll Effects: Custom Neon Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.35), rgba(168, 85, 247, 0.35));
+            border-radius: 9999px;
+            transition: background 0.2s ease;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.7), rgba(168, 85, 247, 0.7));
+        }
+
+        .scrollable-area {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(99, 102, 241, 0.35) transparent;
+        }
+
+        /* 2. Continuous Effects: Living Ambient Aura Orbs */
+        .ambient-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.65;
+            animation: float-orb 22s ease-in-out infinite alternate;
+        }
+        .orb-1 {
+            top: -100px;
+            left: -80px;
+            width: 480px;
+            height: 480px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.2), transparent 70%);
+        }
+        .orb-2 {
+            bottom: -120px;
+            right: -100px;
+            width: 520px;
+            height: 520px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.18), transparent 70%);
+            animation-delay: -8s;
+        }
+        .orb-3 {
+            top: 30%;
+            left: 55%;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.1), transparent 70%);
+            animation-delay: -15s;
+        }
+        @keyframes float-orb {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(45px, 40px) scale(1.08); }
+            100% { transform: translate(-30px, -35px) scale(0.94); }
+        }
+
+        /* Continuous Pulse Beacon */
+        .radar-beacon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-emerald);
+            display: inline-block;
+            position: relative;
+        }
+        .radar-beacon::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background-color: var(--accent-emerald);
+            animation: beacon-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes beacon-pulse {
+            0% { transform: scale(0.7); opacity: 0.9; }
+            100% { transform: scale(2.8); opacity: 0; }
+        }
+
+        /* 3. 3D & Glass Surfaces */
+        .glass-card {
+            background: var(--surface-glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            overflow: hidden;
+            z-index: 1;
+        }
+        .glass-card:hover {
+            border-color: var(--border-glass-hover);
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8), 0 0 35px rgba(99, 102, 241, 0.16), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+        }
+
+        /* 5. Hover Spotlight Effect */
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(99, 102, 241, 0.12), transparent 65%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .glass-card:hover::before {
+            opacity: 1;
+        }
+
+        /* 6. Text Effects */
+        .text-gradient {
+            background: linear-gradient(135deg, #ffffff 10%, #c7d2fe 50%, #e879f9 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .text-gradient-emerald {
+            background: linear-gradient(135deg, #f8fafc 10%, #6ee7b7 60%, #10b981 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .text-gradient-purple {
+            background: linear-gradient(135deg, #f8fafc 10%, #d8b4fe 60%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .glow-stat {
+            text-shadow: 0 0 24px rgba(99, 102, 241, 0.4);
+        }
+        .glow-emerald {
+            text-shadow: 0 0 24px rgba(16, 185, 129, 0.45);
+        }
+        .glow-purple {
+            text-shadow: 0 0 24px rgba(168, 85, 247, 0.45);
+        }
+
+        /* Form Controls Dark Glass Styling */
+        .form-control, .form-select {
+            background-color: rgba(15, 23, 42, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #f8fafc !important;
+            border-radius: 12px !important;
+            padding: 0.6rem 0.9rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: rgba(22, 32, 54, 0.85) !important;
+            border-color: var(--accent-indigo) !important;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.28) !important;
+            color: #f8fafc !important;
+        }
+        .form-control::placeholder {
+            color: #64748b !important;
+        }
+        .form-select option {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        /* 3D Tactile Buttons */
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        }
+        .btn-gradient-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+            color: #ffffff;
+        }
+        .btn-gradient-primary:active {
+            transform: translateY(2px) scale(0.98);
+        }
+
+        .btn-gradient-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .btn-gradient-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(16, 185, 129, 0.55);
+            color: #ffffff;
+        }
+        .btn-gradient-success:active {
+            transform: translateY(2px) scale(0.98);
+        }
+
+        .btn-glass-subtle {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            border-radius: 10px;
+            backdrop-filter: blur(8px);
+            transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, color 0.15s ease;
+        }
+        .btn-glass-subtle:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        /* 5. Table Row Hover & Neon Accent */
+        .glass-table {
+            color: var(--text-primary);
+            --bs-table-bg: transparent;
+        }
+        .glass-table thead th {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding-bottom: 0.75rem;
+        }
+        .glass-table tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s ease;
+            position: relative;
+        }
+        .glass-table tbody tr:hover {
+            background-color: rgba(30, 41, 59, 0.45) !important;
+            transform: translateX(4px);
+        }
+
+        /* Copyable Email Pill */
+        .copy-email-btn {
+            cursor: pointer;
+            transition: color 0.15s ease;
+        }
+        .copy-email-btn:hover {
+            color: #a5b4fc !important;
+        }
+
+        /* Custom Checkbox Dark Glass */
+        .form-check-input {
+            background-color: rgba(15, 23, 42, 0.8);
+            border-color: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+        }
+        .form-check-input:checked {
+            background-color: var(--accent-indigo);
+            border-color: var(--accent-indigo);
+        }
+
+        /* Reduced Motion Guardrail */
         @media (prefers-reduced-motion: reduce) {
             *, ::before, ::after {
                 animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
                 transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+                transform: none !important;
             }
         }
     </style>
 </head>
-<body class="bg-light py-4">
-<div class="container-fluid px-md-4" style="max-width: 1400px;">
+<body class="py-4">
 
-    <!-- Top Navigation Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom bg-white p-3 rounded shadow-sm">
-        <div class="d-flex align-items-center gap-3">
-            <h4 class="fw-bold mb-0 text-primary">Recruiter Lead Harvester</h4>
-            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Phase 4 Active</span>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <a href="{% url 'send_application' %}" class="btn btn-sm btn-outline-primary fw-semibold">
-                &larr; Application Dispatcher
-            </a>
-            <a href="{% url 'admin:index' %}" class="btn btn-sm btn-outline-secondary fw-semibold">
-                Admin Panel
-            </a>
-            <form method="post" action="{% url 'logout' %}" class="m-0">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-danger fw-semibold">
-                    Logout
-                </button>
-            </form>
-        </div>
-    </div>
+    <!-- Living Ambient Aura Mesh -->
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
 
-    <!-- Alert Notifications -->
-    {% if messages %}
-        {% for msg in messages %}
-            <div class="alert alert-{{ msg.tags }} alert-dismissible fade show py-2 small" role="alert">
-                {{ msg }}
-                <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
+    <div class="container-fluid px-md-4 position-relative" style="max-width: 1440px; z-index: 2;">
 
-    <!-- Top Stats Row -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-3">
-                <span class="text-muted small text-uppercase fw-semibold">Total Discovered Leads</span>
-                <h3 class="fw-bold mb-0 text-dark">{{ total_leads }}</h3>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-3">
-                <span class="text-muted small text-uppercase fw-semibold">DNS MX Verified (Zero Bounce)</span>
-                <h3 class="fw-bold mb-0 text-success">{{ verified_count }}</h3>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-3">
-                <span class="text-muted small text-uppercase fw-semibold">Already Contacted</span>
-                <h3 class="fw-bold mb-0 text-info">{{ contacted_count }}</h3>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4">
-        <!-- Left Column: Harvester Control Panels -->
-        <div class="col-lg-5">
-            
-            <!-- Panel 1: Automated Hiring Feed Scraper -->
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
-                    <h6 class="fw-bold mb-0">1. Automated Tech Feed Harvester</h6>
-                    <small class="text-muted">Queries public tech hiring feeds (Hacker News "Who is Hiring" API & direct hiring posts).</small>
+        <!-- Top Navigation Glass Header -->
+        <div class="glass-card p-3 mb-4 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <h4 class="text-gradient mb-0 fs-5">Recruiter Lead Harvester</h4>
+                    <span class="radar-beacon" title="Automated Engine Active"></span>
                 </div>
-                <div class="card-body px-4 pb-4">
-                    <form method="post" action="{% url 'lead_harvester' %}">
+                <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10 py-1 px-2" style="font-size: 0.72rem;">
+                    Pan-India & 0–3 YOE Active
+                </span>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2">
+                <a href="{% url 'send_application' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-3 py-1">
+                    &larr; Application Dispatcher
+                </a>
+                <a href="{% url 'admin:index' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-3 py-1">
+                    Admin Panel
+                </a>
+                <form method="post" action="{% url 'logout' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-glass-subtle text-danger-emphasis fw-semibold px-3 py-1">
+                        Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Alert Notifications -->
+        {% if messages %}
+            {% for msg in messages %}
+                <div class="alert alert-{{ msg.tags }} alert-dismissible fade show py-2 px-3 small rounded-3 bg-opacity-25 border border-white border-opacity-10 text-white mb-4" role="alert">
+                    {{ msg }}
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Top Stats Row (3D Glass Cards) -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="glass-card tilt-card p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.05em;">Total Discovered Leads</span>
+                        <span class="text-muted" style="font-size: 0.8rem;">🌐</span>
+                    </div>
+                    <h3 class="fw-bold mb-0 text-white glow-stat fs-3">{{ total_leads }}</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card tilt-card p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.05em;">DNS MX Verified (Zero Bounce)</span>
+                        <span class="radar-beacon"></span>
+                    </div>
+                    <h3 class="fw-bold mb-0 text-gradient-emerald glow-emerald fs-3">{{ verified_count }}</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card tilt-card p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.05em;">Already Contacted</span>
+                        <span class="text-muted" style="font-size: 0.8rem;">📬</span>
+                    </div>
+                    <h3 class="fw-bold mb-0 text-gradient-purple glow-purple fs-3">{{ contacted_count }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            
+            <!-- Left Column: Scraper Control Panels -->
+            <div class="col-lg-5">
+                
+                <!-- Panel 1: Automated Hiring Feed Scraper -->
+                <div class="glass-card tilt-card p-4 mb-4">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <h6 class="fw-bold text-gradient mb-0 fs-6">1. Automated Tech Feed Harvester</h6>
+                    </div>
+                    <p class="text-white-50 small mb-3" style="font-size: 0.78rem;">
+                        Directly queries public hiring manager comments from the Hacker News "Who is Hiring" Algolia feed with MX pre-flight checks.
+                    </p>
+
+                    <form method="post" action="{% url 'lead_harvester' %}" class="scraper-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="harvest_feed">
                         
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold">Role / Keyword</label>
-                            <input type="text" name="query" class="form-control form-control-sm" value="Python" placeholder="e.g. Python, FastAPI, Django, Full Stack">
+                            <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Role / Keyword</label>
+                            <input type="text" name="query" class="form-control" value="Python" placeholder="e.g. Python, FastAPI, Django, Full Stack">
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold">Target Location</label>
-                            <select name="location" class="form-select form-select-sm">
-                                <option value="All">All Locations / Any</option>
+                            <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Target Location Hub</label>
+                            <select name="location" class="form-select">
+                                <option value="All">All Locations / Any Hub</option>
                                 <option value="Remote">Remote (Pan-India)</option>
                                 <option value="Gurugram">Gurugram / Delhi-NCR</option>
                                 <option value="Hyderabad">Hyderabad / Telangana</option>
@@ -109,28 +426,29 @@
                             </select>
                         </div>
 
-                        <button type="submit" class="btn btn-sm btn-primary w-100 py-2 fw-semibold">
-                            Run Automated Feed Harvester
+                        <button type="submit" class="btn btn-gradient-primary w-100 py-2 fw-semibold">
+                            <span>⚡ Run Automated Feed Harvester</span>
                         </button>
                     </form>
                 </div>
-            </div>
 
-            <!-- Panel 2: Text / Google Dorking Parser -->
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white border-0 pt-4 px-4 pb-2">
-                    <h6 class="fw-bold mb-0">2. Text / Google Dorking Parser</h6>
-                    <small class="text-muted">Paste search snippets from Google Dorking or LinkedIn posts to extract, classify, and MX-verify emails.</small>
-                </div>
-                <div class="card-body px-4 pb-4">
-                    <form method="post" action="{% url 'lead_harvester' %}">
+                <!-- Panel 2: Text / Google Dorking Parser -->
+                <div class="glass-card tilt-card p-4">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <h6 class="fw-bold text-gradient mb-0 fs-6">2. Text / Google Dorking Parser</h6>
+                    </div>
+                    <p class="text-white-50 small mb-3" style="font-size: 0.78rem;">
+                        Paste snippets from LinkedIn posts, Google Dork queries, or job boards to extract and classify recruiter contacts.
+                    </p>
+
+                    <form method="post" action="{% url 'lead_harvester' %}" class="scraper-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="harvest_text">
 
                         <div class="row g-2 mb-3">
                             <div class="col-6">
-                                <label class="form-label small fw-semibold">Location</label>
-                                <select name="location" class="form-select form-select-sm">
+                                <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Location</label>
+                                <select name="location" class="form-select">
                                     <option value="Remote" selected>Remote</option>
                                     <option value="Gurugram">Gurugram</option>
                                     <option value="Hyderabad">Hyderabad</option>
@@ -141,8 +459,8 @@
                                 </select>
                             </div>
                             <div class="col-6">
-                                <label class="form-label small fw-semibold">Experience Tag</label>
-                                <select name="experience" class="form-select form-select-sm">
+                                <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Experience Tag</label>
+                                <select name="experience" class="form-select">
                                     <option value="0-3 Years" selected>0–3 Years (Entry/Mid)</option>
                                     <option value="3-5 Years">3–5 Years</option>
                                     <option value="5+ Years">5+ Years</option>
@@ -152,116 +470,180 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold">Pasted Text Block</label>
-                            <textarea name="raw_text" rows="5" class="form-control form-control-sm" placeholder="Paste recruiter posts or search text containing recruiter emails..."></textarea>
+                            <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Pasted Raw Text Block</label>
+                            <textarea name="raw_text" rows="4" class="form-control" placeholder="Paste recruiter posts or search text containing recruiter emails..."></textarea>
                         </div>
 
-                        <button type="submit" class="btn btn-sm btn-outline-primary w-100 py-2 fw-semibold">
-                            Extract & Verify Pasted Contacts
+                        <button type="submit" class="btn btn-glass-subtle w-100 py-2 fw-semibold border border-white border-opacity-25">
+                            <span>🔍 Extract, Classify & Verify Contacts</span>
                         </button>
+                    </form>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Discovered Leads Table & Action Bar -->
+            <div class="col-lg-7">
+                <div class="glass-card tilt-card h-100 d-flex flex-column p-4">
+                    <form method="post" action="{% url 'lead_harvester' %}" id="transfer-form" class="h-100 d-flex flex-column m-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="transfer_selected">
+
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10">
+                            <div>
+                                <h6 class="text-gradient mb-0 fs-6">Verified Leads Queue</h6>
+                                <span class="text-white-50" style="font-size: 0.75rem;">Select leads to load directly into the Application Dispatcher.</span>
+                            </div>
+                            <button type="submit" class="btn btn-gradient-success fw-semibold px-3 py-2 small">
+                                <span>🚀 Dispatch Selected Leads</span>
+                            </button>
+                        </div>
+
+                        <div class="flex-grow-1 overflow-auto scrollable-area pe-1" style="max-height: 560px;">
+                            <table class="table glass-table align-middle mb-0">
+                                <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
+                                    <tr>
+                                        <th style="width: 32px;">
+                                            <input type="checkbox" id="select-all-leads" class="form-check-input">
+                                        </th>
+                                        <th>Recruiter / Contact</th>
+                                        <th>Company & Role</th>
+                                        <th>Target & YOE</th>
+                                        <th>Deliverability</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for lead in leads %}
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" name="selected_leads" value="{{ lead.id }}" class="form-check-input lead-checkbox" {% if lead.is_contacted %}disabled{% else %}checked{% endif %}>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold text-white copy-email-btn copyable-email" data-email="{{ lead.email }}" title="Click to copy email" style="font-family: var(--font-mono, monospace); font-size: 0.82rem;">
+                                                {{ lead.email }}
+                                            </div>
+                                            {% if lead.name %}
+                                                <div class="text-white-50" style="font-size: 0.72rem;">{{ lead.name }}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="small fw-semibold text-white text-truncate" style="max-width: 170px;">{{ lead.company|default:"Hiring Company" }}</div>
+                                            <div class="text-white-50" style="font-size: 0.72rem;">{{ lead.role|default:"Python Developer" }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-column gap-1">
+                                                <span class="badge rounded-pill {% if lead.location == 'Gurugram' %}bg-info bg-opacity-10 text-info border border-info border-opacity-25{% elif lead.location == 'Hyderabad' %}bg-primary bg-opacity-10 text-primary-emphasis border border-primary border-opacity-25{% elif lead.location == 'Remote' %}bg-success bg-opacity-10 text-success border border-success border-opacity-25{% elif lead.location == 'Bengaluru' %}bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25{% else %}bg-secondary bg-opacity-10 text-secondary-emphasis border border-secondary border-opacity-25{% endif %}" style="width: fit-content; font-size: 0.7rem;">
+                                                    {{ lead.location }}
+                                                </span>
+                                                <span class="badge rounded-pill {% if lead.experience_tag == '0-3 Years' %}bg-success text-white border border-success{% else %}bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10{% endif %}" style="font-size: 0.65rem; width: fit-content;">
+                                                    {{ lead.experience_tag }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if lead.is_contacted %}
+                                                <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10" style="font-size: 0.7rem;">
+                                                    Contacted
+                                                </span>
+                                            {% elif lead.is_verified %}
+                                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1" style="font-size: 0.7rem;">
+                                                    <span class="d-inline-block rounded-circle me-1" style="width: 5px; height: 5px; background: #10b981;"></span>
+                                                    MX Verified
+                                                </span>
+                                            {% else %}
+                                                <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" style="font-size: 0.7rem;">
+                                                    Unverified
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-white-50 py-5 small">
+                                            <div class="d-flex flex-column align-items-center gap-1">
+                                                <span style="font-size: 1.5rem; opacity: 0.5;">🎯</span>
+                                                <span>No recruiter leads discovered yet.</span>
+                                                <span class="text-white-50" style="font-size: 0.75rem;">Run the feed harvester or paste recruiter posts on the left to collect verified leads!</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </form>
                 </div>
             </div>
 
         </div>
 
-        <!-- Right Column: Discovered Leads Table & Action Bar -->
-        <div class="col-lg-7">
-            <div class="card border-0 shadow-sm h-100 d-flex flex-column">
-                <form method="post" action="{% url 'lead_harvester' %}" id="transfer-form" class="h-100 d-flex flex-column m-0">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="transfer_selected">
-
-                    <div class="card-header bg-white border-0 pt-4 px-4 pb-3 d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="fw-bold mb-0">Verified Leads Queue</h6>
-                            <small class="text-muted">Select leads to load directly into the Application Dispatcher.</small>
-                        </div>
-                        <button type="submit" class="btn btn-sm btn-success fw-semibold px-3 py-2">
-                            🚀 Dispatch Selected Leads
-                        </button>
-                    </div>
-
-                    <div class="card-body px-4 py-0 flex-grow-1 overflow-auto scrollable-area" style="max-height: 600px;">
-                        <table class="table table-hover table-sm align-middle mb-0">
-                            <thead class="sticky-top bg-white border-bottom">
-                                <tr class="text-muted small">
-                                    <th style="width: 35px;">
-                                        <input type="checkbox" id="select-all-leads" class="form-check-input">
-                                    </th>
-                                    <th>Recruiter / Email</th>
-                                    <th>Company & Role</th>
-                                    <th>Target & Experience</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for lead in leads %}
-                                <tr>
-                                    <td>
-                                        <input type="checkbox" name="selected_leads" value="{{ lead.id }}" class="form-check-input lead-checkbox" {% if lead.is_contacted %}disabled{% else %}checked{% endif %}>
-                                    </td>
-                                    <td>
-                                        <div class="fw-semibold text-dark small">{{ lead.email }}</div>
-                                        {% if lead.name %}
-                                            <div class="text-muted" style="font-size: 0.75rem;">{{ lead.name }}</div>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="small fw-semibold text-truncate" style="max-width: 170px;">{{ lead.company|default:"Tech Company" }}</div>
-                                        <div class="text-muted" style="font-size: 0.75rem;">{{ lead.role|default:"Python Developer" }}</div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex flex-column gap-1">
-                                            <span class="badge {% if lead.location == 'Gurugram' %}bg-info-subtle text-info border border-info-subtle{% elif lead.location == 'Hyderabad' %}bg-primary-subtle text-primary border border-primary-subtle{% elif lead.location == 'Remote' %}bg-success-subtle text-success border border-success-subtle{% elif lead.location == 'Bengaluru' %}bg-warning-subtle text-dark border border-warning-subtle{% else %}bg-secondary-subtle text-secondary border border-secondary-subtle{% endif %}" style="width: fit-content;">
-                                                {{ lead.location }}
-                                            </span>
-                                            <span class="badge {% if lead.experience_tag == '0-3 Years' %}bg-success text-white{% else %}bg-light text-muted border{% endif %}" style="font-size: 0.68rem; width: fit-content;">
-                                                {{ lead.experience_tag }}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% if lead.is_contacted %}
-                                            <span class="badge bg-secondary">Contacted</span>
-                                        {% elif lead.is_verified %}
-                                            <span class="badge bg-success">MX Verified</span>
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">Unverified</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted py-5 small">
-                                        No recruiter leads discovered yet.<br>
-                                        Use the feed harvester or text parser on the left to start collecting verified leads!
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </form>
-            </div>
-        </div>
-
     </div>
 
-</div>
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const selectAll = document.getElementById('select-all-leads');
-        const checkboxes = document.querySelectorAll('.lead-checkbox:not(:disabled)');
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Select all leads checkbox handler
+            const selectAll = document.getElementById('select-all-leads');
+            const checkboxes = document.querySelectorAll('.lead-checkbox:not(:disabled)');
 
-        if (selectAll) {
-            selectAll.addEventListener('change', function() {
-                checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                });
+            }
+
+            // 4. Loading Effect: Form morphing button state
+            document.querySelectorAll('.scraper-form').forEach(form => {
+                form.addEventListener('submit', function() {
+                    const btn = this.querySelector('button[type="submit"]');
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = `
+                            <span class="spinner-border spinner-border-sm me-2 text-white" role="status" aria-hidden="true"></span>
+                            <span>Harvesting & verifying MX...</span>
+                        `;
+                    }
+                });
             });
-        }
-    });
-</script>
+
+            // 3. 3D Perspective Tilt on Mousemove
+            document.querySelectorAll('.tilt-card').forEach(card => {
+                card.addEventListener('mousemove', e => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    const tiltX = ((y - centerY) / centerY) * -3;
+                    const tiltY = ((x - centerX) / centerX) * 3;
+                    card.style.transform = `perspective(1000px) rotateX(${tiltX.toFixed(2)}deg) rotateY(${tiltY.toFixed(2)}deg) translateZ(4px)`;
+                    card.style.setProperty('--mouse-x', `${x}px`);
+                    card.style.setProperty('--mouse-y', `${y}px`);
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0)';
+                });
+            });
+
+            // 5. 1-Click Quick Copy Micro-Feedback
+            document.querySelectorAll('.copyable-email').forEach(el => {
+                el.addEventListener('click', async () => {
+                    const email = el.getAttribute('data-email');
+                    if (email) {
+                        try {
+                            await navigator.clipboard.writeText(email);
+                            const origHTML = el.innerHTML;
+                            el.innerHTML = `<span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 py-0 px-1" style="font-size: 0.7rem;">✓ Copied!</span>`;
+                            setTimeout(() => { el.innerHTML = origHTML; }, 1400);
+                        } catch (err) {
+                            console.error('Copy failed:', err);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

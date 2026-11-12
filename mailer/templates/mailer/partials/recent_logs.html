@@ -1,15 +1,43 @@
 {% for log in logs %}
-<tr>
-    <td class="small">{{ log.recipient_email }}</td>
-    <td>
-        <span class="badge {% if log.status == 'SUCCESS' %}bg-success{% else %}bg-danger{% endif %}">
-            {{ log.status|truncatechars:20 }}
-        </span>
+<tr style="animation: fadeInRow 0.35s ease forwards;">
+    <td class="py-2">
+        <div class="fw-semibold text-white small" style="font-family: var(--font-mono, monospace); font-size: 0.8rem;">
+            {{ log.recipient_email }}
+        </div>
+        {% if log.template %}
+            <div class="text-white-50" style="font-size: 0.7rem;">{{ log.template.title|truncatechars:35 }}</div>
+        {% endif %}
     </td>
-    <td class="small text-muted" style="white-space: nowrap;">{{ log.sent_at|date:"M d, H:i" }}</td>
+    <td class="py-2">
+        {% if log.status == 'SUCCESS' %}
+            <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1" style="font-size: 0.72rem;">
+                <span class="d-inline-block rounded-circle me-1" style="width: 5px; height: 5px; background: #10b981;"></span>
+                SUCCESS
+            </span>
+        {% else %}
+            <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1" style="font-size: 0.72rem;">
+                {{ log.status|truncatechars:25 }}
+            </span>
+        {% endif %}
+    </td>
+    <td class="py-2 text-white-50 small" style="white-space: nowrap; font-size: 0.75rem;">
+        {{ log.sent_at|date:"M d, H:i" }}
+    </td>
 </tr>
 {% empty %}
 <tr>
-    <td colspan="3" class="text-center text-muted small py-3">No recent dispatches found.</td>
+    <td colspan="3" class="text-center text-white-50 small py-4">
+        <div class="d-flex flex-column align-items-center gap-1">
+            <span style="font-size: 1.2rem; opacity: 0.5;">📡</span>
+            <span>No dispatches recorded yet today. Applications will stream here live.</span>
+        </div>
+    </td>
 </tr>
 {% endfor %}
+
+<style>
+    @keyframes fadeInRow {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>

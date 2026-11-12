@@ -49,6 +49,10 @@ A unified, private Django platform that:
   - Regex extraction and normalization of recruiter emails.
   - DNS MX record pre-flight validation using `dnspython` to maintain bounce rates below 2%.
   - 1-click transfer pipeline into the dispatch queue with intelligent template/resume pairing.
+- **Super-Premium Glassmorphic UI/UX System**:
+  - Obsidian Dark Glass aesthetic inspired by elite developer tools (Linear, Raycast, Vercel).
+  - Advanced 6-tier motion effects: Scroll-driven reveals, Continuous ambient lighting, 3D perspective card tilts, Interactive loading states, Micro-interaction hover/copy feedback, and Gradient typography.
+  - Strict performance guardrail: 60FPS animations exclusively manipulating GPU-composited `transform` and `opacity` properties with full reduced-motion accessibility.
 
 ### Post-MVP Scope (Future Phases)
 - Automated follow-up email sequences after 5 days of inactivity.
