@@ -101,7 +101,7 @@
 - [x] **Six-Tier Advanced Motion Engine**:
   - **Scroll Effects**: Custom neon-glow scrollbars, sticky blur navigation with shadow bloom, and responsive viewport sizing.
   - **Continuous Effects**: Living ambient gradient mesh orbs (Electric Indigo, Cyber Violet, Emerald), pulsing radar status beacons, and gradient shimmers.
-  - **3D Effects**: Interactive mouse-tracking 3D card perspective tilt, multi-layer ambient drop shadows, and 3D tactile button press physics.
+  - **3D & Depth Effects**: Multi-layer ambient drop shadows and 3D tactile button press physics (3D angular card tilt removed per user preference in favor of stable cards with radial spotlight illumination).
   - **Loading Effects**: Interactive button morphing states (spinner + glowing status text on submit), skeleton shimmer loaders, and fluid progress bar transitions.
   - **Hover & Interaction Effects**: Cursor spotlight radial illumination on glass cards, row lift transitions with neon accent indicators, and 1-click clipboard quick-copy with visual micro-feedback.
   - **Text Effects**: Luminescent gradient headers, metric glow shadows, and monospace placeholder chips.

@@ -45,11 +45,10 @@
 - **Shimmering Skeleton & Progress Bars**:
   - Dynamic diagonal gradient sweep over active progress bars and metric badges.
 
-### 3. 3D Effects
-- **Interactive 3D Perspective Tilt**:
-  - Cards calculate cursor offset relative to element center on `mousemove`:
-    `transform: perspective(1000px) rotateX(calc(var(--tilt-y) * 4deg)) rotateY(calc(var(--tilt-x) * -4deg)) translateZ(8px);`
-  - Smooth reset on `mouseleave` with `transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)`.
+### 3. 3D & Depth Effects
+- **Stable Glass Surfaces (3D Tilt Disabled)**:
+  - Interactive angular tilt transforms (`rotateX`, `rotateY`) are disabled per user preference to ensure a calm, distraction-free reading canvas.
+  - Cards remain stationary in 2D space while preserving radial cursor spotlight tracking (`--mouse-x`, `--mouse-y`) and border-illumination on hover.
 - **Layered Multi-Depth Glassmorphism**:
   - Multi-tier ambient drop shadow: `box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1)`.
 - **3D Tactile Depress**:

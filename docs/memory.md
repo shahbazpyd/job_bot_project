@@ -56,7 +56,7 @@
   - Built the **6-Tier Advanced Motion Engine**:
     - *Scroll Effects*: Custom neon gradient scrollbars, sticky blur glass header, smooth viewport scrolling.
     - *Continuous Effects*: Living ambient glow mesh orbs (`float-orb`), pulsing radar status beacons (`beacon-pulse`), and progress bar shimmer sweep.
-    - *3D Effects*: Interactive mousemove-driven 3D perspective tilt (`perspective(1000px) rotateX(...) rotateY(...)`), multi-depth ambient drop shadows, and 3D tactile button press physics.
+    - *3D & Depth Effects*: Multi-depth ambient drop shadows and 3D tactile button press physics (3D angular card tilt removed per user preference in favor of stable cards with radial spotlight illumination).
     - *Loading Effects*: Interactive button morphing on form submit (spinner ring + "Dispatching in background..."), skeleton shimmer loaders, and fluid progress bar transitions.
     - *Hover & Interaction Effects*: Cursor spotlight radial illumination tracking `--mouse-x` and `--mouse-y`, table row hover lift with left neon accent lines, and 1-click clipboard quick-copy with temporary glowing "✓ Copied!" badge.
     - *Text Effects*: Luminescent gradient headers, glowing stat metrics, and monospace token chips.
