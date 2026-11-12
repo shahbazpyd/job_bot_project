@@ -10,6 +10,7 @@ Covers:
   5. Security, Retry Semantics & Media Streaming Access
 """
 import io
+import json
 from datetime import timedelta
 from unittest.mock import patch, MagicMock
 from django.test import TestCase, Client
@@ -33,6 +34,11 @@ from .services.followup import (
     mark_as_replied,
     cancel_sequence,
     get_followup_queue_stats
+)
+from .services.ai_hook import (
+    build_grounded_prompt,
+    generate_personalized_hook,
+    DEFAULT_CANDIDATE_HIGHLIGHTS
 )
 from .views import send_emails_in_background
 
@@ -525,3 +531,111 @@ class FollowUpEngineTest(TestCase):
         self.assertEqual(res.status_code, 302)
         seq.refresh_from_db()
         self.assertEqual(seq.status, 'REPLIED')
+
+
+class GeminiAIHookGeneratorTest(TestCase):
+    """
+    Unit & integration tests for Phase 9: AI-Powered Dynamic Hook Generator (Gemini Integration).
+    Covers:
+      - Grounded prompt formulation with verified portfolio achievements.
+      - Graceful zero-downtime fallback when GEMINI_API_KEY is unset or fails.
+      - Mocked Gemini SDK response processing.
+      - Decoupled RESTful AJAX endpoint authentication and JSON responses.
+      - Template engine merge and dispatch with {{ custom_hook }}.
+    """
+
+    def setUp(self):
+        self.template = EmailTemplate.objects.create(
+            title="Test AI Hook Template",
+            subject="Application: {{ role }} - Shahbaz Alam",
+            body="Hello {{ name }},\n\n{{ custom_hook }}\n\nBest, Shahbaz"
+        )
+        self.resume = ResumeDocument.objects.create(
+            title="Test AI Resume",
+            filename="Test_AI_Resume.pdf",
+            pdf_content=b"%PDF-1.4 Mock Binary"
+        )
+        self.user = User.objects.create_user(username="aitestuser", password="securepassword123")
+
+    def test_build_grounded_prompt_includes_verified_projects(self):
+        """Verify prompt grounds Gemini in Shahbaz's real projects (ssenterprisesncr.in, GISFY)."""
+        prompt = build_grounded_prompt(
+            company="NexGen AI",
+            role="Backend Engineer",
+            job_snippet="Must know FastAPI and SQL optimization."
+        )
+        self.assertIn("NexGen AI", prompt)
+        self.assertIn("Backend Engineer", prompt)
+        self.assertIn("ssenterprisesncr.in", prompt)
+        self.assertIn("GISFY", prompt)
+        self.assertIn("FastAPI", prompt)
+        self.assertIn("PostgreSQL", prompt)
+
+    def test_generate_personalized_hook_fallback_when_no_api_key(self):
+        """Verify fallback to standard achievements paragraph when GEMINI_API_KEY is empty."""
+        with patch('django.conf.settings.GEMINI_API_KEY', ''):
+            res = generate_personalized_hook("Acme Corp", "Python Dev", "FastAPI skills needed")
+            self.assertTrue(res['success'])
+            self.assertTrue(res['is_fallback'])
+            self.assertEqual(res['hook'], DEFAULT_CANDIDATE_HIGHLIGHTS)
+
+    def test_generate_personalized_hook_success_mocked(self):
+        """Verify successful Gemini 2.5 Flash response parsing when SDK returns text."""
+        mock_response = MagicMock()
+        mock_response.text = '"I noticed your backend team at Acme is scaling with FastAPI and PostgreSQL—at GISFY, I optimized spatial queries by 35% with robust RBAC."'
+
+        mock_client = MagicMock()
+        mock_client.models.generate_content.return_value = mock_response
+
+        with patch('django.conf.settings.GEMINI_API_KEY', 'fake-valid-key'), \
+             patch('google.genai.Client', return_value=mock_client):
+            res = generate_personalized_hook("Acme", "FastAPI Dev", "Scaling APIs")
+
+            self.assertTrue(res['success'])
+            self.assertFalse(res['is_fallback'])
+            self.assertIn("GISFY, I optimized spatial queries", res['hook'])
+            # Verify quotes were stripped
+            self.assertFalse(res['hook'].startswith('"'))
+            self.assertFalse(res['hook'].endswith('"'))
+
+    def test_generate_ai_hook_ajax_endpoint_auth_and_response(self):
+        """Verify /api/generate-hook/ requires login and returns valid JSON response."""
+        # Unauthenticated request
+        res_unauth = self.client.post(reverse('generate_ai_hook'), {
+            'company': 'FinTech Labs',
+            'role': 'Full Stack Developer',
+            'job_snippet': 'React and Django needed'
+        })
+        self.assertEqual(res_unauth.status_code, 302)
+
+        # Authenticated request
+        self.client.login(username="aitestuser", password="securepassword123")
+        res_auth = self.client.post(
+            reverse('generate_ai_hook'),
+            data=json.dumps({
+                'company': 'FinTech Labs',
+                'role': 'Full Stack Developer',
+                'job_snippet': 'React and Django needed'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(res_auth.status_code, 200)
+        data = res_auth.json()
+        self.assertTrue(data['success'])
+        self.assertIn('hook', data)
+
+    def test_template_interpolation_with_custom_hook(self):
+        """Verify custom AI hook is rendered inside email body during dispatch."""
+        mail.outbox.clear()
+        custom_ai_hook = "I noticed your team is building with FastAPI—I deployed a live platform at ssenterprisesncr.in saving 15 hours/week."
+
+        send_emails_in_background(
+            parsed_recipients=[{'email': 'cto@innovate.com', 'name': 'Aditi'}],
+            template_id=self.template.id,
+            resume_id=self.resume.id,
+            custom_hook=custom_ai_hook
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        sent_email = mail.outbox[0]
+        self.assertIn(custom_ai_hook, sent_email.body)

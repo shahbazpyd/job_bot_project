@@ -148,25 +148,48 @@
 
 ---
 
-## Phase 9: AI-Powered Dynamic Hook Generator (Active Phase)
-- [ ] **SDK & Dependency Integration**:
-  - Install official `google-genai` SDK in `.venv` and declare in `requirements.txt`.
-  - Configure `GEMINI_API_KEY` handling in `job_bot_project/settings.py` from `.env`.
-- [ ] **Candidate Grounding & Service Layer (`mailer/services/ai_hook.py`)**:
-  - Ground candidate profile: 1.5+ years of production experience, Python (FastAPI, Django), PostgreSQL, React.js, Tailwind CSS, live platform `ssenterprisesncr.in`, and GISFY spatial optimization.
-  - Implement `generate_personalized_hook(company, role, job_snippet)` calling `gemini-2.5-flash`.
-  - Implement strict prompt guardrails: exactly 2 sentences, humble yet confident tone, zero corporate buzzword fluff, concrete technical achievements.
-  - Implement resilient fallback returning standard verified pitch if API key is missing or network call fails.
-- [ ] **RESTful AJAX API Endpoint (`/api/generate-hook/`)**:
-  - Create `@login_required` endpoint in `mailer/views.py` and register in `mailer/urls.py`.
-  - Accept JSON payload with `company`, `role`, and `context_snippet`.
-  - Return JSON `{ success: True, hook: "...", is_fallback: False }`.
-- [ ] **Template Engine Evolution (`{{ custom_hook }}`)**:
-  - Update `scripts/seed_database.py` and Neon PostgreSQL templates with `{{ custom_hook|default:... }}` tokens.
-  - Update `send_emails_in_background` to accept and interpolate `custom_hook` per recipient.
-- [ ] **Super-Premium Dual UI Integration**:
-  - **Dispatcher (`send_mail.html`)**: Add collapsible "✨ AI Tailored Pitch Assistant" glass card with job snippet input, glowing morphing button, and real-time template preview injection.
-  - **Harvester (`leads.html`)**: Add 1-click **"✨ AI Pitch"** action button in lead table rows with instant modal preview and transfer binding.
-- [ ] **Automated Test Suite Expansion**:
-  - Author unit and integration tests in `mailer/tests.py` covering prompt generation, Gemini API mocking, graceful fallback, AJAX endpoint security, and template interpolation.
-  - Verify 100% test pass rate with `--keepdb`.
+## Phase 9: AI-Powered Dynamic Hook Generator (Completed)
+- [x] **SDK & Dependency Integration**:
+  - Installed official `google-genai` SDK (3.2.0) in `.venv` and declared in `requirements.txt`.
+  - Configured `GEMINI_API_KEY` handling in `job_bot_project/settings.py` from `.env`.
+- [x] **Candidate Grounding & Service Layer (`mailer/services/ai_hook.py`)**:
+  - Grounded candidate profile: 1.5+ years of production experience, Python (FastAPI, Django), PostgreSQL, React.js, Tailwind CSS, live platform `ssenterprisesncr.in`, and GISFY spatial optimization.
+  - Implemented `generate_personalized_hook(company, role, job_snippet)` calling `gemini-3.5-flash-lite`.
+  - Implemented strict prompt guardrails: exactly 2 sentences, humble yet confident tone, zero corporate buzzword fluff, concrete technical achievements.
+  - Implemented resilient fallback returning standard verified pitch (`DEFAULT_CANDIDATE_HIGHLIGHTS`) if API key is missing or network call fails.
+- [x] **RESTful AJAX API Endpoint (`/api/generate-hook/`)**:
+  - Created `@login_required` endpoint `generate_ai_hook_view` in `mailer/views.py` and registered in `mailer/urls.py`.
+  - Accepts JSON or form payload with `company`, `role`, and `job_snippet`.
+  - Returns JSON `{ success: True, hook: "...", is_fallback: False }`.
+- [x] **Template Engine Evolution (`{{ custom_hook }}`)**:
+  - Updated `scripts/seed_database.py` and Neon PostgreSQL templates with `{{ custom_hook }}` tokens.
+  - Updated `send_emails_in_background` to accept and interpolate `custom_hook` with automatic fallback.
+- [x] **Super-Premium Dual UI Integration**:
+  - **Dispatcher (`send_mail.html`)**: Added collapsible "✨ AI Pitch Tailor" glass card with job snippet input, glowing button with spinner state, and real-time template preview injection.
+  - **Harvester (`leads.html`)**: Added 1-click **"✨ Hook"** action button in lead table rows with instant Obsidian Dark Glass modal preview and 1-click clipboard copy.
+- [x] **Automated Test Suite Expansion**:
+  - Authored unit and integration tests in `mailer/tests.py` covering prompt generation, Gemini API mocking, graceful fallback, AJAX endpoint security, and template interpolation.
+  - Verified 100% test pass rate with `--keepdb` (30/30 tests passing).
+
+---
+
+## Phase 10: Super-Premium Responsive UI & Layout Stabilization (Completed)
+- [x] **Fluid Layout Engine Architecture**:
+  - Removed hardcoded viewport height clamps (`overflow: hidden; height: 100vh !important;`) that crushed elements on laptops (1366x768, 1080p with 125%/150% DPI scaling) and mobile screens.
+  - Established a fluid viewport model with natural document scrolling (`min-height: 100vh; overflow-y: auto`) and custom neon glass scrollbars.
+- [x] **Application Dispatcher (`send_mail.html`) Overhaul**:
+  - Re-engineered column breakpoints from rigid `col-md-5 / col-md-7` to adaptive `col-xl-5 col-lg-6 col-12` and `col-xl-7 col-lg-6 col-12`.
+  - Removed flexbox height locks (`d-flex flex-column h-100` and `mt-auto`) from the inner form, placing the submit button naturally after form fields with clear spacing.
+  - Implemented progressive disclosure for the AI Pitch Tailor card (compact collapsed state by default with 1-click smooth expansion).
+  - Streamlined the Live Preview: replaced the permanent 300px fixed 16:9 PDF iframe with a sleek, on-demand "📄 Preview PDF" modal viewer.
+- [x] **Dual Command Center & Follow-Up Queue Table Responsiveness**:
+  - Wrapped the Follow-Up Cadence Queue table and Dispatch Activity Feed in high-performance `.table-responsive` containers.
+  - Assigned minimum column widths (`min-width: 180px` for Recruiter, `130px` for Status, `120px` for Date, `140px` for Actions) to prevent table cell crushing and text wrapping.
+  - Grouped row action buttons (`⚡ Send`, `✓ Replied`, `✕ Cancel`) into a sleek, unified `.btn-group` that never wraps into broken multi-line blocks.
+- [x] **Lead Harvester (`leads.html`) Responsiveness Audit**:
+  - Added explicit `.table-responsive` wrapping and column minimum widths to the Verified Leads Queue table (6 columns) so it scrolls horizontally on smaller viewports without card clipping.
+  - Optimized Harvester filters and extraction forms to stack cleanly on tablets and mobile screens.
+- [x] **Verification & Regression Testing**:
+  - Verified layout responsiveness across desktop ($\ge 1200\text{px}$), laptop/tablet ($768\text{px} - 1199\text{px}$), and mobile ($< 768\text{px}$).
+  - Executed full Django test suite (`python manage.py test mailer --keepdb`): 100% pass rate (30/30 tests passing).
+

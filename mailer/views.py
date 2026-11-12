@@ -1,15 +1,17 @@
 import os
+import json
 import time
 import random
 import threading
 import mimetypes
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.mail import EmailMessage, get_connection
 from django.contrib import messages
 from django.conf import settings
 from django.template import Template, Context
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from .forms import ApplicationDispatchForm
 from .models import ApplicationLog, EmailTemplate, ResumeDocument, RecruiterLead, FollowUpSequence
 from .services.followup import (
@@ -21,11 +23,12 @@ from .services.followup import (
     mark_as_replied,
     cancel_sequence
 )
+from .services.ai_hook import generate_personalized_hook, DEFAULT_CANDIDATE_HIGHLIGHTS
 
 from django.contrib.auth.decorators import login_required
 
-def send_emails_in_background(parsed_recipients, template_id, resume_id):
-    """Handles SMTP network calls with delay jitter and per-recipient template interpolation in a separate background thread."""
+def send_emails_in_background(parsed_recipients, template_id, resume_id, custom_hook=None):
+    """Handles SMTP network calls with delay jitter, custom AI hook resolution, and per-recipient template interpolation in a separate background thread."""
     success_count = 0
     failure_count = 0
 
@@ -56,6 +59,15 @@ def send_emails_in_background(parsed_recipients, template_id, resume_id):
                 delay = random.uniform(4.0, 8.0)
                 time.sleep(delay)
 
+            # Resolve per-recipient or global custom AI hook with graceful default fallback
+            hook_content = ''
+            if isinstance(recipient, dict):
+                hook_content = recipient.get('custom_hook', '').strip()
+            if not hook_content and custom_hook:
+                hook_content = custom_hook.strip()
+            if not hook_content:
+                hook_content = DEFAULT_CANDIDATE_HIGHLIGHTS
+
             # Handle both dictionary payload and fallback string email
             if isinstance(recipient, dict):
                 to_email = recipient.get('email', '')
@@ -64,6 +76,7 @@ def send_emails_in_background(parsed_recipients, template_id, resume_id):
                     'name': recipient.get('name', '').strip() or 'Hiring Manager',
                     'company': recipient.get('company', '').strip() or 'your company',
                     'role': recipient.get('role', '').strip() or 'the open position',
+                    'custom_hook': hook_content,
                 }
             else:
                 to_email = str(recipient)
@@ -72,6 +85,7 @@ def send_emails_in_background(parsed_recipients, template_id, resume_id):
                     'name': 'Hiring Manager',
                     'company': 'your company',
                     'role': 'the open position',
+                    'custom_hook': hook_content,
                 }
 
             try:
@@ -139,10 +153,11 @@ def send_application_view(request):
             skipped_count = len(parsed_recipients) - len(new_recipients)
 
             if new_recipients:
+                custom_hook = request.POST.get('custom_hook', '').strip()
                 # Spawn a background thread to handle the slow network calls
                 thread = threading.Thread(
                     target=send_emails_in_background, 
-                    args=(new_recipients, template_obj.id, resume_obj.id)
+                    args=(new_recipients, template_obj.id, resume_obj.id, custom_hook)
                 )
                 thread.daemon = True  # Allows Django to shut down even if thread is running
                 thread.start()
@@ -242,6 +257,36 @@ def followup_action_view(request):
                 messages.error(request, "Follow-up sequence not found.")
 
     return redirect('send_application')
+
+@login_required
+@require_POST
+def generate_ai_hook_view(request):
+    """
+    AJAX endpoint for generating tailored pitch hooks via Gemini 2.5 Flash.
+    Accepts JSON or Form data with:
+      - company: str
+      - role: str
+      - job_snippet: str
+    Returns JSON: { success: bool, hook: str, is_fallback: bool, error: Optional[str] }
+    """
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body.decode('utf-8'))
+        else:
+            data = request.POST
+
+        company = data.get('company', '').strip()
+        role = data.get('role', '').strip()
+        job_snippet = data.get('job_snippet', '').strip()
+
+        result = generate_personalized_hook(
+            company=company,
+            role=role,
+            job_snippet=job_snippet
+        )
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
 def lead_harvester_view(request):

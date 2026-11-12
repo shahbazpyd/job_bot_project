@@ -119,3 +119,6 @@ LOGIN_REDIRECT_URL = '/'
 LOGIN_URL = '/accounts/login/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Google Gemini API Configuration for AI Dynamic Hook Generation
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()

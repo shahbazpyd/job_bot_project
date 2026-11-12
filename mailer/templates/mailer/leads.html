@@ -318,10 +318,10 @@
     <div class="ambient-orb orb-2"></div>
     <div class="ambient-orb orb-3"></div>
 
-    <div class="container-fluid px-md-4 position-relative" style="max-width: 1440px; z-index: 2;">
+    <div class="container-fluid px-2 px-sm-3 px-lg-4 position-relative" style="max-width: 1560px; z-index: 2;">
 
         <!-- Top Navigation Glass Header -->
-        <div class="glass-card p-3 mb-4 d-flex justify-content-between align-items-center">
+        <div class="glass-card p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div class="d-flex align-items-center gap-3">
                 <div class="d-flex align-items-center gap-2">
                     <h4 class="text-gradient mb-0 fs-5">Recruiter Lead Harvester</h4>
@@ -389,10 +389,10 @@
             </div>
         </div>
 
-        <div class="row g-4">
+        <div class="row g-4 align-items-start">
             
             <!-- Left Column: Scraper Control Panels -->
-            <div class="col-lg-5">
+            <div class="col-12 col-xl-5 col-lg-6 mb-4 mb-xl-0">
                 
                 <!-- Panel 1: Automated Hiring Feed Scraper -->
                 <div class="glass-card p-4 mb-4">
@@ -483,13 +483,13 @@
             </div>
 
             <!-- Right Column: Discovered Leads Table & Action Bar -->
-            <div class="col-lg-7">
-                <div class="glass-card h-100 d-flex flex-column p-4">
+            <div class="col-12 col-xl-7 col-lg-6">
+                <div class="glass-card h-100 d-flex flex-column p-3 p-sm-4">
                     <form method="post" action="{% url 'lead_harvester' %}" id="transfer-form" class="h-100 d-flex flex-column m-0">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="transfer_selected">
 
-                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10">
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10 flex-wrap gap-2">
                             <div>
                                 <h6 class="text-gradient mb-0 fs-6">Verified Leads Queue</h6>
                                 <span class="text-white-50" style="font-size: 0.75rem;">Select leads to load directly into the Application Dispatcher.</span>
@@ -499,17 +499,18 @@
                             </button>
                         </div>
 
-                        <div class="flex-grow-1 overflow-auto scrollable-area pe-1" style="max-height: 560px;">
-                            <table class="table glass-table align-middle mb-0">
-                                <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
+                        <div class="table-responsive scrollable-area flex-grow-1" style="max-height: 600px;">
+                            <table class="table glass-table align-middle mb-0" style="min-width: 680px;">
+                                <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); z-index: 2;">
                                     <tr>
-                                        <th style="width: 32px;">
+                                        <th style="width: 36px; min-width: 36px;">
                                             <input type="checkbox" id="select-all-leads" class="form-check-input">
                                         </th>
-                                        <th>Recruiter / Contact</th>
-                                        <th>Company & Role</th>
-                                        <th>Target & YOE</th>
-                                        <th>Deliverability</th>
+                                        <th style="min-width: 170px;">Recruiter / Contact</th>
+                                        <th style="min-width: 150px;">Company & Role</th>
+                                        <th style="min-width: 120px;">Target & YOE</th>
+                                        <th style="min-width: 110px;">Deliverability</th>
+                                        <th class="text-end" style="min-width: 90px;">AI Hook</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -556,10 +557,18 @@
                                                 </span>
                                             {% endif %}
                                         </td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-sm btn-glass-subtle py-1 px-2 text-purple small btn-generate-lead-hook"
+                                                    data-company="{{ lead.company|default:'' }}"
+                                                    data-role="{{ lead.role|default:'' }}"
+                                                    title="Generate custom pitch with Gemini">
+                                                ✨ Hook
+                                            </button>
+                                        </td>
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="5" class="text-center text-white-50 py-5 small">
+                                        <td colspan="6" class="text-center text-white-50 py-5 small">
                                             <div class="d-flex flex-column align-items-center gap-1">
                                                 <span style="font-size: 1.5rem; opacity: 0.5;">🎯</span>
                                                 <span>No recruiter leads discovered yet.</span>
@@ -579,6 +588,42 @@
 
     </div>
 
+    <!-- AI Pitch Modal -->
+    <div class="modal fade" id="aiPitchModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border border-white border-opacity-15 p-3" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(25px); border-radius: 16px;">
+                <div class="modal-header border-bottom border-white border-opacity-10 pb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-6">✨</span>
+                        <h6 class="modal-title text-gradient mb-0 fs-6">Tailored Pitch Hook</h6>
+                        <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-30 small" style="font-size: 0.65rem;">Gemini 2.5 Flash</span>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <div class="mb-2">
+                        <span class="text-white-50 small">Target:</span> 
+                        <strong id="modal-target" class="text-white small"></strong>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small text-uppercase" style="font-size: 0.68rem;">Synthesized 2-Sentence Opening Pitch</label>
+                        <div id="modal-loading-spinner" class="d-none text-center py-4">
+                            <span class="spinner-border spinner-border-sm text-purple me-2"></span>
+                            <span class="text-white-50 small">Generating tailored pitch with Gemini...</span>
+                        </div>
+                        <textarea id="modal-hook-text" class="form-control font-mono" rows="4" style="background: rgba(0,0,0,0.4); border-color: rgba(99, 102, 241, 0.35); color: #fff; font-size: 0.78rem;"></textarea>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="button" id="modal-copy-btn" class="btn btn-sm btn-gradient-primary px-3 py-1">
+                            📋 Copy Pitch
+                        </button>
+                        <span id="modal-status" class="small text-white-50" style="font-size: 0.72rem;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -591,6 +636,74 @@
             if (selectAll) {
                 selectAll.addEventListener('change', function() {
                     checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                });
+            }
+
+            // AI Hook Generator for Harvester Rows
+            const aiModalEl = document.getElementById('aiPitchModal');
+            const aiModal = aiModalEl ? new bootstrap.Modal(aiModalEl) : null;
+            const modalTarget = document.getElementById('modal-target');
+            const modalHookText = document.getElementById('modal-hook-text');
+            const modalLoading = document.getElementById('modal-loading-spinner');
+            const modalCopyBtn = document.getElementById('modal-copy-btn');
+            const modalStatus = document.getElementById('modal-status');
+
+            document.querySelectorAll('.btn-generate-lead-hook').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const company = this.getAttribute('data-company') || '';
+                    const role = this.getAttribute('data-role') || '';
+
+                    if (modalTarget) modalTarget.textContent = `${company || 'Company'} — ${role || 'Role'}`;
+                    if (modalHookText) {
+                        modalHookText.value = '';
+                        modalHookText.classList.add('d-none');
+                    }
+                    if (modalLoading) modalLoading.classList.remove('d-none');
+                    if (modalStatus) modalStatus.textContent = '';
+                    if (aiModal) aiModal.show();
+
+                    fetch("{% url 'generate_ai_hook' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            company: company,
+                            role: role,
+                            job_snippet: `Hiring for ${role} at ${company}.`
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (modalLoading) modalLoading.classList.add('d-none');
+                        if (modalHookText) {
+                            modalHookText.classList.remove('d-none');
+                            modalHookText.value = data.hook || '';
+                        }
+                        if (modalStatus) {
+                            modalStatus.textContent = data.is_fallback ? '⚡ Standard Fallback' : '✨ Gemini 2.5 Synthesized';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Lead hook generation error:', err);
+                        if (modalLoading) modalLoading.classList.add('d-none');
+                        if (modalHookText) {
+                            modalHookText.classList.remove('d-none');
+                            modalHookText.value = 'Failed to generate hook. Please verify network and API key.';
+                        }
+                    });
+                });
+            });
+
+            if (modalCopyBtn && modalHookText) {
+                modalCopyBtn.addEventListener('click', async () => {
+                    if (modalHookText.value.trim()) {
+                        await navigator.clipboard.writeText(modalHookText.value.trim());
+                        const origText = modalCopyBtn.textContent;
+                        modalCopyBtn.textContent = '✓ Copied!';
+                        setTimeout(() => { modalCopyBtn.textContent = origText; }, 1500);
+                    }
                 });
             }
 

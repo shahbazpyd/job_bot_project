@@ -19,6 +19,16 @@ django.setup()
 
 from mailer.models import ResumeDocument, EmailTemplate
 
+DEFAULT_CANDIDATE_HIGHLIGHTS = (
+    "I have 1.5+ years of experience building production web applications using Python (FastAPI, Django) "
+    "and React.js. A few quick highlights of my work:\n\n"
+    "• Built and deployed a live B2B platform (https://www.ssenterprisesncr.in) using FastAPI and Serverless "
+    "PostgreSQL, reducing manual quote processing by 15 hours/week.\n"
+    "• Optimized PostgreSQL database queries and backend APIs at GISFY, reducing query response times by 35% "
+    "with robust RBAC security.\n"
+    "• Developed responsive user interfaces in React.js and Tailwind CSS integrated with Cloudinary CDN for fast asset delivery."
+)
+
 def get_email_body(location: str) -> str:
     """Generates the concise, humanized outreach email body for a given location."""
     return (
@@ -26,13 +36,7 @@ def get_email_body(location: str) -> str:
         "I hope you're having a good week.\n\n"
         "I’m reaching out to express my interest in the {{ role|default:\"Python / Full Stack Developer\" }} "
         "role at {{ company|default:\"your team\" }}.\n\n"
-        "I have 1.5+ years of experience building production web applications using Python (FastAPI, Django) "
-        "and React.js. A few quick highlights of my work:\n\n"
-        "• Built and deployed a live B2B platform (https://www.ssenterprisesncr.in) using FastAPI and Serverless "
-        "PostgreSQL, reducing manual quote processing by 15 hours/week.\n"
-        "• Optimized PostgreSQL database queries and backend APIs at GISFY, reducing query response times by 35% "
-        "with robust RBAC security.\n"
-        "• Developed responsive user interfaces in React.js and Tailwind CSS integrated with Cloudinary CDN for fast asset delivery.\n\n"
+        "{{ custom_hook }}\n\n"
         "I have attached my resume for your review. If my profile aligns with what you're looking for, I would love the "
         "chance to connect for a brief 10-minute chat this week.\n\n"
         "Best regards,\n\n"
@@ -50,13 +54,7 @@ def get_pan_india_email_body() -> str:
         "I hope you're having a good week.\n\n"
         "I’m reaching out to express my interest in the {{ role|default:\"Python / Full Stack Developer\" }} "
         "role at {{ company|default:\"your team\" }}.\n\n"
-        "I have 1.5+ years of experience building production web applications using Python (FastAPI, Django) "
-        "and React.js. A few quick highlights of my work:\n\n"
-        "• Built and deployed a live B2B platform (https://www.ssenterprisesncr.in) using FastAPI and Serverless "
-        "PostgreSQL, reducing manual quote processing by 15 hours/week.\n"
-        "• Optimized PostgreSQL database queries and backend APIs at GISFY, reducing query response times by 35% "
-        "with robust RBAC security.\n"
-        "• Developed responsive user interfaces in React.js and Tailwind CSS integrated with Cloudinary CDN for fast asset delivery.\n\n"
+        "{{ custom_hook }}\n\n"
         "I am actively open to Remote opportunities across India, as well as immediate relocation for hybrid or on-site roles "
         "(Current primary residential bases: Gurugram & Hyderabad).\n\n"
         "I have attached my resume for your review. If my profile aligns with what you're looking for, I would love the "

@@ -95,3 +95,27 @@
       }
   }
   ```
+
+---
+
+## 4. Fluid Responsive Layout & Screen Adaptation (Zero Overlap Model)
+
+### Responsive Breakpoint Strategy
+- **Wide Desktop ($\ge 1200\text{px}$, `col-xl`)**:
+  - Two-column side-by-side workspace: Left Column (`col-xl-5`, Dispatcher Form & AI Pitch Assistant), Right Column (`col-xl-7`, Dual Command Center: Follow-Up Cadence Queue & Live Dispatch Feed).
+  - Ambient glow orbs fully positioned across canvas margins.
+- **Laptops & Tablets ($768\text{px} \le W < 1200\text{px}$, `col-lg-6` / `col-12`)**:
+  - On standard 1080p laptops with Windows Display Scaling (125% or 150%) where vertical height is constricted to 600px–750px, rigid `100vh` viewport locks are eliminated.
+  - The document uses natural fluid scrolling (`min-height: 100vh; overflow-y: auto`) with custom neon-tinted scrollbars.
+  - Form panels stack gracefully on tablets or narrow viewports to avoid crushing form inputs and action buttons into cramped widths.
+- **Mobile Devices ($< 768\text{px}$, `col-12`)**:
+  - Single-column stacked layout with full touch-friendly tap targets ($\ge 44\text{px}$).
+  - All data tables are wrapped in horizontal scrolling containers (`.table-responsive`) with preserved column headers and minimum column widths to prevent overlapping text and crushed action buttons.
+
+### Progressive Disclosure & Vertical Space Conservation
+- **AI Pitch Tailor Card**:
+  - Collapsible progressive disclosure state. When minimized, height is reduced from ~300px to 45px.
+- **Live PDF Attachment Preview**:
+  - Replaces permanent 300px 16:9 PDF iframe with an on-demand modal preview / expandable drawer.
+  - Form submit button remains cleanly visible and clickable without competing with PDF rendering engines.
+

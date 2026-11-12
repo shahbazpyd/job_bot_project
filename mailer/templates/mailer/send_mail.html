@@ -321,11 +321,10 @@
             border-radius: 14px;
         }
 
-        /* Desktop Height Locking */
-        @media (min-width: 768px) {
-            body { overflow: hidden; }
-            .desktop-vh-100 { height: 100vh !important; }
-            .desktop-h-100 { height: 100% !important; }
+        /* Fluid Layout Mechanics (Zero Viewport Height Locking) */
+        body {
+            min-height: 100vh;
+            overflow-y: auto;
         }
 
         /* Reduced Motion Guardrail */
@@ -340,19 +339,19 @@
         }
     </style>
 </head>
-<body class="desktop-vh-100 py-md-3 py-2">
+<body class="py-3 py-lg-4">
 
     <!-- Living Ambient Glow Mesh -->
     <div class="ambient-orb orb-1"></div>
     <div class="ambient-orb orb-2"></div>
     <div class="ambient-orb orb-3"></div>
 
-    <div class="container-fluid desktop-h-100 px-md-4 position-relative" style="max-width: 1440px; z-index: 2;">
-        <div class="row desktop-h-100 g-4">
+    <div class="container-fluid px-2 px-sm-3 px-lg-4 position-relative" style="max-width: 1560px; z-index: 2;">
+        <div class="row g-4 align-items-start">
             
             <!-- Left Column: Application Dispatcher Form -->
-            <div class="col-lg-5 col-md-5 d-flex flex-column desktop-h-100">
-                <div class="glass-card d-flex flex-column desktop-h-100 p-4">
+            <div class="col-12 col-xl-5 col-lg-6 mb-3 mb-lg-0">
+                <div class="glass-card p-3 p-sm-4">
                     
                     <!-- Header Bar -->
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10">
@@ -412,9 +411,9 @@
                         {% endfor %}
                     {% endif %}
 
-                    <!-- Form Content Scrollable Area -->
-                    <div class="flex-grow-1 scrollable-area pe-1" style="overflow-y: auto;">
-                        <form method="POST" enctype="multipart/form-data" novalidate id="dispatch-form" class="d-flex flex-column h-100">
+                    <!-- Form Content Area -->
+                    <div>
+                        <form method="POST" enctype="multipart/form-data" novalidate id="dispatch-form" class="m-0">
                             {% csrf_token %}
                             
                             {% if form.non_field_errors %}
@@ -440,13 +439,53 @@
                             </div>
 
                             <div class="row g-2 mb-3">
-                                <div class="col-12">
+                                <div class="col-12 col-sm-6">
                                     <label class="form-label text-muted small fw-semibold text-uppercase tracking-wide" style="font-size: 0.72rem;">{{ form.template.label }}</label>
                                     {{ form.template }}
                                 </div>
-                                <div class="col-12 mt-2">
+                                <div class="col-12 col-sm-6">
                                     <label class="form-label text-muted small fw-semibold text-uppercase tracking-wide" style="font-size: 0.72rem;">{{ form.resume.label }}</label>
                                     {{ form.resume }}
+                                </div>
+                            </div>
+
+                            <!-- AI Tailored Pitch Assistant (Gemini) -->
+                            <div class="glass-card p-3 mb-3" style="background: rgba(99, 102, 241, 0.06); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fs-6">✨</span>
+                                        <span class="fw-semibold text-white small">AI Pitch Tailor <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-30" style="font-size: 0.65rem;">Gemini</span></span>
+                                    </div>
+                                    <button type="button" id="toggle-ai-assistant" class="btn btn-sm btn-glass-subtle py-0 px-2 small text-white-50" style="font-size: 0.7rem;">
+                                        ✨ Expand / Tailor
+                                    </button>
+                                </div>
+
+                                <div id="ai-assistant-body" class="d-none mt-2 pt-2 border-top border-white border-opacity-10">
+                                    <p class="text-white-50 small mb-2" style="font-size: 0.72rem;">
+                                        Paste a job posting snippet below. Gemini will synthesize your verified background (FastAPI, React, PostgreSQL) into a tailored 2-sentence opening hook.
+                                    </p>
+                                    
+                                    <div class="mb-2">
+                                        <textarea id="ai-job-snippet" class="form-control font-mono" rows="2" placeholder="Paste job requirements snippet here (e.g., 'Looking for a Python dev with FastAPI & PostgreSQL to scale backend APIs...')" style="font-size: 0.75rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1);"></textarea>
+                                    </div>
+
+                                    <div class="d-flex gap-2 align-items-center mb-2">
+                                        <button type="button" id="btn-generate-ai-hook" class="btn btn-sm btn-gradient-primary px-3 py-1 fw-semibold small flex-grow-1">
+                                            <span id="ai-btn-text">✨ Generate AI Pitch Hook</span>
+                                        </button>
+                                        <button type="button" id="btn-reset-hook" class="btn btn-sm btn-glass-subtle py-1 px-2 text-white-50 small" title="Reset to default verified project highlights">
+                                            ↺ Reset
+                                        </button>
+                                    </div>
+
+                                    <div>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <label class="form-label text-white-50 small fw-semibold text-uppercase mb-0" style="font-size: 0.68rem;">Active Hook (Injected into &#123;&#123; custom_hook &#125;&#125;)</label>
+                                            <span id="hook-badge" class="badge rounded-pill bg-white bg-opacity-10 text-white-50 py-0 px-2" style="font-size: 0.65rem;">Standard Default</span>
+                                        </div>
+                                        <textarea name="custom_hook" id="custom-hook-input" class="form-control" rows="3" placeholder="Generated hook will appear here. You can also edit it directly..." style="font-size: 0.75rem; background: rgba(0,0,0,0.35); border-color: rgba(99, 102, 241, 0.35); color: #f8fafc;"></textarea>
+                                    </div>
                                 </div>
                             </div>
 
@@ -461,16 +500,19 @@
                                     <span class="text-muted small text-uppercase" style="font-size: 0.68rem;">Rendered Body Preview</span>
                                     <div id="preview-body" class="small text-white-50 mt-1 p-2 rounded-2" style="white-space: pre-wrap; max-height: 140px; overflow-y: auto; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.05); font-size: 0.78rem;"></div>
                                 </div>
-                                <div>
-                                    <span class="text-muted small text-uppercase" style="font-size: 0.68rem;">Attached PDF Document</span>
-                                    <div class="ratio ratio-16x9 mt-2 rounded-2 overflow-hidden border border-white border-opacity-10">
-                                        <iframe id="preview-resume" src="" class="w-100 h-100" style="background: #1e293b;"></iframe>
+                                <div id="preview-pdf-row" class="d-flex align-items-center justify-content-between pt-2 border-top border-white border-opacity-10">
+                                    <div>
+                                        <span class="text-muted small text-uppercase" style="font-size: 0.68rem;">Attached Resume Document</span>
+                                        <div id="preview-resume-name" class="small text-white fw-semibold">PDF Document Ready</div>
                                     </div>
+                                    <button type="button" id="btn-open-pdf-modal" class="btn btn-sm btn-glass-subtle py-1 px-3 small text-white d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#pdfPreviewModal">
+                                        <span>📄 Preview PDF</span>
+                                    </button>
                                 </div>
                             </div>
 
                             <!-- Dispatch Action Button with Morphing State -->
-                            <div class="mt-auto pt-3">
+                            <div class="pt-3 mt-2 border-top border-white border-opacity-10">
                                 <button type="submit" id="submit-btn" class="btn btn-gradient-primary w-100 py-2 fs-6 fw-semibold">
                                     <span>🚀 Send Job Application</span>
                                 </button>
@@ -482,8 +524,8 @@
             </div>
 
             <!-- Right Column: Dual Command Center (Follow-Up Cadence Queue & Live Dispatch Feed) -->
-            <div class="col-lg-7 col-md-7 d-flex flex-column desktop-h-100">
-                <div class="glass-card d-flex flex-column desktop-h-100 p-4">
+            <div class="col-12 col-xl-7 col-lg-6">
+                <div class="glass-card p-3 p-sm-4 d-flex flex-column h-100">
                     
                     <!-- Header with Tabs and 1-Click Send Due Button -->
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10 flex-wrap gap-2">
@@ -548,14 +590,14 @@
                             </div>
 
                             <!-- Follow-Up Table Area -->
-                            <div class="flex-grow-1 scrollable-area overflow-auto pe-1" style="max-height: calc(100vh - 200px);">
-                                <table class="table glass-table align-middle mb-0">
-                                    <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
+                            <div class="table-responsive scrollable-area" style="max-height: 620px;">
+                                <table class="table glass-table align-middle mb-0" style="min-width: 600px;">
+                                    <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); z-index: 2;">
                                         <tr>
-                                            <th>Recipient & Company</th>
-                                            <th>Cadence Status</th>
-                                            <th>Scheduled Bump</th>
-                                            <th class="text-end">Safeguards & Actions</th>
+                                            <th style="min-width: 180px;">Recipient & Company</th>
+                                            <th style="min-width: 130px;">Cadence Status</th>
+                                            <th style="min-width: 120px;">Scheduled Bump</th>
+                                            <th class="text-end" style="min-width: 140px;">Safeguards & Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -597,13 +639,13 @@
                                                 </td>
                                                 <td class="text-end">
                                                     {% if seq.status == 'WAITING' or seq.status == 'READY' %}
-                                                        <div class="d-inline-flex gap-1">
+                                                        <div class="btn-group btn-group-sm" role="group">
                                                             <!-- Force Send Now -->
                                                             <form method="post" action="{% url 'followup_action' %}" class="d-inline">
                                                                 {% csrf_token %}
                                                                 <input type="hidden" name="action" value="send_now">
                                                                 <input type="hidden" name="sequence_id" value="{{ seq.id }}">
-                                                                <button type="submit" class="btn btn-sm btn-glass-subtle px-2 py-1 text-emerald" title="Dispatch follow-up immediately">
+                                                                <button type="submit" class="btn btn-sm btn-glass-subtle px-2 py-1 text-emerald" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" title="Dispatch follow-up immediately">
                                                                     ⚡ Send
                                                                 </button>
                                                             </form>
@@ -613,7 +655,7 @@
                                                                 {% csrf_token %}
                                                                 <input type="hidden" name="action" value="mark_replied">
                                                                 <input type="hidden" name="sequence_id" value="{{ seq.id }}">
-                                                                <button type="submit" class="btn btn-sm btn-glass-subtle px-2 py-1 text-warning" title="Recruiter replied: freeze sequence">
+                                                                <button type="submit" class="btn btn-sm btn-glass-subtle px-2 py-1 text-warning rounded-0" title="Recruiter replied: freeze sequence">
                                                                     ✓ Replied
                                                                 </button>
                                                             </form>
@@ -623,7 +665,7 @@
                                                                 {% csrf_token %}
                                                                 <input type="hidden" name="action" value="cancel">
                                                                 <input type="hidden" name="sequence_id" value="{{ seq.id }}">
-                                                                <button type="submit" class="btn btn-sm btn-glass-subtle px-2 py-1 text-white-50" title="Cancel follow-up">
+                                                                <button type="submit" class="btn btn-sm btn-glass-subtle px-2 py-1 text-white-50" style="border-top-left-radius: 0; border-bottom-left-radius: 0;" title="Cancel follow-up">
                                                                     ✕
                                                                 </button>
                                                             </form>
@@ -649,13 +691,13 @@
 
                         <!-- PANE 2: Live Activity Feed Table -->
                         <div class="tab-pane fade flex-grow-1 d-flex flex-column" id="feed-pane" role="tabpanel" style="min-height: 0;">
-                            <div class="flex-grow-1 scrollable-area overflow-auto pe-1" style="max-height: calc(100vh - 160px);">
-                                <table class="table glass-table align-middle mb-0">
-                                    <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
+                            <div class="table-responsive scrollable-area" style="max-height: 620px;">
+                                <table class="table glass-table align-middle mb-0" style="min-width: 480px;">
+                                    <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); z-index: 2;">
                                         <tr>
-                                            <th>Recipient Email</th>
-                                            <th>Status</th>
-                                            <th>Timestamp</th>
+                                            <th style="min-width: 200px;">Recipient Email</th>
+                                            <th style="min-width: 120px;">Status</th>
+                                            <th style="min-width: 140px;">Timestamp</th>
                                         </tr>
                                     </thead>
                                     <tbody id="recent-logs-body">
@@ -669,6 +711,26 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- PDF Document Preview Modal -->
+    <div class="modal fade" id="pdfPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content glass-card border border-white border-opacity-15 p-3" style="background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(25px); border-radius: 16px;">
+                <div class="modal-header border-bottom border-white border-opacity-10 pb-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-6">📄</span>
+                        <h6 class="modal-title text-gradient mb-0 fs-6">Attached Resume Document</h6>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0 pt-3">
+                    <div style="height: 75vh; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);">
+                        <iframe id="modal-preview-resume" src="" class="w-100 h-100" style="background: #1e293b;"></iframe>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -700,9 +762,22 @@
             const previewBox = document.getElementById('preview-box');
             const previewSubject = document.getElementById('preview-subject');
             const previewBody = document.getElementById('preview-body');
-            const previewResume = document.getElementById('preview-resume');
+            const modalPreviewResume = document.getElementById('modal-preview-resume');
+            const previewResumeName = document.getElementById('preview-resume-name');
+            const btnOpenPdfModal = document.getElementById('btn-open-pdf-modal');
             const dispatchForm = document.getElementById('dispatch-form');
             const submitBtn = document.getElementById('submit-btn');
+
+            const customHookInput = document.getElementById('custom-hook-input');
+            const aiSnippetInput = document.getElementById('ai-job-snippet');
+            const btnGenerateAi = document.getElementById('btn-generate-ai-hook');
+            const aiBtnText = document.getElementById('ai-btn-text');
+            const btnResetHook = document.getElementById('btn-reset-hook');
+            const toggleAiAssistant = document.getElementById('toggle-ai-assistant');
+            const aiAssistantBody = document.getElementById('ai-assistant-body');
+            const hookBadge = document.getElementById('hook-badge');
+
+            const defaultHighlights = `I have 1.5+ years of experience building production web applications using Python (FastAPI, Django) and React.js.\n\nA few quick highlights of my work:\n• Built and deployed a live B2B platform (https://www.ssenterprisesncr.in) using FastAPI and Serverless PostgreSQL, reducing quote processing by 15 hours/week.\n• Optimized PostgreSQL database queries and backend APIs at GISFY, reducing query response times by 35% with robust RBAC security.\n• Developed responsive user interfaces in React.js and Tailwind CSS integrated with Cloudinary CDN for fast asset delivery.`;
 
             function updatePreview() {
                 if (!templateSelect || !resumeSelect) return;
@@ -714,22 +789,129 @@
                     
                     if (tempId && templateData[tempId]) {
                         previewSubject.textContent = templateData[tempId].subject;
-                        previewBody.textContent = templateData[tempId].body;
+                        
+                        let bodyText = templateData[tempId].body;
+                        const activeHook = customHookInput ? customHookInput.value.trim() : '';
+                        bodyText = bodyText.replace(/\{\{\s*custom_hook\s*\}\}/g, activeHook || defaultHighlights);
+                        previewBody.textContent = bodyText;
                     } else {
                         previewSubject.textContent = 'Select a template to preview subject...';
                         previewBody.textContent = 'Select a template to preview body...';
                     }
 
                     if (resId && resumeData[resId]) {
-                        previewResume.src = resumeData[resId].url;
-                        previewResume.parentElement.classList.remove('d-none');
+                        if (modalPreviewResume) modalPreviewResume.src = resumeData[resId].url;
+                        if (previewResumeName && resumeSelect.options[resumeSelect.selectedIndex]) {
+                            previewResumeName.textContent = resumeSelect.options[resumeSelect.selectedIndex].text;
+                        }
+                        if (btnOpenPdfModal) {
+                            btnOpenPdfModal.disabled = false;
+                            btnOpenPdfModal.classList.remove('opacity-50');
+                        }
                     } else {
-                        previewResume.src = '';
-                        previewResume.parentElement.classList.add('d-none');
+                        if (modalPreviewResume) modalPreviewResume.src = '';
+                        if (previewResumeName) previewResumeName.textContent = 'No Resume Selected';
+                        if (btnOpenPdfModal) {
+                            btnOpenPdfModal.disabled = true;
+                            btnOpenPdfModal.classList.add('opacity-50');
+                        }
                     }
                 } else {
                     previewBox.classList.add('d-none');
                 }
+            }
+
+            if (customHookInput) {
+                customHookInput.addEventListener('input', function() {
+                    if (hookBadge) {
+                        if (customHookInput.value.trim()) {
+                            hookBadge.className = 'badge rounded-pill bg-purple bg-opacity-20 text-purple border border-purple border-opacity-30 py-0 px-2';
+                            hookBadge.textContent = 'Custom Hook Active';
+                        } else {
+                            hookBadge.className = 'badge rounded-pill bg-white bg-opacity-10 text-white-50 py-0 px-2';
+                            hookBadge.textContent = 'Standard Default';
+                        }
+                    }
+                    updatePreview();
+                });
+            }
+
+            if (btnResetHook && customHookInput) {
+                btnResetHook.addEventListener('click', function() {
+                    customHookInput.value = '';
+                    if (hookBadge) {
+                        hookBadge.className = 'badge rounded-pill bg-white bg-opacity-10 text-white-50 py-0 px-2';
+                        hookBadge.textContent = 'Standard Default';
+                    }
+                    updatePreview();
+                });
+            }
+
+            if (toggleAiAssistant && aiAssistantBody) {
+                toggleAiAssistant.addEventListener('click', function() {
+                    if (aiAssistantBody.classList.contains('d-none')) {
+                        aiAssistantBody.classList.remove('d-none');
+                        toggleAiAssistant.textContent = 'Minimize';
+                    } else {
+                        aiAssistantBody.classList.add('d-none');
+                        toggleAiAssistant.textContent = '✨ Expand / Tailor';
+                    }
+                });
+            }
+
+            if (btnGenerateAi && customHookInput) {
+                btnGenerateAi.addEventListener('click', function() {
+                    if (aiAssistantBody && aiAssistantBody.classList.contains('d-none')) {
+                        aiAssistantBody.classList.remove('d-none');
+                        if (toggleAiAssistant) toggleAiAssistant.textContent = 'Minimize';
+                    }
+                    const snippet = aiSnippetInput ? aiSnippetInput.value.trim() : '';
+                    btnGenerateAi.disabled = true;
+                    if (aiBtnText) {
+                        aiBtnText.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Generating with Gemini...`;
+                    }
+
+                    fetch("{% url 'generate_ai_hook' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            company: '',
+                            role: '',
+                            job_snippet: snippet
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success && data.hook) {
+                            customHookInput.value = data.hook;
+                            if (hookBadge) {
+                                if (data.is_fallback) {
+                                    hookBadge.className = 'badge rounded-pill bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 py-0 px-2';
+                                    hookBadge.textContent = 'Fallback Default';
+                                } else {
+                                    hookBadge.className = 'badge rounded-pill bg-purple bg-opacity-25 text-purple border border-purple border-opacity-40 py-0 px-2';
+                                    hookBadge.textContent = '✨ Gemini 2.5 Hook Active';
+                                }
+                            }
+                            updatePreview();
+                        } else {
+                            alert('Generation error: ' + (data.error || 'Failed to generate hook'));
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Gemini hook generation error:', err);
+                        alert('Network error communicating with AI endpoint.');
+                    })
+                    .finally(() => {
+                        btnGenerateAi.disabled = false;
+                        if (aiBtnText) {
+                            aiBtnText.textContent = '✨ Generate AI Pitch Hook';
+                        }
+                    });
+                });
             }
 
             if (templateSelect && resumeSelect) {
