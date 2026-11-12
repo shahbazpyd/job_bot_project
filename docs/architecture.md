@@ -236,3 +236,50 @@ job_bot_project/
 |  I have attached my resume for your review..."                                                |
 +-----------------------------------------------------------------------------------------------+
 ```
+
+---
+
+## 8. Real-Time Email Open & Link Click Telemetry Topology
+
+```
++-----------------------------------------------------------------------------------------------+
+|                            Outbound Dispatch & Telemetry Decoration                           |
+|                                                                                               |
+| 1. Generate unique UUID token for ApplicationLog:                                             |
+|    tracking_token = uuid.uuid4()                                                             |
+|                                                                                               |
+| 2. Wrap HTML Body with Telemetry Beacons:                                                     |
+|    - Open Beacon: <img src="https://.../track/open/<token>/" width="1" height="1" ... />       |
+|    - Click Proxy: <a href="https://.../track/click/<token>/?url=<encoded_url>">...</a>        |
+|                                                                                               |
+| 3. Multi-Part MIME Construction (EmailMultiAlternatives):                                     |
+|    - Alternative 1 (text/plain): Clean plain text with raw URLs for strict text readers       |
+|    - Alternative 2 (text/html): Rendered rich email with telemetry beacons                    |
++-----------------------------------------------------------------------------------------------+
+                                                |
+                                                v
++-----------------------------------------------------------------------------------------------+
+|                               Recruiter Engagement & Webhook Flow                             |
+|                                                                                               |
+|  Recruiter opens email in Gmail/Outlook --------> [GET /track/open/<token>/]                  |
+|                                                    - Atomically increments open_count         |
+|                                                    - Sets opened_at timestamp                 |
+|                                                    - Returns 1x1 transparent GIF (43 bytes)   |
+|                                                    - Cache-Control: no-store, private         |
+|                                                                                               |
+|  Recruiter clicks link (e.g. ssenterprisesncr.in) -> [GET /track/click/<token>/?url=...]      |
+|                                                    - Validates target domain security         |
+|                                                    - Atomically increments click_count        |
+|                                                    - Sets clicked_at timestamp                |
+|                                                    - Issues HTTP 302 Redirect to destination  |
++-----------------------------------------------------------------------------------------------+
+                                                |
+                                                v
++-----------------------------------------------------------------------------------------------+
+|                                Live Dashboard Telemetry Feed                                  |
+|                                                                                               |
+|  - Real-time badges in Dispatch Feed: 👁️ Opened (3x) • 🔗 Clicked (1x) • ⏳ Unopened           |
+|  - High-priority indicator in Follow-Up Cadence Queue for recruiters with multiple opens      |
++-----------------------------------------------------------------------------------------------+
+```
+

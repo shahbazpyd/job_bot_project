@@ -122,3 +122,6 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Google Gemini API Configuration for AI Dynamic Hook Generation
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()
+
+# Base URL for email open tracking beacons and link redirects (default fallback: http://127.0.0.1:8000)
+TRACKING_BASE_URL = os.getenv('TRACKING_BASE_URL', '').strip()

@@ -67,11 +67,19 @@ A unified, private Django platform that:
     - *Dispatcher*: Interactive job snippet input with 1-click AJAX generation and live preview insertion.
     - *Lead Harvester*: Per-lead **"✨ AI Pitch"** action generating tailored opening lines directly from scraped job postings.
   - **Resilience Guardrail**: Graceful fallback to default intro on missing API key, rate limits, or timeout, ensuring zero failed dispatches.
+- **Phase 10: Super-Premium Responsive UI & Layout Stabilization**:
+  - Fluid minimum-height layout engine eliminating rigid 100vh height clamps and layout collisions across laptops, tablets, and mobile screens.
+  - Collapsible progressive disclosure for AI Pitch Tailor and on-demand modal PDF viewer.
+  - Horizontal scroll protection with `.table-responsive` and min-width columns for all data tables.
+- **Phase 11: Real-Time Email Open & Link Click Tracking Telemetry**:
+  - **Invisible 1x1 Beacon Pixel**: Automatically injects a cached-proof 1x1 GIF into outbound emails (`/track/open/<token>/`) to track email opens and view frequencies.
+  - **Click-Through Tracking Proxy**: Rewrites candidate portfolio links (GitHub, LinkedIn, live B2B platform `ssenterprisesncr.in`) via `/track/click/<token>/?url=...` with open redirect protection.
+  - **Live Dashboard Telemetry Badges**: Real-time visual status badges in the Dispatch Feed and Follow-Up Queue (`👁️ Opened X times`, `🔗 Clicked X times`, `⏳ Unopened`).
 
 ### Post-MVP Scope (Future Phases)
-- Real-time email open & link click telemetry.
+- Persistent Task Queue with Django-Q2.
 - Headless browser automation (Playwright) for interactive portal submissions.
-- Multi-user isolation and OAuth login.
+- Kanban Visual Application Pipeline (ATS).
 
 ### Explicit Non-Goals (Out of Scope)
 - Commercial SaaS multi-tenancy with credit card billing.

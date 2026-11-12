@@ -40,6 +40,13 @@ from .services.ai_hook import (
     generate_personalized_hook,
     DEFAULT_CANDIDATE_HIGHLIGHTS
 )
+from .services.tracking import (
+    TRANSPARENT_1PX_GIF,
+    prepare_multipart_email_bodies,
+    record_email_open,
+    record_link_click,
+    is_safe_redirect_url
+)
 from .views import send_emails_in_background
 
 
@@ -639,3 +646,126 @@ class GeminiAIHookGeneratorTest(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         sent_email = mail.outbox[0]
         self.assertIn(custom_ai_hook, sent_email.body)
+
+
+class EmailOpenAndClickTelemetryTest(TestCase):
+    """Unit and integration tests for email open pixel and link click-through telemetry."""
+
+    def setUp(self):
+        self.client = Client()
+        self.template = EmailTemplate.objects.create(
+            title="Telemetry Template",
+            subject="Exploring Full Stack role at {{ company }}",
+            body="Hello {{ name }},\n\nCheck my platform at https://www.ssenterprisesncr.in for live demo."
+        )
+        self.resume = ResumeDocument.objects.create(
+            title="Telemetry Resume",
+            filename="telemetry_resume.pdf",
+            pdf_content=b"%PDF-1.4 mock telemetry pdf content"
+        )
+        self.log = ApplicationLog.objects.create(
+            recipient_email="recruiter@techcorp.in",
+            template=self.template,
+            resume=self.resume,
+            status="SUCCESS"
+        )
+
+    def test_record_email_open_atomic_increment(self):
+        """Verify record_email_open sets opened_at and increments open_count atomically."""
+        self.assertEqual(self.log.open_count, 0)
+        self.assertIsNone(self.log.opened_at)
+
+        # First open event
+        success, updated_log = record_email_open(self.log.tracking_token)
+        self.assertTrue(success)
+        self.assertEqual(updated_log.open_count, 1)
+        self.assertIsNotNone(updated_log.opened_at)
+        first_open_time = updated_log.opened_at
+
+        # Second open event (e.g. recruiter re-opens next morning)
+        success2, updated_log2 = record_email_open(self.log.tracking_token)
+        self.assertTrue(success2)
+        self.assertEqual(updated_log2.open_count, 2)
+        # Verify first opened timestamp was preserved
+        self.assertEqual(updated_log2.opened_at, first_open_time)
+
+    def test_track_open_view_returns_transparent_gif_and_nocache(self):
+        """Verify /track/open/<token>/ returns 43-byte GIF with aggressive no-cache headers."""
+        url = reverse('track_open', args=[self.log.tracking_token])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'image/gif')
+        self.assertEqual(response.content, TRANSPARENT_1PX_GIF)
+        self.assertIn('no-store', response['Cache-Control'])
+        self.assertIn('no-cache', response['Pragma'])
+
+        # Verify database record was updated by view
+        self.log.refresh_from_db()
+        self.assertEqual(self.log.open_count, 1)
+        self.assertIsNotNone(self.log.opened_at)
+
+    def test_record_link_click_and_redirect(self):
+        """Verify /track/click/<token>/?url=... increments click_count and redirects 302."""
+        target_url = "https://www.ssenterprisesncr.in"
+        url = reverse('track_click', args=[self.log.tracking_token]) + f"?url={target_url}"
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], target_url)
+
+        self.log.refresh_from_db()
+        self.assertEqual(self.log.click_count, 1)
+        self.assertIsNotNone(self.log.clicked_at)
+
+    def test_track_click_open_redirect_protection(self):
+        """Verify malicious or unsafe schemes (javascript:, data:) are rejected to safe fallback."""
+        malicious_url = "javascript:alert('XSS')"
+        url = reverse('track_click', args=[self.log.tracking_token]) + f"?url={malicious_url}"
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 302)
+        # Fallback to safe destination '/'
+        self.assertEqual(response['Location'], '/')
+
+    def test_prepare_multipart_email_bodies_structure(self):
+        """Verify plain text and HTML versions are generated with pixel and wrapped links."""
+        body = "Hi team,\n\nCheck my platform at https://www.ssenterprisesncr.in today."
+        base_url = "https://job-bot.onrender.com"
+        plain, html = prepare_multipart_email_bodies(body, self.log.tracking_token, base_url)
+
+        # Plain text retains raw URL without tags
+        self.assertIn("https://www.ssenterprisesncr.in", plain)
+        self.assertNotIn("<img", plain)
+
+        # HTML has tracking pixel pointing to base_url
+        self.assertIn(f'{base_url}/track/open/{self.log.tracking_token}/', html)
+        self.assertIn(f'{base_url}/track/click/{self.log.tracking_token}/', html)
+        self.assertIn('<img src=', html)
+        self.assertIn('<a href=', html)
+
+    def test_dispatch_creates_multipart_alternatives_with_telemetry(self):
+        """Verify background dispatch creates EmailMultiAlternatives with tracking token."""
+        mail.outbox.clear()
+
+        send_emails_in_background(
+            parsed_recipients=[{'email': 'founder@startup.co', 'name': 'Karan'}],
+            template_id=self.template.id,
+            resume_id=self.resume.id
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        sent_email = mail.outbox[0]
+
+        # Verify email is MIME multi-part with HTML alternative
+        self.assertEqual(len(sent_email.alternatives), 1)
+        html_content, mimetype = sent_email.alternatives[0]
+        self.assertEqual(mimetype, 'text/html')
+        self.assertIn('/track/open/', html_content)
+
+        # Verify ApplicationLog record was created with unique token
+        log_entry = ApplicationLog.objects.get(recipient_email='founder@startup.co')
+        self.assertIsNotNone(log_entry.tracking_token)
+        self.assertEqual(log_entry.open_count, 0)
+        self.assertEqual(log_entry.click_count, 0)
+

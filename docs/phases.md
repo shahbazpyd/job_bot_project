@@ -193,3 +193,28 @@
   - Verified layout responsiveness across desktop ($\ge 1200\text{px}$), laptop/tablet ($768\text{px} - 1199\text{px}$), and mobile ($< 768\text{px}$).
   - Executed full Django test suite (`python manage.py test mailer --keepdb`): 100% pass rate (30/30 tests passing).
 
+---
+
+## Phase 11: Real-Time Email Open & Link Click Tracking Telemetry (Completed)
+- [x] **Data Model & Schema Evolution**:
+  - Added `tracking_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)` to `ApplicationLog`.
+  - Added telemetry fields: `opened_at`, `open_count`, `clicked_at`, `click_count` to `ApplicationLog`.
+  - Added composite indexes: `idx_applog_tracking` on `(tracking_token)` and `idx_applog_engagement` on `(opened_at, clicked_at)`.
+  - Generated and applied migration `0007_applicationlog_tracking` to Neon PostgreSQL.
+- [x] **MIME Multi-Part Email Engine & Telemetry Injection**:
+  - Upgraded email dispatch service to use `EmailMultiAlternatives` providing both clean plain-text and rich HTML alternatives.
+  - Injected invisible $1\times 1$ transparent GIF tracking beacon (`/track/open/<token>/`).
+  - Implemented intelligent URL wrapper transforming portfolio and live project links into tracked redirects (`/track/click/<token>/?url=<encoded_target>`).
+- [x] **High-Performance Tracking Endpoints (`/track/open/` & `/track/click/`)**:
+  - `track_open_view`: Validates token, atomically updates `open_count` and `opened_at`, and returns a 43-byte transparent GIF with strict no-cache headers.
+  - `track_click_view`: Validates token and target destination, atomically updates `click_count` and `clicked_at`, and issues an HTTP 302 redirect with open-redirect security guardrails.
+- [x] **Super-Premium Dashboard Telemetry Indicators**:
+  - Enhanced **Dispatch Activity Feed** and **Follow-Up Cadence Queue** with real-time glowing badges:
+    - `👁️ Opened (X times)` with timestamp tooltips.
+    - `🔗 Clicked (X times)` highlighting recruiters actively exploring your portfolio.
+    - `⏳ Unopened` muted status.
+- [x] **Automated Regression Test Suite Expansion**:
+  - Authored 6 new unit tests for pixel tracking, click redirection, atomic increments, security against malicious redirects, and template multi-part rendering.
+  - Verified 100% test pass rate with `--keepdb` (36/36 tests passing).
+
+

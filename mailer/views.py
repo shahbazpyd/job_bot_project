@@ -4,9 +4,10 @@ import time
 import random
 import threading
 import mimetypes
-from django.http import FileResponse, Http404, JsonResponse
+import uuid
+from django.http import FileResponse, Http404, JsonResponse, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect, get_object_or_404
-from django.core.mail import EmailMessage, get_connection
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.contrib import messages
 from django.conf import settings
 from django.template import Template, Context
@@ -24,11 +25,18 @@ from .services.followup import (
     cancel_sequence
 )
 from .services.ai_hook import generate_personalized_hook, DEFAULT_CANDIDATE_HIGHLIGHTS
+from .services.tracking import (
+    TRANSPARENT_1PX_GIF,
+    get_tracking_base_url,
+    prepare_multipart_email_bodies,
+    record_email_open,
+    record_link_click
+)
 
 from django.contrib.auth.decorators import login_required
 
-def send_emails_in_background(parsed_recipients, template_id, resume_id, custom_hook=None):
-    """Handles SMTP network calls with delay jitter, custom AI hook resolution, and per-recipient template interpolation in a separate background thread."""
+def send_emails_in_background(parsed_recipients, template_id, resume_id, custom_hook=None, base_url=""):
+    """Handles SMTP network calls with delay jitter, custom AI hook resolution, per-recipient template interpolation, and MIME multi-part open/click telemetry injection in a separate background thread."""
     success_count = 0
     failure_count = 0
 
@@ -97,14 +105,20 @@ def send_emails_in_background(parsed_recipients, template_id, resume_id, custom_
                 # Generate unique RFC 2822 Message-ID for email conversation threading
                 rfc_message_id = generate_rfc2822_message_id()
 
-                email = EmailMessage(
+                # Generate unique tracking token and prepare MIME multi-part bodies (plain text + tracked HTML)
+                tracking_token = uuid.uuid4()
+                effective_base_url = base_url or get_tracking_base_url()
+                plain_body, html_body = prepare_multipart_email_bodies(personalized_body, tracking_token, effective_base_url)
+
+                email = EmailMultiAlternatives(
                     subject=personalized_subject,
-                    body=personalized_body,
+                    body=plain_body,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     to=[to_email],
                     connection=connection,
                     headers={'Message-ID': rfc_message_id},
                 )
+                email.attach_alternative(html_body, 'text/html')
                 # Attach from memory (filename, content, mimetype)
                 email.attach(resume_filename, resume_content, 'application/pdf')
                 email.send(fail_silently=False)
@@ -115,6 +129,7 @@ def send_emails_in_background(parsed_recipients, template_id, resume_id, custom_
                     resume=resume_obj,
                     status="SUCCESS",
                     message_id=rfc_message_id,
+                    tracking_token=tracking_token,
                 )
                 # Automatically schedule Day 4 follow-up bump sequence
                 schedule_followup_for_application(app_log, context_data, cadence_days=4)
@@ -154,10 +169,11 @@ def send_application_view(request):
 
             if new_recipients:
                 custom_hook = request.POST.get('custom_hook', '').strip()
+                base_url = get_tracking_base_url(request)
                 # Spawn a background thread to handle the slow network calls
                 thread = threading.Thread(
                     target=send_emails_in_background, 
-                    args=(new_recipients, template_obj.id, resume_obj.id, custom_hook)
+                    args=(new_recipients, template_obj.id, resume_obj.id, custom_hook, base_url)
                 )
                 thread.daemon = True  # Allows Django to shut down even if thread is running
                 thread.start()
@@ -412,3 +428,27 @@ def recent_logs_partial(request):
     """Returns the HTML table rows of the most recent logs for JS polling."""
     recent_logs = ApplicationLog.objects.order_by('-sent_at')[:20]
     return render(request, 'mailer/partials/recent_logs.html', {'logs': recent_logs})
+
+def track_open_view(request, token):
+    """
+    Public telemetry beacon triggered when a recruiter opens an email.
+    Atomically increments open_count and sets opened_at on the matching ApplicationLog.
+    Returns a 43-byte transparent GIF with aggressive no-cache HTTP headers.
+    """
+    record_email_open(token)
+    response = HttpResponse(TRANSPARENT_1PX_GIF, content_type='image/gif')
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0, private'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
+def track_click_view(request, token):
+    """
+    Public telemetry proxy triggered when a recruiter clicks any portfolio or project link.
+    Atomically increments click_count and sets clicked_at on the matching ApplicationLog,
+    then issues an HTTP 302 redirect to the validated destination URL.
+    """
+    target_url = request.GET.get('url', '')
+    success, safe_destination = record_link_click(token, target_url)
+    return HttpResponseRedirect(safe_destination)
+

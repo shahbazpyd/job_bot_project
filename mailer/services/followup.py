@@ -11,17 +11,19 @@ Implements:
 
 import time
 import random
+import uuid
 import logging
 from email.utils import make_msgid
 from typing import Dict, Any, List, Optional
 from datetime import timedelta
 
 from django.conf import settings
-from django.core.mail import EmailMessage, get_connection
+from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template import Template, Context
 from django.utils import timezone
 
 from mailer.models import ApplicationLog, FollowUpSequence, EmailTemplate, ResumeDocument
+from mailer.services.tracking import prepare_multipart_email_bodies, get_tracking_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -179,24 +181,31 @@ def dispatch_single_followup(
         resume_bytes = bytes(resume_obj.pdf_content)
         resume_filename = resume_obj.filename
 
-        email = EmailMessage(
+        # Generate unique tracking token and prepare MIME multi-part bodies (plain text + tracked HTML)
+        tracking_token = uuid.uuid4()
+        base_url = get_tracking_base_url()
+        plain_body, html_body = prepare_multipart_email_bodies(rendered_body, tracking_token, base_url)
+
+        email = EmailMultiAlternatives(
             subject=rendered_subject,
-            body=rendered_body,
+            body=plain_body,
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[recipient_email],
             connection=connection,
             headers=extra_headers,
         )
+        email.attach_alternative(html_body, 'text/html')
         email.attach(resume_filename, resume_bytes, 'application/pdf')
         email.send(fail_silently=False)
 
-        # Log dispatch in ApplicationLog
+        # Log dispatch in ApplicationLog with tracking token
         log_entry = ApplicationLog.objects.create(
             recipient_email=recipient_email,
             template=template_obj,
             resume=resume_obj,
             status="SUCCESS (Follow-Up #2)",
             message_id=new_message_id,
+            tracking_token=tracking_token,
         )
 
         # Transition sequence state to SENT

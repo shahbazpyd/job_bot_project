@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 
 class EmailTemplate(models.Model):
@@ -23,6 +24,11 @@ class ApplicationLog(models.Model):
     resume = models.ForeignKey(ResumeDocument, on_delete=models.SET_NULL, null=True)
     status = models.CharField(max_length=50)
     message_id = models.CharField(max_length=255, blank=True, default='', help_text="RFC 2822 Message-ID for email threading")
+    tracking_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, help_text="Unique UUIDv4 token for open and click telemetry")
+    opened_at = models.DateTimeField(null=True, blank=True, help_text="Timestamp when email was first opened")
+    open_count = models.PositiveIntegerField(default=0, help_text="Total number of times email was opened")
+    clicked_at = models.DateTimeField(null=True, blank=True, help_text="Timestamp when a project link was first clicked")
+    click_count = models.PositiveIntegerField(default=0, help_text="Total number of times links were clicked")
     sent_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -32,6 +38,10 @@ class ApplicationLog(models.Model):
             models.Index(fields=['recipient_email', 'status'], name='idx_applog_email_status'),
             # Accelerates daily quota calculations: ApplicationLog.objects.filter(sent_at__date=today).count()
             models.Index(fields=['sent_at'], name='idx_applog_sent_at'),
+            # Accelerates open and click telemetry lookups
+            models.Index(fields=['tracking_token'], name='idx_applog_tracking'),
+            # Accelerates engagement-based filtering and analytics
+            models.Index(fields=['opened_at', 'clicked_at'], name='idx_applog_engagement'),
         ]
 
     def __str__(self):

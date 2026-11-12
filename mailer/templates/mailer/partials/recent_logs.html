@@ -9,15 +9,37 @@
         {% endif %}
     </td>
     <td class="py-2">
-        {% if log.status == 'SUCCESS' %}
+        {% if log.status == 'SUCCESS' or 'SUCCESS' in log.status %}
             <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1" style="font-size: 0.72rem;">
                 <span class="d-inline-block rounded-circle me-1" style="width: 5px; height: 5px; background: #10b981;"></span>
-                SUCCESS
+                {{ log.status }}
             </span>
         {% else %}
             <span class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1" style="font-size: 0.72rem;">
                 {{ log.status|truncatechars:25 }}
             </span>
+        {% endif %}
+    </td>
+    <td class="py-2">
+        {% if log.open_count > 0 or log.click_count > 0 %}
+            <div class="d-flex align-items-center gap-1 flex-wrap">
+                {% if log.open_count > 0 %}
+                    <span class="badge rounded-pill bg-info bg-opacity-20 text-info border border-info border-opacity-30 px-2 py-1 small" title="Opened {{ log.open_count }} times (First: {{ log.opened_at|date:'M d, H:i' }})">
+                        👁️ {{ log.open_count }}x
+                    </span>
+                {% endif %}
+                {% if log.click_count > 0 %}
+                    <span class="badge rounded-pill bg-success bg-opacity-20 text-success border border-success border-opacity-30 px-2 py-1 small" title="Clicked links {{ log.click_count }} times (First: {{ log.clicked_at|date:'M d, H:i' }})">
+                        🔗 {{ log.click_count }}x
+                    </span>
+                {% endif %}
+            </div>
+        {% elif log.status == 'SUCCESS' or 'SUCCESS' in log.status %}
+            <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10 px-2 py-1 small" style="font-size: 0.68rem;">
+                ⏳ Unopened
+            </span>
+        {% else %}
+            <span class="text-white-50 small">—</span>
         {% endif %}
     </td>
     <td class="py-2 text-white-50 small" style="white-space: nowrap; font-size: 0.75rem;">
@@ -26,7 +48,7 @@
 </tr>
 {% empty %}
 <tr>
-    <td colspan="3" class="text-center text-white-50 small py-4">
+    <td colspan="4" class="text-center text-white-50 small py-4">
         <div class="d-flex flex-column align-items-center gap-1">
             <span style="font-size: 1.2rem; opacity: 0.5;">📡</span>
             <span>No dispatches recorded yet today. Applications will stream here live.</span>

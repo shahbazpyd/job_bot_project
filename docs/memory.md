@@ -7,8 +7,8 @@
 
 ## 1. Project Status Summary
 - **Project**: `job_bot_project` (Job Application Dispatcher & Lead Harvester)
-- **Active Phase**: **Phase 10 (Super-Premium Responsive UI & Layout Stabilization) Completed & Verified**
-- **System State**: Fluid Responsive Obsidian Dark Glass Live, Zero Viewport Collisions, 100% Test Coverage (30/30 tests passing)
+- **Active Phase**: **Phase 11 (Real-Time Email Open & Link Click Tracking Telemetry) Completed & Verified**
+- **System State**: Multi-Part MIME Dispatch Live, 1x1 Pixel & Link Redirect Proxies Active, 100% Test Coverage (36/36 tests passing)
 - **Primary Database**: Neon Serverless PostgreSQL (`ep-calm-heart...`)
 - **Active Environment**: `.venv` (Python 3.15, Django 6.1, `psycopg` 3.3.8, `google-genai` 3.2.0)
 
@@ -84,6 +84,14 @@
   - Replaced the permanent 300px fixed 16:9 PDF iframe with a dedicated on-demand **"📄 Preview PDF"** modal viewer (`#pdfPreviewModal`).
   - Wrapped Follow-Up Queue, Dispatch Feed, and Verified Leads tables in `.table-responsive` containers with explicit column `min-width` rules and unified `.btn-group` controls.
   - Re-executed full automated test suite with `--keepdb`: 30/30 tests passed (100% pass rate).
+- **Phase 11 (Real-Time Email Open & Link Click Tracking Telemetry)**:
+  - Added `tracking_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)` along with `opened_at`, `open_count`, `clicked_at`, `click_count` to `ApplicationLog`.
+  - Added indexes `idx_applog_tracking` and `idx_applog_engagement`. Applied migration `0007_applicationlog_tracking` to Neon PostgreSQL.
+  - Built `mailer/services/tracking.py` providing `prepare_multipart_email_bodies`, 1x1 GIF payload (`TRANSPARENT_1PX_GIF`), atomic DB updates (`F('open_count') + 1`), and open-redirect validation.
+  - Implemented public endpoints `/track/open/<uuid:token>/` (returning 43-byte GIF with no-cache headers) and `/track/click/<uuid:token>/` (issuing HTTP 302 redirect to portfolio and live project links).
+  - Upgraded background dispatches and follow-up bumps to `EmailMultiAlternatives` sending both clean plain-text and rich HTML alternatives.
+  - Enhanced dashboard Activity Feed with real-time badges (`👁️ Opened (X)`, `🔗 Clicked (X)`, `⏳ Unopened`) and Follow-Up Queue with recruiter engagement indicators.
+  - Added 6 automated tests in `mailer/tests.py` covering open pixels, click proxies, open-redirect defense, and multipart emails. 100% pass rate (36/36 tests passing).
 
 ---
 

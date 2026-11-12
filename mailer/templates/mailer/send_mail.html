@@ -606,6 +606,18 @@
                                                 <td>
                                                     <div class="fw-semibold text-white">{{ seq.recipient_email }}</div>
                                                     <div class="small text-white-50">{{ seq.company_name|default:"Company" }} • {{ seq.role_title|default:"Developer" }}</div>
+                                                    {% if seq.initial_log and seq.initial_log.open_count > 0 %}
+                                                        <div class="mt-1 d-flex gap-1 flex-wrap">
+                                                            <span class="badge rounded-pill bg-info bg-opacity-20 text-info border border-info border-opacity-30" style="font-size: 0.65rem;" title="Recruiter opened previous email {{ seq.initial_log.open_count }} times">
+                                                                👁️ Viewed {{ seq.initial_log.open_count }}x
+                                                            </span>
+                                                            {% if seq.initial_log.click_count > 0 %}
+                                                                <span class="badge rounded-pill bg-success bg-opacity-20 text-success border border-success border-opacity-30" style="font-size: 0.65rem;" title="Recruiter clicked your project link {{ seq.initial_log.click_count }} times">
+                                                                    🔗 Clicked Portfolio ({{ seq.initial_log.click_count }}x)
+                                                                </span>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% endif %}
                                                 </td>
                                                 <td>
                                                     {% if seq.status == 'SENT' %}
@@ -692,12 +704,13 @@
                         <!-- PANE 2: Live Activity Feed Table -->
                         <div class="tab-pane fade flex-grow-1 d-flex flex-column" id="feed-pane" role="tabpanel" style="min-height: 0;">
                             <div class="table-responsive scrollable-area" style="max-height: 620px;">
-                                <table class="table glass-table align-middle mb-0" style="min-width: 480px;">
+                                <table class="table glass-table align-middle mb-0" style="min-width: 540px;">
                                     <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); z-index: 2;">
                                         <tr>
-                                            <th style="min-width: 200px;">Recipient Email</th>
-                                            <th style="min-width: 120px;">Status</th>
-                                            <th style="min-width: 140px;">Timestamp</th>
+                                            <th style="min-width: 190px;">Recipient Email</th>
+                                            <th style="min-width: 110px;">Status</th>
+                                            <th style="min-width: 130px;">Engagement</th>
+                                            <th style="min-width: 110px;">Timestamp</th>
                                         </tr>
                                     </thead>
                                     <tbody id="recent-logs-body">
