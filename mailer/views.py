@@ -11,7 +11,16 @@ from django.conf import settings
 from django.template import Template, Context
 from django.utils import timezone
 from .forms import ApplicationDispatchForm
-from .models import ApplicationLog, EmailTemplate, ResumeDocument, RecruiterLead
+from .models import ApplicationLog, EmailTemplate, ResumeDocument, RecruiterLead, FollowUpSequence
+from .services.followup import (
+    generate_rfc2822_message_id,
+    schedule_followup_for_application,
+    get_followup_queue_stats,
+    dispatch_due_followups,
+    dispatch_single_followup,
+    mark_as_replied,
+    cancel_sequence
+)
 
 from django.contrib.auth.decorators import login_required
 
@@ -71,23 +80,31 @@ def send_emails_in_background(parsed_recipients, template_id, resume_id):
                 personalized_subject = Template(template_obj.subject).render(context)
                 personalized_body = Template(template_obj.body).render(context)
 
+                # Generate unique RFC 2822 Message-ID for email conversation threading
+                rfc_message_id = generate_rfc2822_message_id()
+
                 email = EmailMessage(
                     subject=personalized_subject,
                     body=personalized_body,
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     to=[to_email],
                     connection=connection,
+                    headers={'Message-ID': rfc_message_id},
                 )
                 # Attach from memory (filename, content, mimetype)
                 email.attach(resume_filename, resume_content, 'application/pdf')
                 email.send(fail_silently=False)
 
-                ApplicationLog.objects.create(
+                app_log = ApplicationLog.objects.create(
                     recipient_email=to_email,
                     template=template_obj,
                     resume=resume_obj,
-                    status="SUCCESS"
+                    status="SUCCESS",
+                    message_id=rfc_message_id,
                 )
+                # Automatically schedule Day 4 follow-up bump sequence
+                schedule_followup_for_application(app_log, context_data, cadence_days=4)
+
                 # Mark lead as contacted in Harvester registry
                 RecruiterLead.objects.filter(email=to_email).update(is_contacted=True)
                 success_count += 1
@@ -164,6 +181,10 @@ def send_application_view(request):
     daily_limit = 300  # Default daily limit for Brevo / standard relay accounts
     quota_percent = min(100, int((sent_today / daily_limit) * 100)) if daily_limit > 0 else 0
 
+    # Follow-Up Queue Metrics & Sequence List
+    followup_stats = get_followup_queue_stats()
+    followup_sequences = FollowUpSequence.objects.select_related('initial_log', 'initial_log__template', 'initial_log__resume').order_by('status', 'scheduled_at')[:30]
+
     return render(request, 'mailer/send_mail.html', {
         'form': form, 
         'logs': recent_logs,
@@ -172,7 +193,55 @@ def send_application_view(request):
         'sent_today': sent_today,
         'daily_limit': daily_limit,
         'quota_percent': quota_percent,
+        'followup_stats': followup_stats,
+        'followup_sequences': followup_sequences,
     })
+
+@login_required
+def followup_action_view(request):
+    """
+    Handles user actions on the Follow-Up Cadence Queue:
+    - send_due: Batch dispatches all follow-ups whose 4-day cooldown has passed.
+    - mark_replied: Halts sequence when recruiter replies.
+    - cancel: Manually revokes sequence.
+    - send_now: Force dispatches an individual sequence immediately.
+    """
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        sequence_id = request.POST.get('sequence_id')
+
+        if action == 'send_due':
+            thread = threading.Thread(target=dispatch_due_followups)
+            thread.daemon = True
+            thread.start()
+            messages.success(request, "🚀 Initiated background batch dispatch of all due follow-ups!")
+
+        elif action == 'mark_replied' and sequence_id:
+            seq = mark_as_replied(int(sequence_id))
+            if seq:
+                messages.success(request, f"Sequence for {seq.recipient_email} marked as REPLIED. Automated follow-ups permanently halted!")
+            else:
+                messages.error(request, "Follow-up sequence not found.")
+
+        elif action == 'cancel' and sequence_id:
+            seq = cancel_sequence(int(sequence_id))
+            if seq:
+                messages.info(request, f"Follow-up sequence for {seq.recipient_email} was cancelled.")
+            else:
+                messages.error(request, "Follow-up sequence not found.")
+
+        elif action == 'send_now' and sequence_id:
+            try:
+                seq = FollowUpSequence.objects.get(id=int(sequence_id))
+                res = dispatch_single_followup(seq, force=True)
+                if res['success']:
+                    messages.success(request, f"Follow-up dispatched immediately to {seq.recipient_email} with RFC 2822 threading!")
+                else:
+                    messages.error(request, f"Dispatch failed: {res.get('error')}")
+            except FollowUpSequence.DoesNotExist:
+                messages.error(request, "Follow-up sequence not found.")
+
+    return redirect('send_application')
 
 @login_required
 def lead_harvester_view(request):

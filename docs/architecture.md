@@ -114,9 +114,125 @@ job_bot_project/
   - `idx_lead_exp_contacted` on `RecruiterLead(experience_tag, is_contacted)`
   - `idx_lead_created_at` on `RecruiterLead(-created_at)`
 - **Deduplication Constraints**: `EmailTemplate.title` and `ResumeDocument.title` enforce database-level `unique=True` constraints. `ApplicationLog` tracks per-recipient status (`SUCCESS`, `FAILED`) to guarantee idempotent retries.
+- **RFC 2822 Message Tracking (`ApplicationLog.message_id`)**: Stores the globally unique RFC 2822 identifier generated during SMTP delivery (e.g., `<uuid@jobbot.local>`), allowing follow-ups to cite parent message trees.
+- **Follow-Up Sequence Model (`FollowUpSequence`)**:
+  - `initial_log`: `ForeignKey(ApplicationLog, on_delete=CASCADE, related_name='followup_sequences')`
+  - `recipient_email`: `EmailField()`
+  - `candidate_name`: `CharField(max_length=150, blank=True)`
+  - `company_name`: `CharField(max_length=150, blank=True)`
+  - `role_title`: `CharField(max_length=150, blank=True)`
+  - `step`: `IntegerField(default=2)` (Step 1 = Initial, Step 2 = Day 4 Follow-Up)
+  - `status`: Choices `['WAITING', 'READY', 'SENT', 'REPLIED', 'CANCELLED']`
+  - `scheduled_at`: `DateTimeField()` (Initial dispatch time + 4 days)
+  - `dispatched_at`: `DateTimeField(null=True, blank=True)`
+  - `created_at`: `DateTimeField(auto_now_add=True)`
+  - Accelerated Indexes: `idx_followup_status_sched` on `(status, scheduled_at)` and `idx_followup_recipient` on `(recipient_email)`.
 
 ---
 
 ## 5. Third-Party Integrations & Vendor Lock-In Mitigation
 - **SMTP Relay**: Generic Django `EmailBackend` connecting to Brevo Relay. Swapping to Gmail SMTP, AWS SES, or SendGrid requires only changing `.env` variables without modifying application code.
 - **Database**: Django ORM ensures database engine portability between local SQLite (for rapid testing) and PostgreSQL (for production).
+
+---
+
+## 6. Automated Follow-Up Engine & RFC 2822 Threading Architecture
+
+```
++--------------------------------------------------------------------------------------------------+
+|                                    Day 0: Initial Dispatch                                       |
+|                                                                                                  |
+| [Candidate CSV/Leads] ---> [send_application_view] ---> [SMTP Relay]                             |
+|                                                              |                                   |
+|                                                              v                                   |
+|                                        Generates RFC 2822 Message-ID                             |
+|                                        (e.g., <msg_1234@jobbot.local>)                           |
+|                                                              |                                   |
+|                                                              v                                   |
+|                                            +----------------------------------+                  |
+|                                            | ApplicationLog                   |                  |
+|                                            | - message_id: <msg_1234@...>     |                  |
+|                                            +-----------------+----------------+                  |
+|                                                              |                                   |
+|                                                              v                                   |
+|                                            +----------------------------------+                  |
+|                                            | FollowUpSequence (Created)       |                  |
+|                                            | - status: WAITING                |                  |
+|                                            | - scheduled_at: Day 0 + 4 days   |                  |
+|                                            +----------------------------------+                  |
++--------------------------------------------------------------------------------------------------+
+                                               |
+                                     (4-Day Cadence Interval)
+                                               |
+                                               v
++--------------------------------------------------------------------------------------------------+
+|                                Day 4: Automated Follow-Up Execution                              |
+|                                                                                                  |
+|             Trigger: [Web UI "Send Due Follow-Ups"] OR [manage.py process_followups]              |
+|                                               |                                                  |
+|                                               v                                                  |
+|                      Query: scheduled_at <= now() AND status in ('WAITING', 'READY')             |
+|                                               |                                                  |
+|                     +-------------------------+-------------------------+                        |
+|                     | Recruiter Replied?                                | Recruiter Silent?      |
+|                     v                                                   v                        |
+|        [Mark as Replied / Cancelled]                       [Inject RFC 2822 Thread Headers]      |
+|        status = 'REPLIED' / 'CANCELLED'                    - In-Reply-To: <msg_1234@...>         |
+|        (HALTED - No email sent)                            - References: <msg_1234@...>          |
+|                                                            - Subject: Re: <Original Subject>     |
+|                                                                         |                        |
+|                                                                         v                        |
+|                                                             [Send via Brevo SMTP Relay]          |
+|                                                                         |                        |
+|                                                                         v                        |
+|                                                             Recruiter Inbox groups follow-up     |
+|                                                             DIRECTLY inside initial email thread!|
+|                                                             status = 'SENT'                      |
++--------------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 7. Gemini AI Dynamic Hook Generator Topology
+
+```
++-----------------------------------------------------------------------------------------------+
+|                                     Client-Side Triggers                                      |
+|                                                                                               |
+|  [Dispatcher: Job Description Snippet]           [Harvester: Scraped Recruiter Lead Snippet]  |
+|                         \                                     /                               |
+|                          \                                   /                                |
+|                           v                                 v                                 |
+|                            [POST /api/generate-hook/] (JSON)                                  |
+|                             - role: e.g. "Senior Python Dev"                                  |
+|                             - company: e.g. "Acme AI"                                         |
+|                             - context_snippet: "Looking for FastAPI, spatial SQL, React..."   |
++-----------------------------------------------+-----------------------------------------------+
+                                                |
+                                                v
++-----------------------------------------------------------------------------------------------+
+|                                    Backend AI Service Layer                                   |
+|                                 (mailer/services/ai_hook.py)                                  |
+|                                                                                               |
+|  1. Candidate Grounding Injection:                                                            |
+|     - 1.5+ YOE in Python (FastAPI, Django), PostgreSQL, React.js.                             |
+|     - Deployed live platform (ssenterprisesncr.in).                                           |
+|     - Optimized GISFY spatial queries by 35% with RBAC.                                       |
+|  2. Strict Prompt Guardrail:                                                                  |
+|     - Tone: Humble, confident engineer. Length: exactly 2 sentences. No buzzwords.            |
+|  3. SDK Call:                                                                                 |
+|     - google-genai SDK -> gemini-2.5-flash                                                    |
+|     - Graceful Timeout / Circuit Breaker (Fallback to standard verified pitch)                |
++-----------------------------------------------+-----------------------------------------------+
+                                                |
+                                                v
++-----------------------------------------------------------------------------------------------+
+|                                     Template Engine Merge                                     |
+|                                                                                               |
+|  Template: "...I'm reaching out to express interest in the {{ role }} at {{ company }}.       |
+|                                                                                               |
+|  {{ custom_hook|default:DEFAULT_PITCH }}                                                      |
+|                                                                                               |
+|  I have attached my resume for your review..."                                                |
++-----------------------------------------------------------------------------------------------+
+```

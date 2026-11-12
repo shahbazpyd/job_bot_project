@@ -278,6 +278,42 @@
             transform: translateX(4px);
         }
 
+        /* Tab Navigation Pills */
+        .glass-tab-pill {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            border-radius: 9999px;
+            padding: 0.35rem 0.85rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .glass-tab-pill:hover {
+            background: rgba(255, 255, 255, 0.09);
+            color: var(--text-primary);
+        }
+        .glass-tab-pill.active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(168, 85, 247, 0.35));
+            border-color: rgba(99, 102, 241, 0.55);
+            color: #ffffff;
+            box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Stat Chip in Follow-Up Header */
+        .stat-chip {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 10px;
+            padding: 0.35rem 0.65rem;
+            font-size: 0.72rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .text-emerald { color: #10b981 !important; }
+        .text-purple { color: #c084fc !important; }
+
         /* Glass Preview Box */
         .preview-glass-box {
             background: rgba(11, 16, 29, 0.75);
@@ -445,30 +481,190 @@
                 </div>
             </div>
 
-            <!-- Right Column: Recent Dispatches Glass Monitor -->
+            <!-- Right Column: Dual Command Center (Follow-Up Cadence Queue & Live Dispatch Feed) -->
             <div class="col-lg-7 col-md-7 d-flex flex-column desktop-h-100">
                 <div class="glass-card d-flex flex-column desktop-h-100 p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10">
+                    
+                    <!-- Header with Tabs and 1-Click Send Due Button -->
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10 flex-wrap gap-2">
+                        <ul class="nav nav-pills gap-2" id="dashboardTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active glass-tab-pill d-flex align-items-center gap-2" id="followups-tab" data-bs-toggle="tab" data-bs-target="#followups-pane" type="button" role="tab">
+                                    <span>⚡ Follow-Up Cadence Queue</span>
+                                    {% if followup_stats.due > 0 %}
+                                        <span class="badge rounded-pill bg-danger text-white py-1 px-2" style="font-size: 0.68rem;">{{ followup_stats.due }} Due</span>
+                                    {% endif %}
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link glass-tab-pill d-flex align-items-center gap-2" id="feed-tab" data-bs-toggle="tab" data-bs-target="#feed-pane" type="button" role="tab">
+                                    <span>📡 Dispatch Activity Feed</span>
+                                </button>
+                            </li>
+                        </ul>
+
                         <div class="d-flex align-items-center gap-2">
-                            <h5 class="text-gradient mb-0 fs-5">Real-Time Dispatch Feed</h5>
-                            <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10 py-1 px-2" style="font-size: 0.7rem;">Adaptive Polling</span>
+                            <!-- 1-Click Batch Send Due Follow-Ups -->
+                            <form method="post" action="{% url 'followup_action' %}" class="m-0">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="send_due">
+                                <button type="submit" class="btn btn-sm btn-gradient-primary px-3 py-1 fw-semibold small" 
+                                        {% if followup_stats.due == 0 %}disabled title="No follow-ups currently due for dispatch"{% endif %}>
+                                    🚀 Send Due ({{ followup_stats.due }})
+                                </button>
+                            </form>
+                            <span class="small text-muted" id="poll-indicator">● Active Sync</span>
                         </div>
-                        <span class="small text-muted" id="poll-indicator">● Active Sync</span>
                     </div>
 
-                    <div class="flex-grow-1 scrollable-area overflow-auto pe-1" style="max-height: calc(100vh - 120px);">
-                        <table class="table glass-table align-middle mb-0">
-                            <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
-                                <tr>
-                                    <th>Recipient Email</th>
-                                    <th>Status</th>
-                                    <th>Timestamp</th>
-                                </tr>
-                            </thead>
-                            <tbody id="recent-logs-body">
-                                {% include 'mailer/partials/recent_logs.html' %}
-                            </tbody>
-                        </table>
+                    <!-- Tab Content Panes -->
+                    <div class="tab-content flex-grow-1 d-flex flex-column" id="dashboardTabContent" style="min-height: 0;">
+                        
+                        <!-- PANE 1: Follow-Up Cadence Queue -->
+                        <div class="tab-pane fade show active flex-grow-1 d-flex flex-column" id="followups-pane" role="tabpanel" style="min-height: 0;">
+                            
+                            <!-- Stat Counters Strip -->
+                            <div class="d-flex gap-2 mb-3 flex-wrap">
+                                <div class="stat-chip">
+                                    <span class="text-white-50">Total:</span>
+                                    <strong class="text-white">{{ followup_stats.total }}</strong>
+                                </div>
+                                <div class="stat-chip">
+                                    <span class="text-white-50">⏳ Waiting:</span>
+                                    <strong class="text-info">{{ followup_stats.waiting }}</strong>
+                                </div>
+                                <div class="stat-chip" style="border-color: rgba(16, 185, 129, 0.3);">
+                                    <span class="text-white-50">⚡ Ready for Bump:</span>
+                                    <strong class="text-emerald">{{ followup_stats.due }}</strong>
+                                </div>
+                                <div class="stat-chip">
+                                    <span class="text-white-50">✓ Dispatched:</span>
+                                    <strong class="text-purple">{{ followup_stats.sent }}</strong>
+                                </div>
+                                <div class="stat-chip" style="border-color: rgba(245, 158, 11, 0.3);">
+                                    <span class="text-white-50">🛡️ Replied / Halted:</span>
+                                    <strong class="text-warning">{{ followup_stats.replied }}</strong>
+                                </div>
+                            </div>
+
+                            <!-- Follow-Up Table Area -->
+                            <div class="flex-grow-1 scrollable-area overflow-auto pe-1" style="max-height: calc(100vh - 200px);">
+                                <table class="table glass-table align-middle mb-0">
+                                    <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
+                                        <tr>
+                                            <th>Recipient & Company</th>
+                                            <th>Cadence Status</th>
+                                            <th>Scheduled Bump</th>
+                                            <th class="text-end">Safeguards & Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for seq in followup_sequences %}
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold text-white">{{ seq.recipient_email }}</div>
+                                                    <div class="small text-white-50">{{ seq.company_name|default:"Company" }} • {{ seq.role_title|default:"Developer" }}</div>
+                                                </td>
+                                                <td>
+                                                    {% if seq.status == 'SENT' %}
+                                                        <span class="badge rounded-pill bg-success bg-opacity-20 text-success border border-success border-opacity-30 px-2 py-1 small">
+                                                            ✓ Dispatched
+                                                        </span>
+                                                    {% elif seq.status == 'REPLIED' %}
+                                                        <span class="badge rounded-pill bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 px-2 py-1 small" title="Sequence halted because recruiter responded">
+                                                            🛡️ Replied / Halted
+                                                        </span>
+                                                    {% elif seq.status == 'CANCELLED' %}
+                                                        <span class="badge rounded-pill bg-secondary bg-opacity-20 text-secondary border border-secondary border-opacity-30 px-2 py-1 small">
+                                                            ✕ Cancelled
+                                                        </span>
+                                                    {% elif seq.is_due %}
+                                                        <span class="badge rounded-pill bg-danger bg-opacity-20 text-danger border border-danger border-opacity-30 px-2 py-1 small fw-bold">
+                                                            ⚡ Ready for Bump
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge rounded-pill bg-info bg-opacity-20 text-info border border-info border-opacity-30 px-2 py-1 small">
+                                                            ⏳ Waiting ({{ seq.days_until_due }}d left)
+                                                        </span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="font-mono small text-white-50">
+                                                    {% if seq.status == 'SENT' and seq.dispatched_at %}
+                                                        Sent {{ seq.dispatched_at|date:"M d, H:i" }}
+                                                    {% else %}
+                                                        {{ seq.scheduled_at|date:"M d, H:i" }}
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end">
+                                                    {% if seq.status == 'WAITING' or seq.status == 'READY' %}
+                                                        <div class="d-inline-flex gap-1">
+                                                            <!-- Force Send Now -->
+                                                            <form method="post" action="{% url 'followup_action' %}" class="d-inline">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="action" value="send_now">
+                                                                <input type="hidden" name="sequence_id" value="{{ seq.id }}">
+                                                                <button type="submit" class="btn btn-sm btn-glass-subtle px-2 py-1 text-emerald" title="Dispatch follow-up immediately">
+                                                                    ⚡ Send
+                                                                </button>
+                                                            </form>
+
+                                                            <!-- Mark Replied (Halt) -->
+                                                            <form method="post" action="{% url 'followup_action' %}" class="d-inline">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="action" value="mark_replied">
+                                                                <input type="hidden" name="sequence_id" value="{{ seq.id }}">
+                                                                <button type="submit" class="btn btn-sm btn-glass-subtle px-2 py-1 text-warning" title="Recruiter replied: freeze sequence">
+                                                                    ✓ Replied
+                                                                </button>
+                                                            </form>
+
+                                                            <!-- Cancel -->
+                                                            <form method="post" action="{% url 'followup_action' %}" class="d-inline">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="action" value="cancel">
+                                                                <input type="hidden" name="sequence_id" value="{{ seq.id }}">
+                                                                <button type="submit" class="btn btn-sm btn-glass-subtle px-2 py-1 text-white-50" title="Cancel follow-up">
+                                                                    ✕
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    {% else %}
+                                                        <span class="text-white-50 small">—</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted py-5">
+                                                    <div class="fs-4 mb-2">📬</div>
+                                                    <div>No follow-up sequences in queue yet.</div>
+                                                    <div class="small text-white-50 mt-1">Dispatched job applications automatically generate a Day 4 bump sequence here!</div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- PANE 2: Live Activity Feed Table -->
+                        <div class="tab-pane fade flex-grow-1 d-flex flex-column" id="feed-pane" role="tabpanel" style="min-height: 0;">
+                            <div class="flex-grow-1 scrollable-area overflow-auto pe-1" style="max-height: calc(100vh - 160px);">
+                                <table class="table glass-table align-middle mb-0">
+                                    <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);">
+                                        <tr>
+                                            <th>Recipient Email</th>
+                                            <th>Status</th>
+                                            <th>Timestamp</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recent-logs-body">
+                                        {% include 'mailer/partials/recent_logs.html' %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

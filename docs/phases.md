@@ -112,3 +112,61 @@
 - [x] **Verification & Performance Auditing**:
   - Verified 60FPS GPU compositing (`transform` and `opacity` only) adhering to reduced-motion guidelines.
   - Executed regression test suite with `--keepdb`: 20/20 tests passed (100% pass rate).
+
+---
+
+## Phase 8: Automated Follow-Up Engine (Completed)
+- [x] **Data Model & Schema Evolution**:
+  - Added `message_id` field to `ApplicationLog` to store outbound RFC 2822 identifiers for email threading.
+  - Created `FollowUpSequence` model with cadence states: `WAITING`, `READY`, `SENT`, `REPLIED`, `CANCELLED`.
+  - Added composite B-Tree indexes: `idx_followup_status_sched` on `(status, scheduled_at)` and `idx_followup_recipient` on `(recipient_email)`.
+  - Generated and applied migration `0006_applicationlog_message_id_followupsequence` to Neon PostgreSQL.
+- [x] **Follow-Up Template Seeding**:
+  - Ingested `Python Full Stack Follow-Up (Day 4 Bump)` template (ID 5) in `scripts/seed_database.py` with polite, value-driven threading body.
+- [x] **Dispatch Engine & RFC 2822 Email Threading Services**:
+  - Updated `send_emails_in_background` in `mailer/views.py` to generate unique RFC 2822 `Message-ID` headers, persist them to `ApplicationLog`, and automatically schedule a `FollowUpSequence` (Step 2 at $t + 4\text{ days}$).
+  - Implemented `mailer/services/followup.py` with core routines:
+    - `get_followup_queue_stats()`: Counts waiting, ready, sent, and replied sequences.
+    - `dispatch_due_followups()`: Processes eligible follow-ups with anti-spam jitter (4.0–8.0s), sets `In-Reply-To` and `References` headers, updates status to `SENT`.
+    - `mark_as_replied(sequence_id)`: Freezes sequence and marks status as `REPLIED`.
+    - `cancel_sequence(sequence_id)`: Manually stops sequence.
+    - `force_dispatch_single(sequence_id)`: Immediate send override for manual follow-up dispatch.
+- [x] **Headless Automation & CLI Management Command**:
+  - Implemented `python manage.py process_followups` command with `--dry-run`, `--limit`, and `--force-id` options for cron/scheduled background execution.
+- [x] **Super-Premium Dashboard UI Expansion**:
+  - Added a dedicated **"Follow-Up Cadence Queue"** tab panel to `mailer/templates/mailer/send_mail.html`.
+  - Displayed dynamic status badges:
+    - `Waiting (Day X of 4)`: Cyan countdown timer badge.
+    - `Ready for Bump`: Glowing red/purple alert badge.
+    - `Replied / Halted`: Amber shield badge indicating permanently paused sequence.
+    - `Dispatched`: Emerald check badge.
+  - Added 1-click bulk **"🚀 Send Due Follow-Ups"** action button.
+  - Added row-level controls: **"⚡ Send"**, **"✓ Replied"**, and **"✕ Cancel"**.
+- [x] **Automated Test Suite Expansion**:
+  - Authored unit and integration tests in `mailer/tests.py` covering sequence creation, RFC 2822 header injection (`In-Reply-To`, `References`), scheduled status transitions, and reply safeguard cancellation.
+  - Verified 100% test pass rate with `--keepdb` (25/25 tests passing).
+
+---
+
+## Phase 9: AI-Powered Dynamic Hook Generator (Active Phase)
+- [ ] **SDK & Dependency Integration**:
+  - Install official `google-genai` SDK in `.venv` and declare in `requirements.txt`.
+  - Configure `GEMINI_API_KEY` handling in `job_bot_project/settings.py` from `.env`.
+- [ ] **Candidate Grounding & Service Layer (`mailer/services/ai_hook.py`)**:
+  - Ground candidate profile: 1.5+ years of production experience, Python (FastAPI, Django), PostgreSQL, React.js, Tailwind CSS, live platform `ssenterprisesncr.in`, and GISFY spatial optimization.
+  - Implement `generate_personalized_hook(company, role, job_snippet)` calling `gemini-2.5-flash`.
+  - Implement strict prompt guardrails: exactly 2 sentences, humble yet confident tone, zero corporate buzzword fluff, concrete technical achievements.
+  - Implement resilient fallback returning standard verified pitch if API key is missing or network call fails.
+- [ ] **RESTful AJAX API Endpoint (`/api/generate-hook/`)**:
+  - Create `@login_required` endpoint in `mailer/views.py` and register in `mailer/urls.py`.
+  - Accept JSON payload with `company`, `role`, and `context_snippet`.
+  - Return JSON `{ success: True, hook: "...", is_fallback: False }`.
+- [ ] **Template Engine Evolution (`{{ custom_hook }}`)**:
+  - Update `scripts/seed_database.py` and Neon PostgreSQL templates with `{{ custom_hook|default:... }}` tokens.
+  - Update `send_emails_in_background` to accept and interpolate `custom_hook` per recipient.
+- [ ] **Super-Premium Dual UI Integration**:
+  - **Dispatcher (`send_mail.html`)**: Add collapsible "✨ AI Tailored Pitch Assistant" glass card with job snippet input, glowing morphing button, and real-time template preview injection.
+  - **Harvester (`leads.html`)**: Add 1-click **"✨ AI Pitch"** action button in lead table rows with instant modal preview and transfer binding.
+- [ ] **Automated Test Suite Expansion**:
+  - Author unit and integration tests in `mailer/tests.py` covering prompt generation, Gemini API mocking, graceful fallback, AJAX endpoint security, and template interpolation.
+  - Verify 100% test pass rate with `--keepdb`.

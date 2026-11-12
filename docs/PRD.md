@@ -53,12 +53,25 @@ A unified, private Django platform that:
   - Obsidian Dark Glass aesthetic inspired by elite developer tools (Linear, Raycast, Vercel).
   - Advanced 6-tier motion effects: Scroll-driven reveals, Continuous ambient lighting, 3D perspective card tilts, Interactive loading states, Micro-interaction hover/copy feedback, and Gradient typography.
   - Strict performance guardrail: 60FPS animations exclusively manipulating GPU-composited `transform` and `opacity` properties with full reduced-motion accessibility.
+- **Phase 8: Automated Follow-Up Engine (Option A - 2-Step Cadence)**:
+  - **Sequence Structure**: Automated 2-step outreach cadence: Step 1 Initial Outreach (Day 0) followed by Step 2 Polite Follow-Up Bump scheduled exactly 4 days later ($t + 4\text{ days}$).
+  - **RFC 2822 Conversation Threading**: Persists initial SMTP `Message-ID` in `ApplicationLog`. Follow-up emails inject `In-Reply-To` and `References` headers with `Re: <Original Subject>` so bumps nest directly inside the recruiter's original inbox thread.
+  - **Dedicated Follow-Up Queue Dashboard**: Real-time interface displaying waiting sequences (with remaining cadence countdown) versus due sequences ($t \ge 4\text{ days}$).
+  - **Execution Ergonomics**: 1-click **"🚀 Send Due Follow-Ups"** web action with manual single-send overrides and a headless CLI management command (`python manage.py process_followups`).
+  - **Reply Safeguard & Kill-Switch**: 1-click **"Mark as Replied"** and **"Cancel Sequence"** toggles to halt future automated dispatches immediately upon recruiter engagement.
+- **Phase 9: AI-Powered Dynamic Hook Generator (Gemini Integration)**:
+  - **AI Model**: Google Gemini (`gemini-2.5-flash` via official `google-genai` SDK) configured via `.env` (`GEMINI_API_KEY`).
+  - **Grounded Prompt Engineering**: Synthesizes verified developer portfolio (1.5+ YOE, FastAPI, Django, React, PostgreSQL, live platform `ssenterprisesncr.in`, GISFY optimization) with recruiter job posting context to produce a high-conversion 2-sentence opening hook.
+  - **Template Token Engine (`{{ custom_hook }}`)**: Seamlessly injects tailored pitch into email templates while maintaining automatic fallback to default verified project highlights if unpopulated.
+  - **Dual Ergonomics Interface**:
+    - *Dispatcher*: Interactive job snippet input with 1-click AJAX generation and live preview insertion.
+    - *Lead Harvester*: Per-lead **"✨ AI Pitch"** action generating tailored opening lines directly from scraped job postings.
+  - **Resilience Guardrail**: Graceful fallback to default intro on missing API key, rate limits, or timeout, ensuring zero failed dispatches.
 
 ### Post-MVP Scope (Future Phases)
-- Automated follow-up email sequences after 5 days of inactivity.
+- Real-time email open & link click telemetry.
 - Headless browser automation (Playwright) for interactive portal submissions.
 - Multi-user isolation and OAuth login.
-- Webhook callbacks from Brevo for open/click tracking.
 
 ### Explicit Non-Goals (Out of Scope)
 - Commercial SaaS multi-tenancy with credit card billing.

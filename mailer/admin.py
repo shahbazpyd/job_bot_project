@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead
+from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead, FollowUpSequence
 
 class ResumeDocumentForm(forms.ModelForm):
     upload_file = forms.FileField(required=True, help_text="Upload your PDF resume here. It will be stored securely in the database.")
@@ -38,3 +38,10 @@ class RecruiterLeadAdmin(admin.ModelAdmin):
     list_display = ('email', 'company', 'role', 'location', 'experience_tag', 'is_verified', 'is_contacted', 'created_at')
     list_filter = ('location', 'experience_tag', 'is_verified', 'is_contacted')
     search_fields = ('email', 'company', 'role', 'name')
+
+@admin.register(FollowUpSequence)
+class FollowUpSequenceAdmin(admin.ModelAdmin):
+    list_display = ('recipient_email', 'company_name', 'role_title', 'step', 'status', 'scheduled_at', 'dispatched_at')
+    list_filter = ('status', 'step')
+    search_fields = ('recipient_email', 'company_name', 'role_title', 'candidate_name')
+    readonly_fields = ('created_at',)

@@ -69,6 +69,24 @@ def get_pan_india_email_body() -> str:
         "GitHub: https://github.com/shahbazpyd | LinkedIn: https://www.linkedin.com/in/shahbazpyd"
     )
 
+def get_followup_email_body() -> str:
+    """Generates the concise, polite Day 4 follow-up bump email body."""
+    return (
+        "Hi {{ name|default:\"there\" }},\n\n"
+        "I wanted to follow up on my note from earlier this week regarding the "
+        "{{ role|default:\"Python / Full Stack Developer\" }} role at {{ company|default:\"your team\" }}.\n\n"
+        "I know how busy things get, so I just wanted to reiterate my strong interest in contributing to "
+        "{{ company|default:\"your team\" }} with my experience in Python (FastAPI, Django), React.js, and PostgreSQL.\n\n"
+        "For quick reference, I have re-attached my resume. I'd welcome the opportunity to connect for a brief 10-minute "
+        "introductory chat if you feel my background could be a fit.\n\n"
+        "Thank you for your time and consideration!\n\n"
+        "Best regards,\n\n"
+        "Shahbaz Alam\n"
+        "Python Backend / Full Stack Developer\n"
+        "+91-7079619717 | sbzalam2025@gmail.com\n"
+        "GitHub: https://github.com/shahbazpyd | LinkedIn: https://www.linkedin.com/in/shahbazpyd"
+    )
+
 def seed_data():
     target_media_dir = BASE_DIR / "media"
     target_media_dir.mkdir(exist_ok=True)
@@ -168,7 +186,21 @@ def seed_data():
     print(f"[OK] Template (Pan-India / Remote) {status_str}: ID={template_pan.id}, Title='{template_pan.title}'")
 
     # -------------------------------------------------------------
-    # 6. Optional Cleanup of Old Generic Initial Records
+    # 6. Ingest Email Template 4 (Follow-Up Day 4 Bump)
+    # -------------------------------------------------------------
+    followup_subject = "Re: Application: {{ role|default:\"Python / Full Stack Developer\" }} - Shahbaz Alam"
+    template_followup, created = EmailTemplate.objects.update_or_create(
+        title="Python Full Stack Follow-Up (Day 4 Bump)",
+        defaults={
+            'subject': followup_subject,
+            'body': get_followup_email_body()
+        }
+    )
+    status_str = "Created" if created else "Updated"
+    print(f"[OK] Template (Day 4 Bump) {status_str}: ID={template_followup.id}, Title='{template_followup.title}'")
+
+    # -------------------------------------------------------------
+    # 7. Optional Cleanup of Old Generic Initial Records
     # -------------------------------------------------------------
     ResumeDocument.objects.filter(title="Shahbaz Alam - Python Full Stack Developer").delete()
     EmailTemplate.objects.filter(title="Python Full-Stack Outreach (FastAPI / Django / React)").delete()

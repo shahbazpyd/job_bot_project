@@ -22,6 +22,7 @@ class ApplicationLog(models.Model):
     template = models.ForeignKey(EmailTemplate, on_delete=models.SET_NULL, null=True)
     resume = models.ForeignKey(ResumeDocument, on_delete=models.SET_NULL, null=True)
     status = models.CharField(max_length=50)
+    message_id = models.CharField(max_length=255, blank=True, default='', help_text="RFC 2822 Message-ID for email threading")
     sent_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -79,3 +80,53 @@ class RecruiterLead(models.Model):
 
     def __str__(self):
         return f"{self.email} ({self.company or 'Unknown Co'} - {self.location} [{self.experience_tag}])"
+
+class FollowUpSequence(models.Model):
+    STATUS_CHOICES = [
+        ('WAITING', 'Waiting Cadence'),
+        ('READY', 'Ready for Dispatch'),
+        ('SENT', 'Follow-Up Dispatched'),
+        ('REPLIED', 'Recruiter Replied / Halted'),
+        ('CANCELLED', 'Manually Cancelled'),
+    ]
+
+    initial_log = models.ForeignKey(
+        ApplicationLog, 
+        on_delete=models.CASCADE, 
+        related_name='followup_sequences',
+        help_text="Reference to the initial application dispatch log"
+    )
+    recipient_email = models.EmailField()
+    candidate_name = models.CharField(max_length=150, blank=True)
+    company_name = models.CharField(max_length=150, blank=True)
+    role_title = models.CharField(max_length=150, blank=True)
+    step = models.IntegerField(default=2, help_text="Cadence step number (2 = Day 4 Follow-Up)")
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='WAITING')
+    scheduled_at = models.DateTimeField(help_text="Exact timestamp when this follow-up becomes eligible for dispatch")
+    dispatched_at = models.DateTimeField(null=True, blank=True, help_text="Timestamp when follow-up was actually sent")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['scheduled_at']
+        indexes = [
+            # Accelerates querying due follow-ups: scheduled_at <= now() AND status in ('WAITING', 'READY')
+            models.Index(fields=['status', 'scheduled_at'], name='idx_followup_status_sched'),
+            # Accelerates looking up sequences for a specific recruiter
+            models.Index(fields=['recipient_email'], name='idx_followup_recipient'),
+        ]
+
+    def __str__(self):
+        return f"Follow-up to {self.recipient_email} [{self.status}] (Scheduled: {self.scheduled_at.strftime('%Y-%m-%d %H:%M')})"
+
+    @property
+    def is_due(self):
+        from django.utils import timezone
+        return self.status in ('WAITING', 'READY') and timezone.now() >= self.scheduled_at
+
+    @property
+    def days_until_due(self):
+        from django.utils import timezone
+        if timezone.now() >= self.scheduled_at:
+            return 0
+        delta = self.scheduled_at - timezone.now()
+        return max(1, delta.days + (1 if delta.seconds > 0 else 0))

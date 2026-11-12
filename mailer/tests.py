@@ -10,17 +10,31 @@ Covers:
   5. Security, Retry Semantics & Media Streaming Access
 """
 import io
+from datetime import timedelta
 from unittest.mock import patch, MagicMock
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.template import Template, Context
+from django.utils import timezone
+from django.core.management import call_command
 
-from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead
+from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead, FollowUpSequence
 from .forms import ApplicationDispatchForm
 from .services.verifier import verify_email_mx
 from .services.harvester import detect_location, detect_experience, harvest_from_text_block, process_and_save_leads
+from .services.followup import (
+    generate_rfc2822_message_id,
+    schedule_followup_for_application,
+    dispatch_single_followup,
+    dispatch_due_followups,
+    mark_as_replied,
+    cancel_sequence,
+    get_followup_queue_stats
+)
+from .views import send_emails_in_background
 
 
 class ApplicationDispatchFormTest(TestCase):
@@ -309,3 +323,205 @@ class DispatchSecurityAndDeduplicationTest(TestCase):
         session = self.client.session
         self.assertEqual(session.get('prefill_template_id'), pan_template.id)
         self.assertIn("recruiter.blr@innovate.in", session.get('prefill_dispatch_emails', ''))
+
+
+class FollowUpEngineTest(TestCase):
+    """
+    Unit & integration tests for Phase 8: Automated Follow-Up Engine.
+    Covers:
+      - RFC 2822 Message-ID generation and persistence.
+      - Automated Day 4 FollowUpSequence creation on outreach.
+      - RFC 2822 In-Reply-To and References conversation threading.
+      - Recruiter reply safeguard / kill-switch mechanics.
+      - Management command and web action handlers.
+    """
+
+    def setUp(self):
+        self.template = EmailTemplate.objects.create(
+            title="Python Full Stack Outreach (Gurugram)",
+            subject="Application: {{ role }} - Shahbaz Alam",
+            body="Hello {{ name }} at {{ company }}"
+        )
+        self.followup_template = EmailTemplate.objects.create(
+            title="Python Full Stack Follow-Up (Day 4 Bump)",
+            subject="Re: Application: {{ role }} - Shahbaz Alam",
+            body="Hi {{ name }}, following up on my previous note regarding {{ company }}."
+        )
+        self.resume = ResumeDocument.objects.create(
+            title="Shahbaz Alam - Python Full Stack Developer (Gurugram)",
+            filename="Shahbaz_Alam_Resume_Gurugram.pdf",
+            pdf_content=b"%PDF-1.4 Mock Resume Binary Content"
+        )
+        self.user = User.objects.create_user(username="testrunner", password="securepassword123")
+
+    @patch('django.core.mail.message.EmailMessage.send')
+    def test_followup_sequence_scheduled_on_initial_dispatch(self, mock_send):
+        """Verify that initial dispatch generates RFC 2822 Message-ID and creates Day 4 FollowUpSequence."""
+        mock_send.return_value = 1
+        recipients = [{
+            'email': 'hiring.lead@nextech.io',
+            'name': 'Priya Sharma',
+            'company': 'NexTech',
+            'role': 'Backend Engineer'
+        }]
+
+        # Trigger background dispatch
+        send_emails_in_background(recipients, self.template.id, self.resume.id)
+
+        # Check ApplicationLog
+        log_entry = ApplicationLog.objects.filter(recipient_email='hiring.lead@nextech.io').first()
+        self.assertIsNotNone(log_entry)
+        self.assertEqual(log_entry.status, "SUCCESS")
+        self.assertTrue(log_entry.message_id.startswith("<"))
+        self.assertTrue(log_entry.message_id.endswith("@jobbot.local>"))
+
+        # Check FollowUpSequence
+        sequence = FollowUpSequence.objects.filter(recipient_email='hiring.lead@nextech.io').first()
+        self.assertIsNotNone(sequence)
+        self.assertEqual(sequence.status, 'WAITING')
+        self.assertEqual(sequence.candidate_name, 'Priya Sharma')
+        self.assertEqual(sequence.company_name, 'NexTech')
+        self.assertEqual(sequence.step, 2)
+        # Scheduled time should be ~4 days after sent_at
+        delta = sequence.scheduled_at - log_entry.sent_at
+        self.assertAlmostEqual(delta.total_seconds(), 4 * 86400, delta=60)
+
+    def test_rfc2822_threading_headers_on_followup_dispatch(self):
+        """Verify that follow-up email injects In-Reply-To and References headers matching initial message_id."""
+        parent_msg_id = "<parent_abc123@jobbot.local>"
+
+        initial_log = ApplicationLog.objects.create(
+            recipient_email="cto@startup.com",
+            template=self.template,
+            resume=self.resume,
+            status="SUCCESS",
+            message_id=parent_msg_id
+        )
+
+        # Create due sequence
+        scheduled_past = timezone.now() - timedelta(days=5)
+        sequence = FollowUpSequence.objects.create(
+            initial_log=initial_log,
+            recipient_email="cto@startup.com",
+            candidate_name="Vikram Singh",
+            company_name="StartupHub",
+            role_title="Senior Python Dev",
+            status="READY",
+            scheduled_at=scheduled_past
+        )
+
+        mail.outbox.clear()
+        result = dispatch_single_followup(sequence, force=True)
+
+        self.assertTrue(result['success'], result.get('error'))
+        self.assertEqual(len(mail.outbox), 1)
+        dispatched_email = mail.outbox[0]
+
+        # Verify RFC 2822 threading headers
+        headers = dispatched_email.extra_headers
+        self.assertEqual(headers.get('In-Reply-To'), parent_msg_id)
+        self.assertEqual(headers.get('References'), parent_msg_id)
+        self.assertTrue(headers.get('Message-ID').startswith("<"))
+        self.assertNotEqual(headers.get('Message-ID'), parent_msg_id)
+        self.assertTrue(dispatched_email.subject.startswith("Re:"))
+
+        # Verify state machine transition
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.status, 'SENT')
+        self.assertIsNotNone(sequence.dispatched_at)
+
+    def test_reply_safeguard_halts_sequence(self):
+        """Verify that marking a sequence as REPLIED halts dispatch permanently."""
+        initial_log = ApplicationLog.objects.create(
+            recipient_email="lead@fintech.co",
+            template=self.template,
+            resume=self.resume,
+            status="SUCCESS",
+            message_id="<msg_fintech@jobbot.local>"
+        )
+        sequence = FollowUpSequence.objects.create(
+            initial_log=initial_log,
+            recipient_email="lead@fintech.co",
+            candidate_name="Aman Verma",
+            company_name="FinTech Co",
+            status="WAITING",
+            scheduled_at=timezone.now() - timedelta(days=1)
+        )
+
+        # Recruiter replies -> activate safeguard
+        updated_seq = mark_as_replied(sequence.id)
+        self.assertIsNotNone(updated_seq)
+        self.assertEqual(updated_seq.status, 'REPLIED')
+
+        # Attempt to dispatch
+        res = dispatch_single_followup(updated_seq, force=False)
+        self.assertFalse(res['success'])
+        self.assertIn("not eligible", res['error'])
+
+        # Verify queue stats reflect REPLIED
+        stats = get_followup_queue_stats()
+        self.assertEqual(stats['replied'], 1)
+
+    @patch('django.core.mail.message.EmailMessage.send')
+    def test_management_command_process_followups(self, mock_send):
+        """Verify process_followups management command runs cleanly with --dry-run and batch execution."""
+        mock_send.return_value = 1
+        initial_log = ApplicationLog.objects.create(
+            recipient_email="hr@cloudcorp.com",
+            template=self.template,
+            resume=self.resume,
+            status="SUCCESS",
+            message_id="<msg_cloud@jobbot.local>"
+        )
+        FollowUpSequence.objects.create(
+            initial_log=initial_log,
+            recipient_email="hr@cloudcorp.com",
+            candidate_name="Simran Kaur",
+            company_name="CloudCorp",
+            status="READY",
+            scheduled_at=timezone.now() - timedelta(hours=1)
+        )
+
+        # Test dry run
+        out = io.StringIO()
+        call_command('process_followups', dry_run=True, stdout=out)
+        output_str = out.getvalue()
+        self.assertIn("Found 1 sequence(s) eligible", output_str)
+        self.assertIn("DRY-RUN MODE", output_str)
+
+        # Test real run
+        out_real = io.StringIO()
+        call_command('process_followups', stdout=out_real)
+        self.assertIn("Batch completed", out_real.getvalue())
+
+    def test_followup_view_actions(self):
+        """Verify web action view handles mark_replied, cancel, and unauthorized access."""
+        # Unauthenticated request redirects
+        res_unauth = self.client.post(reverse('followup_action'), {'action': 'send_due'})
+        self.assertEqual(res_unauth.status_code, 302)
+        self.assertIn('/accounts/login/', res_unauth.url)
+
+        # Authenticated user
+        self.client.login(username="testrunner", password="securepassword123")
+        initial_log = ApplicationLog.objects.create(
+            recipient_email="director@ai.org",
+            template=self.template,
+            resume=self.resume,
+            status="SUCCESS",
+            message_id="<msg_ai@jobbot.local>"
+        )
+        seq = FollowUpSequence.objects.create(
+            initial_log=initial_log,
+            recipient_email="director@ai.org",
+            status="WAITING",
+            scheduled_at=timezone.now() + timedelta(days=2)
+        )
+
+        # Post mark_replied action
+        res = self.client.post(reverse('followup_action'), {
+            'action': 'mark_replied',
+            'sequence_id': seq.id
+        })
+        self.assertEqual(res.status_code, 302)
+        seq.refresh_from_db()
+        self.assertEqual(seq.status, 'REPLIED')
