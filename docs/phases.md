@@ -266,5 +266,29 @@
   - Authored 6 comprehensive tests in `mailer/tests.py` (`MultiPlatformHarvesterTest`): Remotive API parsing, WWR RSS XML parsing, domain heuristic fallback, multi-platform aggregation, database persistence, and web view filtering.
   - Executed full Django regression test suite (`python manage.py test mailer --keepdb`): 100% pass rate (45/45 tests passing).
 
+---
+
+## Phase 14: Automated Daily Scheduled Harvester (Django-Q Recurring Job) (Completed)
+- [x] **Recurring Schedule Engine & Service Layer**:
+  - Implemented `automated_daily_harvester_task(platform, query, location_filter, max_leads)` in `mailer/services/tasks.py`.
+  - Implemented schedule manager helpers in `mailer/services/scheduler.py`:
+    - `get_or_create_daily_harvester_schedule()`: Persists recurring schedule in `django_q_schedule` targeting 08:30 AM IST (`repeats=-1`).
+    - `calculate_next_daily_run(hour=8, minute=30)`: Accurately computes upcoming 08:30 AM in the local timezone.
+    - `get_harvester_schedule_status()`: Queries schedule presence, active state, next run date, and latest execution stats from `django_q_task`.
+    - `trigger_immediate_harvester_run()`: Dispatches on-demand background run via `async_task()`.
+    - `toggle_harvester_schedule(active)`: Pauses (`repeats=0`) or resumes (`repeats=-1`) the schedule.
+- [x] **Dashboard Controls & Status Widget (`mailer/templates/mailer/leads.html`)**:
+  - Added **"Daily Automated Harvester Schedule"** glass widget to the Harvester Dashboard:
+    - Status beacon with live badge (`● Active (08:30 AM IST)` or `Paused`).
+    - Next Scheduled Run & Last Execution metrics with saved lead counts.
+    - 1-click **"⚡ Run Schedule Now"** on-demand execution button.
+    - 1-click **"Pause / Resume"** toggle button.
+- [x] **Controller Integration (`mailer/views.py`)**:
+  - Handled POST actions `trigger_schedule_now` and `toggle_schedule` in `lead_harvester_view`.
+  - Passed `schedule_status` to template context.
+- [x] **Automated Regression Test Suite Expansion**:
+  - Authored 6 unit tests in `mailer/tests.py` (`DailyHarvesterSchedulerTest`) covering calculation, schedule idempotency, pause/resume state transitions, task execution, on-demand dispatching, and web actions.
+  - Executed full Django regression test suite (`python manage.py test mailer --keepdb`): 100% pass rate (51/51 tests passing).
+
 
 

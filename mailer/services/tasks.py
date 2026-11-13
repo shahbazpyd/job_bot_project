@@ -150,3 +150,37 @@ def process_followups_scheduled_task() -> Dict[str, Any]:
         'results': results,
         'executed_at': timezone.now().isoformat()
     }
+
+
+def automated_daily_harvester_task(
+    platform: str = "all",
+    query: str = "Python",
+    location_filter: str = "All",
+    max_leads: int = 25
+) -> Dict[str, Any]:
+    """
+    Automated background task executed by Django-Q recurring schedule.
+    Extracts candidate leads across configured platforms (Hacker News, Remotive, WWR),
+    deduplicates against ApplicationLog and existing RecruiterLead entries,
+    verifies DNS MX deliverability, and persists fresh verified leads to Neon PostgreSQL.
+    """
+    from .harvester import harvest_multi_platform, process_and_save_leads
+
+    candidates = harvest_multi_platform(
+        platform=platform,
+        query=query,
+        location_filter=location_filter,
+        max_leads=max_leads
+    )
+    stats = process_and_save_leads(candidates)
+    return {
+        'platform': platform,
+        'query': query,
+        'location_filter': location_filter,
+        'candidates_found': len(candidates),
+        'saved': stats['saved'],
+        'skipped_duplicate': stats['skipped_duplicate'],
+        'failed_mx': stats['failed_mx'],
+        'executed_at': timezone.now().isoformat(),
+    }
+

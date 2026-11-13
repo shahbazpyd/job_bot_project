@@ -60,7 +60,16 @@ from .services.tracking import (
     is_safe_redirect_url
 )
 from django_q.tasks import async_task
-from .services.tasks import dispatch_applications_task, process_followups_scheduled_task
+from django_q.models import Schedule
+from .services.tasks import dispatch_applications_task, process_followups_scheduled_task, automated_daily_harvester_task
+from .services.scheduler import (
+    calculate_next_daily_run,
+    get_or_create_daily_harvester_schedule,
+    toggle_harvester_schedule,
+    trigger_immediate_harvester_run,
+    get_harvester_schedule_status,
+    SCHEDULE_NAME
+)
 from .views import send_emails_in_background
 
 
@@ -1036,6 +1045,115 @@ class MultiPlatformHarvesterTest(TestCase):
         get_response = self.client.get(reverse('lead_harvester') + '?platform=Remotive')
         self.assertEqual(get_response.status_code, 200)
         self.assertEqual(get_response.context['current_filter_platform'], 'Remotive')
+
+
+class DailyHarvesterSchedulerTest(TestCase):
+    """
+    Automated Test Suite for Phase 14 Automated Daily Scheduled Harvester.
+    Covers:
+      - Next daily 08:30 AM timezone-aware calculation.
+      - Schedule initialization and idempotency in django_q_schedule table.
+      - Pause and resume toggle state transitions.
+      - Automated background task execution and summary reporting.
+      - On-demand async_task() trigger dispatching.
+      - Harvester web view POST actions (trigger_schedule_now, toggle_schedule).
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="schedulertester", password="pass123Secure")
+        self.client = Client()
+        self.client.login(username="schedulertester", password="pass123Secure")
+        # Ensure test isolation by clearing any leftover schedules
+        Schedule.objects.filter(name=SCHEDULE_NAME).delete()
+
+    def test_calculate_next_daily_run(self):
+        """Verify next run calculation targets 08:30 AM in the future."""
+        next_dt = calculate_next_daily_run(8, 30)
+        self.assertTrue(timezone.is_aware(next_dt))
+        self.assertGreater(next_dt, timezone.now())
+        local_tz = timezone.get_current_timezone()
+        local_dt = next_dt.astimezone(local_tz)
+        self.assertEqual(local_dt.hour, 8)
+        self.assertEqual(local_dt.minute, 30)
+
+    def test_get_or_create_daily_harvester_schedule(self):
+        """Verify schedule is created in django_q_schedule table and is idempotent."""
+        sched = get_or_create_daily_harvester_schedule()
+        self.assertEqual(sched.name, SCHEDULE_NAME)
+        self.assertEqual(sched.schedule_type, Schedule.DAILY)
+        self.assertEqual(sched.repeats, -1)
+        self.assertIsNotNone(sched.next_run)
+
+        # Calling again should retrieve the same schedule, not duplicate
+        sched2 = get_or_create_daily_harvester_schedule()
+        self.assertEqual(sched.id, sched2.id)
+        self.assertEqual(Schedule.objects.filter(name=SCHEDULE_NAME).count(), 1)
+
+    def test_toggle_harvester_schedule(self):
+        """Verify pausing sets repeats=0 and resuming resets repeats=-1."""
+        get_or_create_daily_harvester_schedule()
+
+        # Pause
+        active = toggle_harvester_schedule(False)
+        self.assertFalse(active)
+        status = get_harvester_schedule_status()
+        self.assertFalse(status['is_active'])
+
+        # Resume
+        active = toggle_harvester_schedule(True)
+        self.assertTrue(active)
+        status = get_harvester_schedule_status()
+        self.assertTrue(status['is_active'])
+        self.assertIsNotNone(status['next_run'])
+
+    @patch('mailer.services.harvester.harvest_multi_platform')
+    @patch('mailer.services.harvester.process_and_save_leads')
+    def test_automated_daily_harvester_task_execution(self, mock_process, mock_harvest):
+        """Verify automated_daily_harvester_task executes and returns execution metrics."""
+        mock_harvest.return_value = [{'email': 'cand@job.io', 'company': 'TestCorp'}]
+        mock_process.return_value = {'saved': 1, 'skipped_duplicate': 0, 'failed_mx': 0}
+
+        summary = automated_daily_harvester_task(
+            platform='all',
+            query='Python',
+            location_filter='All',
+            max_leads=25
+        )
+        self.assertEqual(summary['candidates_found'], 1)
+        self.assertEqual(summary['saved'], 1)
+        self.assertEqual(summary['skipped_duplicate'], 0)
+        self.assertEqual(summary['failed_mx'], 0)
+        self.assertIn('executed_at', summary)
+
+    @patch('mailer.services.scheduler.async_task')
+    def test_trigger_immediate_harvester_run(self, mock_async):
+        """Verify trigger_immediate_harvester_run calls async_task and returns task ID."""
+        mock_async.return_value = 'task-uuid-12345'
+        task_id = trigger_immediate_harvester_run(platform='all', query='Python')
+        self.assertEqual(task_id, 'task-uuid-12345')
+        self.assertTrue(mock_async.called)
+
+    @patch('mailer.services.scheduler.trigger_immediate_harvester_run')
+    def test_harvester_view_schedule_post_actions(self, mock_trigger):
+        """Verify web action trigger_schedule_now and toggle_schedule in lead_harvester_view."""
+        mock_trigger.return_value = 'task-sched-999'
+
+        # Trigger on-demand run
+        response = self.client.post(reverse('lead_harvester'), {
+            'action': 'trigger_schedule_now',
+            'platform': 'all',
+            'query': 'Python',
+            'location': 'All'
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(mock_trigger.called)
+
+        # Toggle schedule
+        toggle_response = self.client.post(reverse('lead_harvester'), {
+            'action': 'toggle_schedule'
+        }, follow=True)
+        self.assertEqual(toggle_response.status_code, 200)
+
 
 
 

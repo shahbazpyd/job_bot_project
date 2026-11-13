@@ -339,3 +339,32 @@ job_bot_project/
                        RecruiterLead
 ```
 
+---
+
+## 11. Recurring Scheduled Harvester Architecture (Django-Q Schedule & Broker)
+
+```
+[ Neon PostgreSQL (django_q_schedule) ]
+  - Name: daily_morning_harvester
+  - Func: mailer.services.tasks.automated_daily_harvester_task
+  - Schedule Type: Daily at 08:30 AM IST (repeats=-1)
+                      |
+                      v
+             [ qcluster Worker Loop ]
+   Checks next_run <= timezone.now() every tick
+                      |
+                      +--> Claims job & enqueues to django_q_ormq
+                      |
+                      v
+             [ Worker Subprocess Execution ]
+   - Calls harvest_multi_platform(platform='all', query='Python', location='All', max_leads=25)
+   - Executes DNS MX pre-flight checks & deduplication
+   - Persists fresh verified leads to RecruiterLead table
+   - Records runtime summary in django_q_task (Audit Log)
+   - Increments next_run = next_run + 1 day
+                      |
+                      v
+             [ User Morning Experience ]
+   Dashboard shows 25 fresh verified leads waiting in Verified Leads Queue ready for 1-click dispatch!
+```
+

@@ -208,15 +208,46 @@ def generate_ai_hook_view(request):
 def lead_harvester_view(request):
     """
     Dashboard for discovering, validating, and managing recruiter leads.
-    Supports automated scraping from public tech hiring feeds (Hacker News, Remotive, We Work Remotely)
-    as well as manual pasted text/Google Dork extraction with DNS MX verification.
+    Supports automated scraping from public tech hiring feeds (Hacker News, Remotive, We Work Remotely),
+    manual pasted text/Google Dork extraction with DNS MX verification,
+    and managing the automated daily morning schedule.
     """
     from .services.harvester import harvest_multi_platform, harvest_from_text_block, process_and_save_leads
+    from .services.scheduler import (
+        get_or_create_daily_harvester_schedule,
+        get_harvester_schedule_status,
+        toggle_harvester_schedule,
+        trigger_immediate_harvester_run
+    )
+
+    # Ensure schedule exists in DB
+    get_or_create_daily_harvester_schedule()
 
     if request.method == 'POST':
         action = request.POST.get('action')
 
-        if action == 'harvest_feed':
+        if action == 'trigger_schedule_now':
+            platform = request.POST.get('platform', 'all').strip() or 'all'
+            query = request.POST.get('query', 'Python').strip() or 'Python'
+            location = request.POST.get('location', 'All')
+            task_id = trigger_immediate_harvester_run(platform=platform, query=query, location_filter=location)
+            if task_id:
+                messages.success(request, f"⚡ Enqueued automated harvester background job (Task #{task_id[:8]})! Leads will populate in the queue.")
+            else:
+                messages.error(request, "Failed to enqueue background harvester job.")
+            return redirect('lead_harvester')
+
+        elif action == 'toggle_schedule':
+            current_status = get_harvester_schedule_status()
+            new_active_state = not current_status['is_active']
+            toggle_harvester_schedule(new_active_state)
+            if new_active_state:
+                messages.success(request, "Daily automated harvester resumed (Next run at 08:30 AM IST).")
+            else:
+                messages.info(request, "Daily automated harvester paused.")
+            return redirect('lead_harvester')
+
+        elif action == 'harvest_feed':
             platform = request.POST.get('platform', 'all').strip() or 'all'
             query = request.POST.get('query', 'Python').strip() or 'Python'
             location = request.POST.get('location', 'All')
@@ -316,6 +347,7 @@ def lead_harvester_view(request):
         'current_filter_loc': filter_loc,
         'current_filter_exp': filter_exp,
         'current_filter_platform': filter_platform,
+        'schedule_status': get_harvester_schedule_status(),
     })
 
 @login_required

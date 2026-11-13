@@ -394,6 +394,83 @@
             <!-- Left Column: Scraper Control Panels -->
             <div class="col-12 col-xl-5 col-lg-6 mb-4 mb-xl-0">
                 
+                <!-- Panel 0: Automated Morning Schedule Widget -->
+                <div class="glass-card p-4 mb-4 border border-opacity-25 {% if schedule_status.is_active %}border-success{% else %}border-warning{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fs-6">⚡</span>
+                            <h6 class="fw-bold text-white mb-0 fs-6">Daily Morning Automation</h6>
+                        </div>
+                        {% if schedule_status.is_active %}
+                            <span class="badge rounded-pill bg-success bg-opacity-20 text-success border border-success border-opacity-30 px-2 py-1" style="font-size: 0.7rem;">
+                                <span class="d-inline-block rounded-circle me-1" style="width: 6px; height: 6px; background: #10b981;"></span>
+                                Active (08:30 AM IST)
+                            </span>
+                        {% else %}
+                            <span class="badge rounded-pill bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 px-2 py-1" style="font-size: 0.7rem;">
+                                Paused
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <p class="text-white-50 small mb-3" style="font-size: 0.78rem;">
+                        Automatically harvests 25 fresh verified leads from Remotive, We Work Remotely, and Hacker News every morning before your day begins.
+                    </p>
+
+                    <div class="p-2 mb-3 rounded-3" style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-white-50 small" style="font-size: 0.72rem;">Next Scheduled Run:</span>
+                            <span class="text-white font-mono small fw-semibold" style="font-size: 0.75rem;">
+                                {% if schedule_status.next_run %}
+                                    {{ schedule_status.next_run|date:"D, d M • h:i A" }}
+                                {% else %}
+                                    Paused
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-white-50 small" style="font-size: 0.72rem;">Last Execution:</span>
+                            <span class="text-white-50 font-mono small" style="font-size: 0.72rem;">
+                                {% if schedule_status.last_run_time %}
+                                    {{ schedule_status.last_run_time|timesince }} ago
+                                    {% if schedule_status.last_run_result %}
+                                        ({{ schedule_status.last_run_result.saved|default:0 }} saved)
+                                    {% endif %}
+                                {% else %}
+                                    Pending first run
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <form method="post" action="{% url 'lead_harvester' %}" class="flex-grow-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="trigger_schedule_now">
+                            <input type="hidden" name="platform" value="all">
+                            <input type="hidden" name="query" value="Python">
+                            <input type="hidden" name="location" value="All">
+                            <button type="submit" class="btn btn-sm btn-gradient-primary w-100 py-2 fw-semibold">
+                                <span>⚡ Run Schedule Now</span>
+                            </button>
+                        </form>
+
+                        <form method="post" action="{% url 'lead_harvester' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="toggle_schedule">
+                            {% if schedule_status.is_active %}
+                                <button type="submit" class="btn btn-sm btn-glass-subtle py-2 px-3 text-warning border border-warning border-opacity-30" title="Pause daily scheduled execution">
+                                    ⏸️ Pause
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-sm btn-glass-subtle py-2 px-3 text-success border border-success border-opacity-30" title="Resume daily scheduled execution">
+                                    ▶️ Resume
+                                </button>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+
                 <!-- Panel 1: Automated Hiring Feed Scraper -->
                 <div class="glass-card p-4 mb-4">
                     <div class="d-flex align-items-center gap-2 mb-2">

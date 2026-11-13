@@ -7,8 +7,8 @@
 
 ## 1. Project Status Summary
 - **Project**: `job_bot_project` (Job Application Dispatcher & Lead Harvester)
-- **Active Phase**: **Phase 13 (Automated Multi-Platform Recruiter Harvester) Completed & Verified**
-- **System State**: Multi-Platform Ingestion Active (Remotive API, We Work Remotely RSS, Hacker News, Text Parser), Option 2 Domain Heuristic Fallback Live, 100% Test Coverage (45/45 tests passing)
+- **Active Phase**: **Phase 14 (Automated Daily Scheduled Harvester) Completed & Verified**
+- **System State**: Multi-Platform Ingestion Active, Persistent Django-Q 08:30 AM IST Morning Harvester Schedule Live, 100% Test Coverage (51/51 tests passing)
 - **Primary Database**: Neon Serverless PostgreSQL (`ep-calm-heart...`)
 - **Active Environment**: `.venv` (Python 3.15, Django 6.1, `psycopg` 3.3.8, `google-genai` 3.2.0, `django-q2` 1.11.1)
 
@@ -107,6 +107,15 @@
   - Built `harvest_multi_platform` supporting single or combined multi-platform extractions.
   - Upgraded Harvester UI (`mailer/templates/mailer/leads.html`) with platform source dropdown, text parser source selector, quick-filter platform pills, and colored platform badges (`[⚡ Remotive]`, `[💼 WWR]`, `[🔶 HN]`, `[✌️ Wellfound]`, `[💼 LinkedIn]`, `[📝 Manual]`).
   - Added 6 automated tests in `mailer/tests.py` (`MultiPlatformHarvesterTest`). Full regression test suite verified: 45/45 passing tests (100% pass rate).
+- **Phase 14 (Automated Daily Scheduled Harvester)**:
+  - Built `automated_daily_harvester_task` in `mailer/services/tasks.py` supporting autonomous background multi-platform ingestion.
+  - Implemented `mailer/services/scheduler.py` managing persistent Django-Q database schedules:
+    - Target: Daily at 08:30 AM IST (`repeats=-1`).
+    - Calculation: Timezone-aware next run calculation (`calculate_next_daily_run`).
+    - Telemetry: Real-time query of active state and latest execution audits from `django_q_task`.
+    - Ergonomics: Immediate on-demand dispatch override (`trigger_immediate_harvester_run`) and Pause / Resume toggles.
+  - Added **"Daily Automated Harvester Schedule"** glass widget to `mailer/templates/mailer/leads.html` with live status beacon, next run date, and action buttons.
+  - Added 6 automated tests in `mailer/tests.py` (`DailyHarvesterSchedulerTest`). Full regression test suite verified: 51/51 passing tests (100% pass rate).
 
 ---
 
@@ -120,6 +129,7 @@
 - [x] 60FPS GPU-composited animations strictly manipulating `transform` and `opacity` with reduced-motion accessibility.
 - [x] Crash-resilient background task persistence with database broker transactions.
 - [x] RFC 5321 DNS MX pre-flight verification protecting sender reputation across all platform sources.
+- [x] Database-backed persistent cron scheduling surviving server and container restarts.
 
 ---
 
@@ -129,8 +139,9 @@
 ---
 
 ## 5. Next Immediate Steps (Operational Recommendations)
-1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and test multi-platform lead harvesting live across Remotive, We Work Remotely, and Hacker News.
-2. **Select Next Architectural Feature**:
+1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and test the daily schedule widget and immediate trigger button live.
+2. **Queue Worker Execution**: Keep `.\.venv\Scripts\python.exe manage.py qcluster` running in a separate terminal so scheduled jobs fire on time automatically.
+3. **Select Next Architectural Expansion**:
    - Option A: Kanban Visual Application Tracker & ATS Board.
-   - Option B: Automated Daily Scheduled Harvester (via Django-Q Cron).
+   - Option B: Recruiter Response Inbound Webhook / Email Reader.
    - Option C: Custom feature requested by Shahbaz.

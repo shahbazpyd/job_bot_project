@@ -84,6 +84,10 @@ A unified, private Django platform that:
   - **Smart Domain Contact Heuristics**: When an external listing lacks an explicit recruiter email, extracts the company website domain and tests standard recruiter mailboxes (`careers@company.com`, `jobs@company.com`) through DNS MX pre-flight checks, discarding any invalid hosts.
   - **Platform Origin Tracking**: Persists `source_platform` (`Hacker News`, `Remotive`, `We Work Remotely`, `Manual / Dork`) on `RecruiterLead` for transparent attribution and dashboard filtering.
   - **Single & Unified Aggregation Modes**: Enables 1-click harvesting per specific platform or parallel combined aggregation across all feeds.
+- **Phase 14: Automated Daily Scheduled Harvester (Django-Q Recurring Job)**:
+  - **Daily Morning Cadence**: Configures a persistent recurring schedule in Django-Q (`django_q_schedule`) executing every morning at 08:30 AM IST automatically.
+  - **Zero-Touch Background Ingestion**: Automatically runs multi-platform extraction (`Python`, `All locations`, `all platforms`, 25 fresh leads), executing deduplication and DNS MX verification.
+  - **Dashboard Automation Center**: Real-time widget in `leads.html` displaying schedule active/paused state, next run countdown, last execution summary stats, and a 1-click on-demand "⚡ Run Schedule Now" trigger.
 
 ### Post-MVP Scope (Future Phases)
 - Headless browser automation (Playwright) for interactive portal submissions.
