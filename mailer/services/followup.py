@@ -213,6 +213,18 @@ def dispatch_single_followup(
         sequence.dispatched_at = now
         sequence.save(update_fields=['status', 'dispatched_at'])
 
+        # Auto-progression: Advance Kanban ATS Card from DISPATCHED or OPENED to FOLLOWUP_SENT
+        try:
+            from mailer.models import JobApplication
+            app_card = getattr(initial_log, 'job_application', None) if initial_log else None
+            if not app_card:
+                app_card = JobApplication.objects.filter(recipient_email=recipient_email).first()
+            if app_card and app_card.stage in ('DISPATCHED', 'OPENED'):
+                app_card.stage = 'FOLLOWUP_SENT'
+                app_card.save(update_fields=['stage', 'updated_at'])
+        except Exception:
+            pass
+
         return {'success': True, 'log_id': log_entry.id, 'message_id': new_message_id}
 
     except Exception as e:

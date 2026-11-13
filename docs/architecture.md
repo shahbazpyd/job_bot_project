@@ -368,3 +368,31 @@ job_bot_project/
    Dashboard shows 25 fresh verified leads waiting in Verified Leads Queue ready for 1-click dispatch!
 ```
 
+---
+
+## 12. Kanban Visual Application Tracker & ATS Architecture
+
+```
+[ Outbound SMTP Dispatch ] ----+
+                                |
+[ Email Open / Click Telemetry ] +---> [ Hybrid Auto-Progression Hooks ]
+                                |       - Dispatched: Initial send
+[ Follow-Up Sequence Bump ] ---+       - Opened: Pixel / Click tracked
+                                |       - Follow-Up Sent: Day 4 bump delivered
+                                |
+                                v
+                   [ JobApplication Data Model ]
+                     (Linked to ApplicationLog)
+                     - stage: DISPATCHED, OPENED, FOLLOWUP_SENT,
+                              INTERVIEWING, OFFER, ARCHIVED
+                     - priority: HIGH, MEDIUM, LOW
+                     - interview_date, notes, salary_notes
+                                |
+                                v
+                 [ Dedicated Kanban View (/tracker/) ]
+                     - HTML5 Drag and Drop API
+                     - Optimistic UI Stage Transition
+                     - Quick-edit Modal (Interview Notes)
+                     - Async AJAX Endpoint (POST /api/applications/<id>/update-stage/)
+```
+

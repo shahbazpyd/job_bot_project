@@ -290,5 +290,33 @@
   - Authored 6 unit tests in `mailer/tests.py` (`DailyHarvesterSchedulerTest`) covering calculation, schedule idempotency, pause/resume state transitions, task execution, on-demand dispatching, and web actions.
   - Executed full Django regression test suite (`python manage.py test mailer --keepdb`): 100% pass rate (51/51 tests passing).
 
+---
+
+## Phase 15: Kanban Visual Application Tracker & ATS Board (Completed)
+- [x] **Data Model & Schema Evolution (`mailer/models.py`)**:
+  - Created `JobApplication` model with stages (`DISPATCHED`, `OPENED`, `FOLLOWUP_SENT`, `INTERVIEWING`, `OFFER`, `ARCHIVED`) and priorities (`LOW`, `MEDIUM`, `HIGH`).
+  - Added fields: `company_name`, `role_title`, `recipient_email`, `recipient_name`, `interview_date`, `salary_notes`, `notes`, `created_at`, `updated_at`.
+  - Linked `OneToOneField` with `ApplicationLog` (`initial_log`, nullable/blank).
+  - Added composite B-Tree indexes: `idx_app_stage_updated` on `(stage, -updated_at)`, `idx_app_email`, and `idx_app_priority`.
+  - Generated migration `0009_jobapplication` and applied it to Neon PostgreSQL.
+- [x] **Hybrid Auto-Progression Engine**:
+  - Dispatch Hook: In `dispatch_applications_task()`, automatically creates a `JobApplication` card in `DISPATCHED` when outreach succeeds.
+  - Telemetry Hook: In `record_email_open()` and `record_link_click()`, automatically advances card from `DISPATCHED` to `OPENED`.
+  - Follow-Up Hook: In `dispatch_single_followup()`, automatically advances card from `DISPATCHED` or `OPENED` to `FOLLOWUP_SENT`.
+- [x] **RESTful Stage & Details AJAX API (`mailer/views.py`, `mailer/urls.py`)**:
+  - Endpoint `POST /api/applications/<int:app_id>/update-stage/` handles drag-and-drop column movements with validation.
+  - Endpoint `POST /api/applications/<int:app_id>/update-details/` saves interview timestamps, notes, salary notes, company/role edits, and priority.
+  - Endpoint `POST /api/applications/create/` enables manual opportunity card creation directly from the board.
+- [x] **Super-Premium Kanban Dashboard (`mailer/templates/mailer/kanban.html`)**:
+  - Implemented 6-column Obsidian Dark Glass Kanban Board (`DISPATCHED`, `OPENED`, `FOLLOWUP_SENT`, `INTERVIEWING`, `OFFER`, `ARCHIVED`).
+  - Integrated native HTML5 Drag and Drop API with optimistic UI transitions, dynamic count badges, and rollback on error.
+  - Added KPI metrics ribbon (Total Applications, Recruiter Response Rate, Active Interviews, Offers Received).
+  - Added Quick-Edit Modal for notes, interview schedule (`<input type="datetime-local">`), salary, and stage.
+  - Added Quick-Add Modal for manual applications.
+  - Updated navigation bar linking `🚀 Dispatcher`, `🎯 Leads`, and `📊 ATS Tracker` across [send_mail.html](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/mailer/templates/mailer/send_mail.html), [leads.html](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/mailer/templates/mailer/leads.html), and [kanban.html](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/mailer/templates/mailer/kanban.html).
+- [x] **Automated Regression Test Suite Expansion**:
+  - Authored 9 unit and integration tests in `mailer/tests.py` (`KanbanTrackerTest`): model creation and defaults, auto-creation on dispatch, telemetry stage progression (opens & clicks), follow-up progression, AJAX stage updates, AJAX details updates, card creation endpoint, and Kanban view rendering with priority/search filtering.
+  - Executed full Django regression test suite (`python manage.py test mailer --keepdb`): 100% pass rate (60/60 tests passing in 282.3s).
+
 
 

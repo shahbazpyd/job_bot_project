@@ -88,10 +88,16 @@ A unified, private Django platform that:
   - **Daily Morning Cadence**: Configures a persistent recurring schedule in Django-Q (`django_q_schedule`) executing every morning at 08:30 AM IST automatically.
   - **Zero-Touch Background Ingestion**: Automatically runs multi-platform extraction (`Python`, `All locations`, `all platforms`, 25 fresh leads), executing deduplication and DNS MX verification.
   - **Dashboard Automation Center**: Real-time widget in `leads.html` displaying schedule active/paused state, next run countdown, last execution summary stats, and a 1-click on-demand "⚡ Run Schedule Now" trigger.
+- **Phase 15: Kanban Visual Application Tracker & ATS Board**:
+  - **Visual 6-Stage Pipeline**: Responsive Kanban board (`Dispatched`, `Email Opened`, `Follow-Up Sent`, `Interviewing`, `Offer Received`, `Archived / Rejected`).
+  - **Hybrid Smart Progression**: Automatic advancement from `Dispatched` to `Email Opened` upon pixel/click engagement, and to `Follow-Up Sent` upon cadence bump delivery. Manual drag-and-drop progression for interview rounds, offers, and archive.
+  - **Rich Application Cards**: Cards display company, role title, recruiter email, priority chip (`High`, `Medium`, `Low`), elapsed days counter, and engagement telemetry beacons.
+  - **ATS Detail Modal**: Quick-edit modal to attach interview date/time reminders, salary discussion notes, and personal recruiter feedback.
+  - **Dedicated Navigation**: Accessible via top navigation bar (`/tracker/`) with live stage counts.
 
 ### Post-MVP Scope (Future Phases)
 - Headless browser automation (Playwright) for interactive portal submissions.
-- Kanban Visual Application Pipeline (ATS).
+- Multi-channel notification alerts (Telegram / Discord) for interview invites and offer updates.
 
 ### Explicit Non-Goals (Out of Scope)
 - Commercial SaaS multi-tenancy with credit card billing.

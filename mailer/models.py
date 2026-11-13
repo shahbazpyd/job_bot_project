@@ -151,3 +151,59 @@ class FollowUpSequence(models.Model):
             return 0
         delta = self.scheduled_at - timezone.now()
         return max(1, delta.days + (1 if delta.seconds > 0 else 0))
+
+class JobApplication(models.Model):
+    STAGE_CHOICES = [
+        ('DISPATCHED', 'Dispatched'),
+        ('OPENED', 'Email Opened'),
+        ('FOLLOWUP_SENT', 'Follow-Up Sent'),
+        ('INTERVIEWING', 'Interviewing'),
+        ('OFFER', 'Offer Received'),
+        ('ARCHIVED', 'Archived / Rejected'),
+    ]
+
+    PRIORITY_CHOICES = [
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+    ]
+
+    initial_log = models.OneToOneField(
+        ApplicationLog,
+        on_delete=models.CASCADE,
+        related_name='job_application',
+        null=True,
+        blank=True,
+        help_text="Reference to the initial application dispatch log"
+    )
+    company_name = models.CharField(max_length=150, blank=True)
+    role_title = models.CharField(max_length=150, blank=True)
+    recipient_email = models.EmailField()
+    recipient_name = models.CharField(max_length=150, blank=True)
+    stage = models.CharField(max_length=30, choices=STAGE_CHOICES, default='DISPATCHED')
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='MEDIUM')
+    interview_date = models.DateTimeField(null=True, blank=True, help_text="Scheduled interview date and time")
+    salary_notes = models.CharField(max_length=255, blank=True, help_text="Target or offered compensation notes")
+    notes = models.TextField(blank=True, help_text="Recruiter feedback, interview notes, or next steps")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        indexes = [
+            # Accelerates Kanban column filtering ordered by latest stage activity
+            models.Index(fields=['stage', '-updated_at'], name='idx_app_stage_updated'),
+            # Accelerates looking up applications by recruiter email
+            models.Index(fields=['recipient_email'], name='idx_app_email'),
+            # Accelerates filtering by application priority
+            models.Index(fields=['priority'], name='idx_app_priority'),
+        ]
+
+    def __str__(self):
+        return f"{self.company_name or 'Company'} - {self.role_title or 'Role'} ({self.stage})"
+
+    @property
+    def days_since_dispatch(self):
+        from django.utils import timezone
+        return max(0, (timezone.now() - self.created_at).days)
+

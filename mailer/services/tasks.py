@@ -16,7 +16,7 @@ from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template import Template, Context
 from django.utils import timezone
 
-from mailer.models import ApplicationLog, EmailTemplate, ResumeDocument, RecruiterLead
+from mailer.models import ApplicationLog, EmailTemplate, ResumeDocument, RecruiterLead, JobApplication
 from mailer.services.followup import generate_rfc2822_message_id, schedule_followup_for_application, dispatch_due_followups
 from mailer.services.ai_hook import DEFAULT_CANDIDATE_HIGHLIGHTS
 from mailer.services.tracking import prepare_multipart_email_bodies, get_tracking_base_url
@@ -116,6 +116,27 @@ def dispatch_applications_task(
                 )
                 # Automatically schedule Day 4 follow-up bump sequence
                 schedule_followup_for_application(app_log, context_data, cadence_days=4)
+
+                # Automatically create JobApplication card in DISPATCHED stage for ATS Tracker
+                comp_name = context_data.get('company', '').strip()
+                if comp_name.lower() in ('your company', 'the team', ''):
+                    comp_name = ''
+                recip_name = context_data.get('name', '').strip()
+                if recip_name.lower() in ('hiring manager', ''):
+                    recip_name = ''
+                role_val = context_data.get('role', '').strip()
+                if role_val.lower() in ('the open position', ''):
+                    role_val = ''
+
+                JobApplication.objects.create(
+                    initial_log=app_log,
+                    company_name=comp_name,
+                    role_title=role_val,
+                    recipient_email=to_email,
+                    recipient_name=recip_name,
+                    stage='DISPATCHED',
+                    priority='MEDIUM',
+                )
 
                 # Mark lead as contacted in Harvester registry
                 RecruiterLead.objects.filter(email=to_email).update(is_contacted=True)

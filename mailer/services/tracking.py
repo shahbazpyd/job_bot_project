@@ -139,6 +139,19 @@ def record_email_open(tracking_token):
     log.open_count = F('open_count') + 1
     log.save(update_fields=update_fields)
     log.refresh_from_db(fields=['open_count', 'opened_at'])
+
+    # Auto-progression: Advance Kanban ATS Card from DISPATCHED to OPENED
+    try:
+        app_card = getattr(log, 'job_application', None)
+        if not app_card:
+            from mailer.models import JobApplication
+            app_card = JobApplication.objects.filter(initial_log=log).first()
+        if app_card and app_card.stage == 'DISPATCHED':
+            app_card.stage = 'OPENED'
+            app_card.save(update_fields=['stage', 'updated_at'])
+    except Exception:
+        pass
+
     return True, log
 
 
@@ -160,6 +173,18 @@ def record_link_click(tracking_token, target_url: str):
 
         log.click_count = F('click_count') + 1
         log.save(update_fields=update_fields)
+
+        # Auto-progression: Advance Kanban ATS Card from DISPATCHED to OPENED
+        try:
+            app_card = getattr(log, 'job_application', None)
+            if not app_card:
+                from mailer.models import JobApplication
+                app_card = JobApplication.objects.filter(initial_log=log).first()
+            if app_card and app_card.stage == 'DISPATCHED':
+                app_card.stage = 'OPENED'
+                app_card.save(update_fields=['stage', 'updated_at'])
+        except Exception:
+            pass
     except (ApplicationLog.DoesNotExist, ValueError):
         pass
 

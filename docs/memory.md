@@ -7,8 +7,8 @@
 
 ## 1. Project Status Summary
 - **Project**: `job_bot_project` (Job Application Dispatcher & Lead Harvester)
-- **Active Phase**: **Phase 14 (Automated Daily Scheduled Harvester) Completed & Verified**
-- **System State**: Multi-Platform Ingestion Active, Persistent Django-Q 08:30 AM IST Morning Harvester Schedule Live, 100% Test Coverage (51/51 tests passing)
+- **Active Phase**: **Phase 15 (Kanban Visual Application Tracker & ATS Board) Completed & Verified**
+- **System State**: Multi-Platform Ingestion Active, 08:30 AM IST Morning Harvester Schedule Live, Full Obsidian Dark Glass Kanban ATS Board Operational (/tracker/), Hybrid Telemetry Auto-Progression Connected, 100% Test Coverage (60/60 tests passing)
 - **Primary Database**: Neon Serverless PostgreSQL (`ep-calm-heart...`)
 - **Active Environment**: `.venv` (Python 3.15, Django 6.1, `psycopg` 3.3.8, `google-genai` 3.2.0, `django-q2` 1.11.1)
 
@@ -116,6 +116,23 @@
     - Ergonomics: Immediate on-demand dispatch override (`trigger_immediate_harvester_run`) and Pause / Resume toggles.
   - Added **"Daily Automated Harvester Schedule"** glass widget to `mailer/templates/mailer/leads.html` with live status beacon, next run date, and action buttons.
   - Added 6 automated tests in `mailer/tests.py` (`DailyHarvesterSchedulerTest`). Full regression test suite verified: 51/51 passing tests (100% pass rate).
+- **Phase 15 (Kanban Visual Application Tracker & ATS Board)**:
+  - Designed `JobApplication` model in `mailer/models.py` with 6 stages (`DISPATCHED`, `OPENED`, `FOLLOWUP_SENT`, `INTERVIEWING`, `OFFER`, `ARCHIVED`), 3 priorities (`LOW`, `MEDIUM`, `HIGH`), interview timestamp, salary notes, and notes. Linked `OneToOneField` with `ApplicationLog`. Applied migration `0009_jobapplication` to Neon PostgreSQL.
+  - Connected Hybrid Auto-Progression:
+    - Initial outreach in `dispatch_applications_task()` automatically generates a card in `DISPATCHED`.
+    - Recruiter open/click telemetry in `record_email_open()` and `record_link_click()` automatically advances cards to `OPENED`.
+    - Day 4 follow-up bumps in `dispatch_single_followup()` automatically advance cards to `FOLLOWUP_SENT`.
+  - Built RESTful AJAX controller endpoints in `mailer/views.py`:
+    - `/api/applications/<id>/update-stage/` for drag-and-drop column transitions with validation.
+    - `/api/applications/<id>/update-details/` for saving interview schedules, feedback notes, salary targets, and priority.
+    - `/api/applications/create/` for adding external or referral applications directly from the board.
+  - Implemented the Obsidian Dark Glass Kanban Board (`mailer/templates/mailer/kanban.html`):
+    - Full-screen 6-column layout with glowing stage top-borders, stage badges, and dynamic counters.
+    - Native HTML5 Drag and Drop engine (`dragstart`, `dragover`, `drop`) with optimistic UI movements, hover glow feedback, and automatic rollback on error.
+    - KPI Metrics ribbon: Total Applications, Recruiter Response Rate, Active Interviews, Offers Received.
+    - Quick-Edit Modal with HTML5 datetime picker and Quick-Add Modal.
+    - Unified navigation linking `🚀 Dispatcher`, `🎯 Leads`, and `📊 ATS Tracker` across all dashboards.
+  - Added 9 comprehensive automated tests in `mailer/tests.py` (`KanbanTrackerTest`). Full regression test suite verified: 60/60 passing tests (100% pass rate).
 
 ---
 
@@ -130,6 +147,7 @@
 - [x] Crash-resilient background task persistence with database broker transactions.
 - [x] RFC 5321 DNS MX pre-flight verification protecting sender reputation across all platform sources.
 - [x] Database-backed persistent cron scheduling surviving server and container restarts.
+- [x] Optimistic UI drag-and-drop state transitions with CSRF-protected AJAX validation and rollback.
 
 ---
 
@@ -139,9 +157,12 @@
 ---
 
 ## 5. Next Immediate Steps (Operational Recommendations)
-1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and test the daily schedule widget and immediate trigger button live.
-2. **Queue Worker Execution**: Keep `.\.venv\Scripts\python.exe manage.py qcluster` running in a separate terminal so scheduled jobs fire on time automatically.
-3. **Select Next Architectural Expansion**:
-   - Option A: Kanban Visual Application Tracker & ATS Board.
-   - Option B: Recruiter Response Inbound Webhook / Email Reader.
-   - Option C: Custom feature requested by Shahbaz.
+1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and test the Kanban board at `http://127.0.0.1:8000/tracker/`.
+2. **Interactive UI Verification**: Test dragging cards between columns (e.g. from `DISPATCHED` to `INTERVIEWING`), editing interview dates, and creating a new manual application card.
+3. **Queue Worker Execution**: Keep `.\.venv\Scripts\python.exe manage.py qcluster` running in a separate terminal to process background dispatches and morning harvester jobs.
+4. **Select Next Architectural Expansion (Phase 16)**:
+   - **Option A: Inbound Email & Recruiter Response Parser (IMAP/Webhook)**:
+     Automatically detect when a recruiter replies to an outreach email, parse their response sentiment with Gemini, halt follow-up bumps, and automatically advance the card to `INTERVIEWING`.
+   - **Option B: Analytics Dashboard & Conversion Funnel**:
+     Visual charts (via Chart.js or ApexCharts in glass styling) showing conversion funnels, interview rate by location, response rate by platform, and template performance.
+   - **Option C: Custom feature requested by Shahbaz**.

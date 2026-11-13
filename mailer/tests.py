@@ -23,7 +23,7 @@ from django.template import Template, Context
 from django.utils import timezone
 from django.core.management import call_command
 
-from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead, FollowUpSequence
+from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead, FollowUpSequence, JobApplication
 from .forms import ApplicationDispatchForm
 from .services.verifier import verify_email_mx
 from .services.harvester import (
@@ -1153,6 +1153,208 @@ class DailyHarvesterSchedulerTest(TestCase):
             'action': 'toggle_schedule'
         }, follow=True)
         self.assertEqual(toggle_response.status_code, 200)
+
+
+class KanbanTrackerTest(TestCase):
+    """Unit and integration tests for Phase 15 Visual Kanban ATS Tracker."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='shahbaz_ats', password='secretpassword123')
+        self.client = Client()
+        self.client.login(username='shahbaz_ats', password='secretpassword123')
+
+        self.template = EmailTemplate.objects.create(
+            title="ATS Test Template",
+            subject="Python Engineer at {{ company }}",
+            body="Hi {{ name }}, I am excited to apply."
+        )
+        self.resume = ResumeDocument.objects.create(
+            title="ATS Test Resume",
+            filename="ats_test_resume.pdf",
+            pdf_content=b"%PDF-1.4 mock ATS resume"
+        )
+
+    def test_job_application_creation_and_properties(self):
+        """Verify JobApplication model fields, defaults, and days_since_dispatch calculation."""
+        app = JobApplication.objects.create(
+            company_name="Google",
+            role_title="Backend Engineer",
+            recipient_email="recruiter@google.com",
+            recipient_name="Sundar",
+            priority="HIGH",
+        )
+        self.assertEqual(app.stage, "DISPATCHED")
+        self.assertEqual(app.priority, "HIGH")
+        self.assertEqual(app.days_since_dispatch, 0)
+        self.assertIn("Google", str(app))
+        self.assertIn("Backend Engineer", str(app))
+
+    def test_dispatch_task_auto_creates_job_application(self):
+        """Verify dispatch_applications_task automatically creates a JobApplication card in DISPATCHED."""
+        mail.outbox.clear()
+        result = dispatch_applications_task(
+            parsed_recipients=[{'email': 'hiring@stripe.com', 'name': 'Patrick', 'company': 'Stripe', 'role': 'Staff Python Engineer'}],
+            template_id=self.template.id,
+            resume_id=self.resume.id
+        )
+        self.assertTrue(result['success'])
+
+        # Verify JobApplication was created with metadata
+        app = JobApplication.objects.get(recipient_email='hiring@stripe.com')
+        self.assertEqual(app.company_name, "Stripe")
+        self.assertEqual(app.role_title, "Staff Python Engineer")
+        self.assertEqual(app.recipient_name, "Patrick")
+        self.assertEqual(app.stage, "DISPATCHED")
+        self.assertIsNotNone(app.initial_log)
+
+    def test_open_telemetry_advances_stage_to_opened(self):
+        """Verify recording an email open automatically advances JobApplication from DISPATCHED to OPENED."""
+        mail.outbox.clear()
+        dispatch_applications_task(
+            parsed_recipients=[{'email': 'talent@airbnb.com', 'name': 'Brian', 'company': 'Airbnb', 'role': 'Full Stack'}],
+            template_id=self.template.id,
+            resume_id=self.resume.id
+        )
+        app = JobApplication.objects.get(recipient_email='talent@airbnb.com')
+        self.assertEqual(app.stage, 'DISPATCHED')
+
+        # Trigger open beacon
+        success, log = record_email_open(app.initial_log.tracking_token)
+        self.assertTrue(success)
+        app.refresh_from_db()
+        self.assertEqual(app.stage, 'OPENED')
+
+    def test_click_telemetry_advances_stage_to_opened(self):
+        """Verify recording a link click automatically advances JobApplication from DISPATCHED to OPENED."""
+        mail.outbox.clear()
+        dispatch_applications_task(
+            parsed_recipients=[{'email': 'lead@netflix.com', 'name': 'Reed', 'company': 'Netflix', 'role': 'Python Developer'}],
+            template_id=self.template.id,
+            resume_id=self.resume.id
+        )
+        app = JobApplication.objects.get(recipient_email='lead@netflix.com')
+        self.assertEqual(app.stage, 'DISPATCHED')
+
+        # Trigger link click
+        success, dest = record_link_click(app.initial_log.tracking_token, 'https://ssenterprisesncr.in')
+        self.assertTrue(success)
+        app.refresh_from_db()
+        self.assertEqual(app.stage, 'OPENED')
+
+    def test_followup_dispatch_advances_stage_to_followup_sent(self):
+        """Verify dispatching a Day 4 follow-up advances JobApplication to FOLLOWUP_SENT."""
+        mail.outbox.clear()
+        dispatch_applications_task(
+            parsed_recipients=[{'email': 'hr@uber.com', 'name': 'Dara', 'company': 'Uber', 'role': 'Backend'}],
+            template_id=self.template.id,
+            resume_id=self.resume.id
+        )
+        app = JobApplication.objects.get(recipient_email='hr@uber.com')
+        sequence = FollowUpSequence.objects.get(recipient_email='hr@uber.com')
+
+        # Dispatch follow-up
+        res = dispatch_single_followup(sequence, force=True)
+        self.assertTrue(res['success'])
+
+        app.refresh_from_db()
+        self.assertEqual(app.stage, 'FOLLOWUP_SENT')
+
+    def test_update_stage_ajax_endpoint(self):
+        """Verify /api/applications/<id>/update-stage/ successfully moves stage and rejects invalid stages."""
+        app = JobApplication.objects.create(
+            company_name="Microsoft",
+            role_title="Senior Developer",
+            recipient_email="recruiter@microsoft.com",
+            stage="DISPATCHED"
+        )
+        url = reverse('update_application_stage', args=[app.id])
+
+        # Valid stage move
+        response = self.client.post(url, json.dumps({'stage': 'INTERVIEWING'}), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['stage'], 'INTERVIEWING')
+
+        app.refresh_from_db()
+        self.assertEqual(app.stage, 'INTERVIEWING')
+
+        # Invalid stage move
+        bad_response = self.client.post(url, json.dumps({'stage': 'NON_EXISTENT_STAGE'}), content_type='application/json')
+        self.assertEqual(bad_response.status_code, 400)
+
+    def test_update_details_ajax_endpoint(self):
+        """Verify /api/applications/<id>/update-details/ updates priority, notes, salary, and interview date."""
+        app = JobApplication.objects.create(
+            company_name="Amazon",
+            role_title="SDE II",
+            recipient_email="recruiter@amazon.com",
+            priority="LOW"
+        )
+        url = reverse('update_application_details', args=[app.id])
+
+        payload = {
+            'priority': 'HIGH',
+            'interview_date': '2026-11-25T14:30:00',
+            'salary_notes': '₹30-35 LPA',
+            'notes': 'Completed round 1 with Bar Raiser.',
+            'company_name': 'Amazon AWS',
+            'role_title': 'Senior SDE II'
+        }
+        response = self.client.post(url, json.dumps(payload), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+
+        app.refresh_from_db()
+        self.assertEqual(app.priority, 'HIGH')
+        self.assertEqual(app.company_name, 'Amazon AWS')
+        self.assertEqual(app.role_title, 'Senior SDE II')
+        self.assertEqual(app.salary_notes, '₹30-35 LPA')
+        self.assertIn('Bar Raiser', app.notes)
+        self.assertIsNotNone(app.interview_date)
+
+    def test_create_application_endpoint(self):
+        """Verify /api/applications/create/ allows manual card insertion."""
+        url = reverse('create_application')
+        payload = {
+            'company_name': 'Zomato',
+            'role_title': 'Python Lead',
+            'recipient_email': 'jobs@zomato.com',
+            'recipient_name': 'Deepinder',
+            'stage': 'DISPATCHED',
+            'priority': 'HIGH',
+            'notes': 'Direct referral'
+        }
+        response = self.client.post(url, json.dumps(payload), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+
+        self.assertTrue(JobApplication.objects.filter(company_name='Zomato', recipient_email='jobs@zomato.com').exists())
+
+    def test_kanban_view_rendering_and_filters(self):
+        """Verify kanban_tracker_view renders all 6 columns and handles priority/search filters."""
+        JobApplication.objects.create(company_name="AlphaCo", role_title="Dev", recipient_email="a@alpha.co", priority="HIGH", stage="DISPATCHED")
+        JobApplication.objects.create(company_name="BetaCo", role_title="Dev", recipient_email="b@beta.co", priority="LOW", stage="INTERVIEWING")
+
+        # Standard view
+        response = self.client.get(reverse('kanban_tracker'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'mailer/kanban.html')
+        self.assertEqual(response.context['total_apps'], 2)
+        self.assertEqual(response.context['interviewing_count'], 1)
+
+        # Priority filter HIGH
+        filter_resp = self.client.get(reverse('kanban_tracker') + '?priority=HIGH')
+        self.assertEqual(filter_resp.status_code, 200)
+        self.assertEqual(filter_resp.context['total_apps'], 1)
+
+        # Search filter
+        search_resp = self.client.get(reverse('kanban_tracker') + '?q=AlphaCo')
+        self.assertEqual(search_resp.status_code, 200)
+        self.assertEqual(search_resp.context['total_apps'], 1)
+
 
 
 

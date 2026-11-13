@@ -13,8 +13,9 @@ from django.conf import settings
 from django.template import Template, Context
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django.db.models import Q
 from .forms import ApplicationDispatchForm
-from .models import ApplicationLog, EmailTemplate, ResumeDocument, RecruiterLead, FollowUpSequence
+from .models import ApplicationLog, EmailTemplate, ResumeDocument, RecruiterLead, FollowUpSequence, JobApplication
 from .services.followup import (
     generate_rfc2822_message_id,
     schedule_followup_for_application,
@@ -394,4 +395,212 @@ def track_click_view(request, token):
     target_url = request.GET.get('url', '')
     success, safe_destination = record_link_click(token, target_url)
     return HttpResponseRedirect(safe_destination)
+
+
+@login_required
+def kanban_tracker_view(request):
+    """
+    Super-Premium Visual Kanban Application Tracker & ATS Board.
+    Organizes applications across 6 stages:
+    DISPATCHED, OPENED, FOLLOWUP_SENT, INTERVIEWING, OFFER, ARCHIVED.
+    Supports search query and priority filtering.
+    """
+    search_query = request.GET.get('q', '').strip()
+    priority_filter = request.GET.get('priority', '').strip().upper()
+
+    applications_qs = JobApplication.objects.select_related('initial_log')
+
+    if search_query:
+        applications_qs = applications_qs.filter(
+            Q(company_name__icontains=search_query) |
+            Q(role_title__icontains=search_query) |
+            Q(recipient_email__icontains=search_query) |
+            Q(recipient_name__icontains=search_query)
+        )
+
+    if priority_filter in ('LOW', 'MEDIUM', 'HIGH'):
+        applications_qs = applications_qs.filter(priority=priority_filter)
+
+    applications = list(applications_qs)
+
+    # Initialize the 6 stage columns in defined order
+    stages_order = [
+        ('DISPATCHED', 'Dispatched', 'blue', 'fa-paper-plane'),
+        ('OPENED', 'Email Opened', 'purple', 'fa-envelope-open-text'),
+        ('FOLLOWUP_SENT', 'Follow-Up Sent', 'amber', 'fa-clock-rotate-left'),
+        ('INTERVIEWING', 'Interviewing', 'emerald', 'fa-user-tie'),
+        ('OFFER', 'Offer Received', 'cyan', 'fa-award'),
+        ('ARCHIVED', 'Archived / Rejected', 'rose', 'fa-box-archive'),
+    ]
+
+    columns = []
+    for stage_code, stage_label, color_name, icon in stages_order:
+        stage_apps = [app for app in applications if app.stage == stage_code]
+        columns.append({
+            'code': stage_code,
+            'label': stage_label,
+            'color': color_name,
+            'icon': icon,
+            'count': len(stage_apps),
+            'applications': stage_apps,
+        })
+
+    # Summary metrics
+    total_apps = len(applications)
+    interviewing_count = sum(1 for a in applications if a.stage == 'INTERVIEWING')
+    offers_count = sum(1 for a in applications if a.stage == 'OFFER')
+    opened_count = sum(1 for a in applications if a.stage in ('OPENED', 'FOLLOWUP_SENT', 'INTERVIEWING', 'OFFER'))
+    response_rate = round((opened_count / total_apps * 100), 1) if total_apps > 0 else 0.0
+
+    return render(request, 'mailer/kanban.html', {
+        'columns': columns,
+        'total_apps': total_apps,
+        'interviewing_count': interviewing_count,
+        'offers_count': offers_count,
+        'response_rate': response_rate,
+        'search_query': search_query,
+        'priority_filter': priority_filter,
+    })
+
+
+@login_required
+@require_POST
+def update_application_stage(request, app_id):
+    """
+    RESTful AJAX endpoint for updating an application's Kanban stage on drag-and-drop.
+    Accepts JSON body: {"stage": "INTERVIEWING"} or form POST data.
+    """
+    application = get_object_or_404(JobApplication, id=app_id)
+
+    if request.content_type == 'application/json':
+        try:
+            data = json.loads(request.body)
+            new_stage = data.get('stage', '').strip()
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON payload'}, status=400)
+    else:
+        new_stage = request.POST.get('stage', '').strip()
+
+    valid_stages = [c[0] for c in JobApplication.STAGE_CHOICES]
+    if new_stage not in valid_stages:
+        return JsonResponse({'success': False, 'error': f"Invalid stage '{new_stage}'"}, status=400)
+
+    application.stage = new_stage
+    application.save(update_fields=['stage', 'updated_at'])
+
+    return JsonResponse({
+        'success': True,
+        'app_id': application.id,
+        'stage': application.stage,
+        'stage_display': application.get_stage_display(),
+        'updated_at': application.updated_at.strftime('%Y-%m-%d %H:%M'),
+    })
+
+
+@login_required
+@require_POST
+def update_application_details(request, app_id):
+    """
+    RESTful AJAX endpoint for updating application metadata:
+    priority, scheduled interview timestamp, salary notes, and notes.
+    """
+    from django.utils.dateparse import parse_datetime
+    application = get_object_or_404(JobApplication, id=app_id)
+
+    if request.content_type == 'application/json':
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON payload'}, status=400)
+    else:
+        data = request.POST
+
+    priority = data.get('priority', '').strip().upper()
+    if priority and priority in ('LOW', 'MEDIUM', 'HIGH'):
+        application.priority = priority
+
+    if 'interview_date' in data:
+        raw_date = data.get('interview_date', '').strip()
+        if raw_date:
+            parsed = parse_datetime(raw_date)
+            if parsed and timezone.is_naive(parsed):
+                parsed = timezone.make_aware(parsed)
+            application.interview_date = parsed
+        else:
+            application.interview_date = None
+
+    if 'salary_notes' in data:
+        application.salary_notes = data.get('salary_notes', '').strip()
+
+    if 'notes' in data:
+        application.notes = data.get('notes', '').strip()
+
+    if 'company_name' in data and data.get('company_name', '').strip():
+        application.company_name = data.get('company_name', '').strip()
+
+    if 'role_title' in data and data.get('role_title', '').strip():
+        application.role_title = data.get('role_title', '').strip()
+
+    application.save()
+
+    return JsonResponse({
+        'success': True,
+        'app_id': application.id,
+        'company_name': application.company_name,
+        'role_title': application.role_title,
+        'priority': application.priority,
+        'interview_date': application.interview_date.isoformat() if application.interview_date else None,
+        'interview_date_display': application.interview_date.strftime('%b %d, %Y %I:%M %p') if application.interview_date else '',
+        'salary_notes': application.salary_notes,
+        'notes': application.notes,
+        'updated_at': application.updated_at.strftime('%Y-%m-%d %H:%M'),
+    })
+
+
+@login_required
+@require_POST
+def create_application_view(request):
+    """
+    Creates a new JobApplication card directly from the ATS Tracker.
+    """
+    if request.content_type == 'application/json':
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON payload'}, status=400)
+    else:
+        data = request.POST
+
+    recipient_email = data.get('recipient_email', '').strip()
+    company_name = data.get('company_name', '').strip()
+    role_title = data.get('role_title', '').strip()
+    recipient_name = data.get('recipient_name', '').strip()
+    stage = data.get('stage', 'DISPATCHED').strip()
+    priority = data.get('priority', 'MEDIUM').strip().upper()
+
+    if not recipient_email and not company_name:
+        return JsonResponse({'success': False, 'error': 'Company name or recipient email is required'}, status=400)
+
+    if priority not in ('LOW', 'MEDIUM', 'HIGH'):
+        priority = 'MEDIUM'
+    if stage not in [c[0] for c in JobApplication.STAGE_CHOICES]:
+        stage = 'DISPATCHED'
+
+    application = JobApplication.objects.create(
+        company_name=company_name,
+        role_title=role_title,
+        recipient_email=recipient_email,
+        recipient_name=recipient_name,
+        stage=stage,
+        priority=priority,
+        notes=data.get('notes', '').strip(),
+        salary_notes=data.get('salary_notes', '').strip(),
+    )
+
+    return JsonResponse({
+        'success': True,
+        'app_id': application.id,
+        'message': 'Application card created successfully'
+    })
+
 

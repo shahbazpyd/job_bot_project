@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual ATS Kanban Board - Job Bot</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-void: #080b11;
+            --surface-glass: rgba(15, 23, 42, 0.7);
+            --surface-glass-elevated: rgba(22, 32, 54, 0.85);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --border-glass-hover: rgba(99, 102, 241, 0.45);
+            --accent-indigo: #6366f1;
+            --accent-purple: #a855f7;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --text-primary: #f8fafc;
+            --text-muted: #94a3b8;
+            --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        body {
+            background-color: var(--bg-void);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Living Ambient Glow Mesh */
+        .ambient-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.16;
+            pointer-events: none;
+            z-index: 1;
+            will-change: transform;
+        }
+        .orb-1 {
+            width: 520px;
+            height: 520px;
+            background: radial-gradient(circle, var(--accent-indigo) 0%, transparent 70%);
+            top: -120px;
+            left: -120px;
+            animation: orb-drift 22s ease-in-out infinite alternate;
+        }
+        .orb-2 {
+            width: 480px;
+            height: 480px;
+            background: radial-gradient(circle, var(--accent-purple) 0%, transparent 70%);
+            bottom: -100px;
+            right: -100px;
+            animation: orb-drift 19s ease-in-out infinite alternate-reverse;
+        }
+        .orb-3 {
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, var(--accent-cyan) 0%, transparent 70%);
+            top: 40%;
+            left: 45%;
+            animation: orb-drift 25s ease-in-out infinite alternate;
+        }
+        @keyframes orb-drift {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(40px, -30px) scale(1.08); }
+            100% { transform: translate(-30px, 40px) scale(0.95); }
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.35), rgba(168, 85, 247, 0.35));
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.7), rgba(168, 85, 247, 0.7));
+        }
+
+        /* Glass Cards */
+        .glass-card {
+            background: var(--surface-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .radar-beacon {
+            position: relative;
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-emerald);
+        }
+        .radar-beacon::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background-color: var(--accent-emerald);
+            animation: beacon-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes beacon-pulse {
+            0% { transform: scale(0.7); opacity: 0.9; }
+            100% { transform: scale(2.8); opacity: 0; }
+        }
+
+        .btn-glass-subtle {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            border-radius: 10px;
+            backdrop-filter: blur(8px);
+            transition: all 0.15s ease;
+        }
+        .btn-glass-subtle:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .btn-gradient-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            border: none;
+            color: #ffffff;
+            border-radius: 10px;
+            font-weight: 600;
+            box-shadow: 0 4px 18px rgba(99, 102, 241, 0.4);
+            transition: all 0.2s ease;
+        }
+        .btn-gradient-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.6);
+            color: #ffffff;
+        }
+
+        /* KPI Stat Pill */
+        .kpi-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s ease;
+        }
+        .kpi-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(15, 23, 42, 0.85);
+        }
+
+        /* Kanban Board Container & Columns */
+        .kanban-board-container {
+            display: flex;
+            gap: 1.25rem;
+            overflow-x: auto;
+            padding-bottom: 2rem;
+            min-height: calc(100vh - 280px);
+            scrollbar-width: thin;
+        }
+
+        .kanban-column {
+            flex: 0 0 320px;
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 16px;
+            max-height: calc(100vh - 230px);
+            transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        /* Stage Neon Header Accents */
+        .kanban-column[data-stage="DISPATCHED"] { border-top: 3px solid #3b82f6; }
+        .kanban-column[data-stage="OPENED"] { border-top: 3px solid #a855f7; }
+        .kanban-column[data-stage="FOLLOWUP_SENT"] { border-top: 3px solid #f59e0b; }
+        .kanban-column[data-stage="INTERVIEWING"] { border-top: 3px solid #10b981; }
+        .kanban-column[data-stage="OFFER"] { border-top: 3px solid #06b6d4; }
+        .kanban-column[data-stage="ARCHIVED"] { border-top: 3px solid #f43f5e; }
+
+        .kanban-column-header {
+            padding: 1rem 1.1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stage-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-family: var(--font-mono);
+        }
+
+        /* Dropzone & Scroll Area */
+        .kanban-dropzone {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-height: 200px;
+            transition: background-color 0.2s ease;
+        }
+
+        /* Drag Over Visual Feedback */
+        .kanban-dropzone.drag-over {
+            background-color: rgba(99, 102, 241, 0.12);
+            outline: 2px dashed rgba(99, 102, 241, 0.6);
+            outline-offset: -4px;
+            border-radius: 12px;
+        }
+
+        /* Kanban Cards */
+        .kanban-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 0.9rem;
+            cursor: grab;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+            position: relative;
+            user-select: none;
+        }
+        .kanban-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.22);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            background: rgba(30, 41, 59, 0.9);
+        }
+        .kanban-card:active {
+            cursor: grabbing;
+        }
+        .kanban-card.is-dragging {
+            opacity: 0.4;
+            transform: scale(0.97);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Priority Pills */
+        .priority-pill {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            letter-spacing: 0.04em;
+        }
+        .priority-HIGH {
+            background: rgba(244, 63, 94, 0.18);
+            color: #fda4af;
+            border: 1px solid rgba(244, 63, 94, 0.35);
+        }
+        .priority-MEDIUM {
+            background: rgba(245, 158, 11, 0.18);
+            color: #fde68a;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+        }
+        .priority-LOW {
+            background: rgba(148, 163, 184, 0.18);
+            color: #cbd5e1;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+
+        /* Telemetry Beacon Pill */
+        .telemetry-chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 0.15rem 0.45rem;
+            font-size: 0.68rem;
+            font-family: var(--font-mono);
+            color: #cbd5e1;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Modal Glass Styling */
+        .modal-content.glass-modal {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            color: #f8fafc;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+        }
+        .modal-header, .modal-footer {
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+        .form-control-glass, .form-select-glass {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            border-radius: 8px;
+        }
+        .form-control-glass:focus, .form-select-glass:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-indigo);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+            color: #ffffff;
+        }
+        .form-control-glass::placeholder { color: #64748b; }
+        .form-select-glass option { background-color: #0f172a; color: #ffffff; }
+
+        /* Notification Toast */
+        #ats-toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1080;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .glass-toast {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            padding: 0.75rem 1.1rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            animation: slideInToast 0.25s ease-out;
+            max-width: 360px;
+        }
+        @keyframes slideInToast {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="py-3 py-lg-4">
+
+    <!-- Ambient Orbs -->
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
+
+    <!-- Hidden CSRF token for AJAX -->
+    {% csrf_token %}
+
+    <div class="container-fluid px-3 px-lg-4 position-relative" style="z-index: 2;">
+        
+        <!-- Top Navigation Glass Header -->
+        <div class="glass-card p-3 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-2">
+                    <h4 class="text-gradient mb-0 fs-5">Kanban Application Tracker & ATS Board</h4>
+                    <span class="radar-beacon" title="Live Progression Engine Active"></span>
+                </div>
+                <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10 py-1 px-2" style="font-size: 0.72rem;">
+                    Obsidian ATS 2.0
+                </span>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-gradient-primary px-3 py-1 fw-semibold" data-bs-toggle="modal" data-bs-target="#createAppModal">
+                    <i class="fa-solid fa-plus me-1"></i> New Application
+                </button>
+                <a href="{% url 'send_application' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-2 py-1 small">
+                    🚀 Dispatcher
+                </a>
+                <a href="{% url 'lead_harvester' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-2 py-1 small">
+                    🎯 Leads
+                </a>
+                <a href="{% url 'admin:index' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-2 py-1 small">
+                    Admin
+                </a>
+                <form method="post" action="{% url 'logout' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-glass-subtle text-danger-emphasis fw-semibold px-2 py-1 small" title="Logout">
+                        ✕
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- KPI Metrics & Filter Bar -->
+        <div class="glass-card p-3 mb-4">
+            <div class="row g-3 align-items-center">
+                <!-- Metrics -->
+                <div class="col-12 col-xl-6 d-flex flex-wrap gap-2 align-items-center">
+                    <div class="kpi-card flex-grow-1">
+                        <div class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.65rem;">Total Applications</div>
+                        <div class="fs-5 fw-bold text-white">{{ total_apps }}</div>
+                    </div>
+                    <div class="kpi-card flex-grow-1">
+                        <div class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.65rem;">Recruiter Response Rate</div>
+                        <div class="fs-5 fw-bold text-info">{{ response_rate }}%</div>
+                    </div>
+                    <div class="kpi-card flex-grow-1">
+                        <div class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.65rem;">Active Interviews</div>
+                        <div class="fs-5 fw-bold text-success">{{ interviewing_count }}</div>
+                    </div>
+                    <div class="kpi-card flex-grow-1">
+                        <div class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.65rem;">Offers Received</div>
+                        <div class="fs-5 fw-bold text-warning">{{ offers_count }}</div>
+                    </div>
+                </div>
+
+                <!-- Filters & Search -->
+                <div class="col-12 col-xl-6">
+                    <form method="get" action="{% url 'kanban_tracker' %}" class="d-flex flex-wrap gap-2 justify-content-xl-end">
+                        <div class="input-group input-group-sm" style="max-width: 280px;">
+                            <span class="input-group-text bg-transparent border-white border-opacity-10 text-white-50">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-glass" placeholder="Filter company, role, recruiter...">
+                        </div>
+
+                        <!-- Priority Pills -->
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="?{% if search_query %}q={{ search_query }}&{% endif %}" class="btn {% if not priority_filter %}btn-primary{% else %}btn-glass-subtle{% endif %}">
+                                All
+                            </a>
+                            <a href="?priority=HIGH{% if search_query %}&q={{ search_query }}{% endif %}" class="btn {% if priority_filter == 'HIGH' %}btn-danger{% else %}btn-glass-subtle{% endif %}">
+                                🔥 High
+                            </a>
+                            <a href="?priority=MEDIUM{% if search_query %}&q={{ search_query }}{% endif %}" class="btn {% if priority_filter == 'MEDIUM' %}btn-warning{% else %}btn-glass-subtle{% endif %}">
+                                ⚡ Med
+                            </a>
+                            <a href="?priority=LOW{% if search_query %}&q={{ search_query }}{% endif %}" class="btn {% if priority_filter == 'LOW' %}btn-secondary{% else %}btn-glass-subtle{% endif %}">
+                                🌱 Low
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6-Stage Visual Kanban Board -->
+        <div class="kanban-board-container pb-4">
+            {% for col in columns %}
+                <div class="kanban-column" data-stage="{{ col.code }}">
+                    <!-- Column Header -->
+                    <div class="kanban-column-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa-solid {{ col.icon }} text-white-50"></i>
+                            <span class="fw-bold text-white small">{{ col.label }}</span>
+                        </div>
+                        <span class="stage-badge bg-white bg-opacity-10 text-white border border-white border-opacity-10" id="badge-count-{{ col.code }}">
+                            {{ col.count }}
+                        </span>
+                    </div>
+
+                    <!-- Column Dropzone -->
+                    <div class="kanban-dropzone" data-stage="{{ col.code }}">
+                        {% for app in col.applications %}
+                            <div class="kanban-card" 
+                                 id="card-{{ app.id }}" 
+                                 draggable="true" 
+                                 data-app-id="{{ app.id }}"
+                                 data-stage="{{ app.stage }}"
+                                 data-company="{{ app.company_name }}"
+                                 data-role="{{ app.role_title }}"
+                                 data-email="{{ app.recipient_email }}"
+                                 data-name="{{ app.recipient_name }}"
+                                 data-priority="{{ app.priority }}"
+                                 data-interview="{{ app.interview_date|date:'Y-m-d\\TH:i'|default:'' }}"
+                                 data-interview-display="{{ app.interview_date|date:'M d, Y h:i A'|default:'' }}"
+                                 data-salary="{{ app.salary_notes }}"
+                                 data-notes="{{ app.notes }}">
+                                
+                                <!-- Top Card Line: Company + Priority -->
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div class="fw-bold text-white text-truncate me-2" style="max-width: 190px;" title="{{ app.company_name|default:'Direct Application' }}">
+                                        {{ app.company_name|default:"Direct Application" }}
+                                    </div>
+                                    <span class="priority-pill priority-{{ app.priority }}">
+                                        {{ app.priority }}
+                                    </span>
+                                </div>
+
+                                <!-- Role Title -->
+                                <div class="small text-white-50 text-truncate mb-2" title="{{ app.role_title|default:'Python Full Stack Developer' }}">
+                                    {{ app.role_title|default:"Python Full Stack Developer" }}
+                                </div>
+
+                                <!-- Recruiter Contact Info -->
+                                <div class="d-flex align-items-center gap-1 text-white-50 small mb-2" style="font-size: 0.72rem;">
+                                    <i class="fa-regular fa-envelope"></i>
+                                    <span class="text-truncate" style="max-width: 220px;" title="{{ app.recipient_email }}">
+                                        {{ app.recipient_name|default:app.recipient_email }}
+                                    </span>
+                                </div>
+
+                                <!-- Interview Date Pill (if scheduled) -->
+                                {% if app.interview_date %}
+                                    <div class="mb-2">
+                                        <span class="badge bg-emerald-500 bg-opacity-20 text-emerald border border-emerald border-opacity-30 py-1 px-2 small d-inline-flex align-items-center gap-1" style="font-size: 0.68rem; color: #10b981;">
+                                            <i class="fa-regular fa-calendar-check"></i>
+                                            {{ app.interview_date|date:"M d, h:i A" }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                <!-- Salary Target (if set) -->
+                                {% if app.salary_notes %}
+                                    <div class="mb-2">
+                                        <span class="badge bg-cyan-500 bg-opacity-20 text-info border border-info border-opacity-30 py-1 px-2 small d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;">
+                                            <i class="fa-solid fa-coins"></i>
+                                            {{ app.salary_notes }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+
+                                <!-- Bottom Card Footer: Telemetry + Dispatch Age + Edit Button -->
+                                <div class="d-flex justify-content-between align-items-center pt-2 mt-1 border-top border-white border-opacity-10" style="font-size: 0.7rem;">
+                                    <div class="d-flex align-items-center gap-1">
+                                        {% if app.initial_log %}
+                                            <span class="telemetry-chip" title="Opens: {{ app.initial_log.open_count }}">
+                                                <i class="fa-regular fa-eye text-primary"></i> {{ app.initial_log.open_count }}
+                                            </span>
+                                            <span class="telemetry-chip" title="Clicks: {{ app.initial_log.click_count }}">
+                                                <i class="fa-solid fa-arrow-pointer text-info"></i> {{ app.initial_log.click_count }}
+                                            </span>
+                                        {% endif %}
+                                        <span class="text-white-50" title="Dispatched {{ app.created_at|date:'M d, Y' }}">
+                                            {% if app.days_since_dispatch == 0 %}Today{% else %}{{ app.days_since_dispatch }}d ago{% endif %}
+                                        </span>
+                                    </div>
+
+                                    <button type="button" class="btn btn-sm p-0 text-white-50 hover-text-white btn-edit-app" 
+                                            onclick="openEditModal({{ app.id }})" 
+                                            title="Edit notes, interview date, or details">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                </div>
+
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Details & Interview Edit Modal -->
+    <div class="modal fade" id="editAppModal" tabindex="-1" aria-labelledby="editAppModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title fs-6 fw-bold text-white d-flex align-items-center gap-2" id="editAppModalLabel">
+                        <i class="fa-solid fa-pen-to-square text-primary"></i> Application Details & Notes
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editAppForm" onsubmit="saveAppDetails(event)">
+                    <div class="modal-body">
+                        <input type="hidden" id="edit_app_id" name="app_id">
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-white-50 small mb-1">Company</label>
+                                <input type="text" id="edit_company" class="form-control form-control-glass form-control-sm" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-white-50 small mb-1">Role Title</label>
+                                <input type="text" id="edit_role" class="form-control form-control-glass form-control-sm" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-white-50 small mb-1">Priority</label>
+                                <select id="edit_priority" class="form-select form-select-glass form-select-sm">
+                                    <option value="HIGH">🔥 High</option>
+                                    <option value="MEDIUM">⚡ Medium</option>
+                                    <option value="LOW">🌱 Low</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-white-50 small mb-1">Move Stage</label>
+                                <select id="edit_stage" class="form-select form-select-glass form-select-sm">
+                                    <option value="DISPATCHED">Dispatched</option>
+                                    <option value="OPENED">Email Opened</option>
+                                    <option value="FOLLOWUP_SENT">Follow-Up Sent</option>
+                                    <option value="INTERVIEWING">Interviewing</option>
+                                    <option value="OFFER">Offer Received</option>
+                                    <option value="ARCHIVED">Archived / Rejected</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-12">
+                                <label class="form-label text-white-50 small mb-1">Scheduled Interview Date & Time</label>
+                                <input type="datetime-local" id="edit_interview_date" class="form-control form-control-glass form-control-sm">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 small mb-1">Target / Offered Compensation</label>
+                            <input type="text" id="edit_salary" class="form-control form-control-glass form-control-sm" placeholder="e.g. ₹18–22 LPA / $90,000">
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label text-white-50 small mb-1">Recruiter Notes / Interview Feedback</label>
+                            <textarea id="edit_notes" class="form-control form-control-glass form-control-sm" rows="3" placeholder="Key talking points, recruiter feedback, technical round prep..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-glass-subtle" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-gradient-primary">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Add Application Modal -->
+    <div class="modal fade" id="createAppModal" tabindex="-1" aria-labelledby="createAppModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title fs-6 fw-bold text-white d-flex align-items-center gap-2" id="createAppModalLabel">
+                        <i class="fa-solid fa-plus text-primary"></i> Add Application Card
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="createAppForm" onsubmit="createApplication(event)">
+                    <div class="modal-body">
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-white-50 small mb-1">Company Name *</label>
+                                <input type="text" id="new_company" class="form-control form-control-glass form-control-sm" placeholder="e.g. Acme Corp" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-white-50 small mb-1">Role Title *</label>
+                                <input type="text" id="new_role" class="form-control form-control-glass form-control-sm" placeholder="e.g. Python Developer" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-white-50 small mb-1">Recruiter Email</label>
+                                <input type="email" id="new_email" class="form-control form-control-glass form-control-sm" placeholder="recruiter@company.com">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-white-50 small mb-1">Contact Name</label>
+                                <input type="text" id="new_name" class="form-control form-control-glass form-control-sm" placeholder="e.g. Sarah Connor">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-white-50 small mb-1">Starting Stage</label>
+                                <select id="new_stage" class="form-select form-select-glass form-select-sm">
+                                    <option value="DISPATCHED">Dispatched</option>
+                                    <option value="OPENED">Email Opened</option>
+                                    <option value="FOLLOWUP_SENT">Follow-Up Sent</option>
+                                    <option value="INTERVIEWING">Interviewing</option>
+                                    <option value="OFFER">Offer Received</option>
+                                    <option value="ARCHIVED">Archived / Rejected</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-white-50 small mb-1">Priority</label>
+                                <select id="new_priority" class="form-select form-select-glass form-select-sm">
+                                    <option value="HIGH">🔥 High</option>
+                                    <option value="MEDIUM" selected>⚡ Medium</option>
+                                    <option value="LOW">🌱 Low</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label class="form-label text-white-50 small mb-1">Initial Notes</label>
+                            <textarea id="new_notes" class="form-control form-control-glass form-control-sm" rows="2" placeholder="Found on LinkedIn, referral from Alex..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-sm btn-glass-subtle" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-gradient-primary">
+                            <i class="fa-solid fa-plus me-1"></i> Add Opportunity
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toasts Container -->
+    <div id="ats-toast-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Get CSRF token
+        function getCsrfToken() {
+            const input = document.querySelector('input[name=csrfmiddlewaretoken]');
+            return input ? input.value : '';
+        }
+
+        // Lightweight Toast Alert
+        function showToast(message, isError = false) {
+            const container = document.getElementById('ats-toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'glass-toast';
+            toast.innerHTML = `
+                <i class="fa-solid ${isError ? 'fa-circle-exclamation text-danger' : 'fa-circle-check text-success'}"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // -------------------------------------------------------------
+        // Native HTML5 Drag-and-Drop Implementation
+        // -------------------------------------------------------------
+        let draggedCard = null;
+        let sourceColumn = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initDragAndDrop();
+        });
+
+        function initDragAndDrop() {
+            const cards = document.querySelectorAll('.kanban-card');
+            const dropzones = document.querySelectorAll('.kanban-dropzone');
+
+            cards.forEach(card => {
+                card.removeEventListener('dragstart', handleDragStart);
+                card.removeEventListener('dragend', handleDragEnd);
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+            });
+
+            dropzones.forEach(dropzone => {
+                dropzone.removeEventListener('dragover', handleDragOver);
+                dropzone.removeEventListener('dragenter', handleDragEnter);
+                dropzone.removeEventListener('dragleave', handleDragLeave);
+                dropzone.removeEventListener('drop', handleDrop);
+
+                dropzone.addEventListener('dragover', handleDragOver);
+                dropzone.addEventListener('dragenter', handleDragEnter);
+                dropzone.addEventListener('dragleave', handleDragLeave);
+                dropzone.addEventListener('drop', handleDrop);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedCard = this;
+            sourceColumn = this.closest('.kanban-column');
+            this.classList.add('is-dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.dataset.appId);
+        }
+
+        function handleDragEnd(e) {
+            if (draggedCard) {
+                draggedCard.classList.remove('is-dragging');
+            }
+            document.querySelectorAll('.kanban-dropzone').forEach(dz => dz.classList.remove('drag-over'));
+            draggedCard = null;
+            sourceColumn = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            if (!draggedCard) return;
+
+            const targetDropzone = this;
+            const targetColumn = targetDropzone.closest('.kanban-column');
+            const targetStage = targetDropzone.dataset.stage;
+            const appId = draggedCard.dataset.appId;
+            const currentStage = draggedCard.dataset.stage;
+
+            if (currentStage === targetStage) {
+                return; // No stage change
+            }
+
+            // Optimistic UI Update: Move card in DOM
+            targetDropzone.appendChild(draggedCard);
+            draggedCard.dataset.stage = targetStage;
+            updateColumnCounters();
+
+            // Send AJAX stage update
+            fetch(`/api/applications/${appId}/update-stage/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ stage: targetStage })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Moved to ${data.stage_display}`);
+                } else {
+                    // Rollback
+                    sourceColumn.querySelector('.kanban-dropzone').appendChild(draggedCard);
+                    draggedCard.dataset.stage = currentStage;
+                    updateColumnCounters();
+                    showToast(data.error || 'Failed to update stage', true);
+                }
+            })
+            .catch(err => {
+                // Rollback on network failure
+                sourceColumn.querySelector('.kanban-dropzone').appendChild(draggedCard);
+                draggedCard.dataset.stage = currentStage;
+                updateColumnCounters();
+                showToast('Network error while updating stage', true);
+            });
+        }
+
+        function updateColumnCounters() {
+            document.querySelectorAll('.kanban-column').forEach(col => {
+                const stage = col.dataset.stage;
+                const count = col.querySelectorAll('.kanban-card').length;
+                const badge = document.getElementById(`badge-count-${stage}`);
+                if (badge) badge.textContent = count;
+            });
+        }
+
+        // -------------------------------------------------------------
+        // Quick Edit Modal Logic
+        // -------------------------------------------------------------
+        const editModal = new bootstrap.Modal(document.getElementById('editAppModal'));
+
+        function openEditModal(appId) {
+            const card = document.getElementById(`card-${appId}`);
+            if (!card) return;
+
+            document.getElementById('edit_app_id').value = appId;
+            document.getElementById('edit_company').value = card.dataset.company || '';
+            document.getElementById('edit_role').value = card.dataset.role || '';
+            document.getElementById('edit_priority').value = card.dataset.priority || 'MEDIUM';
+            document.getElementById('edit_stage').value = card.dataset.stage || 'DISPATCHED';
+            document.getElementById('edit_interview_date').value = card.dataset.interview || '';
+            document.getElementById('edit_salary').value = card.dataset.salary || '';
+            document.getElementById('edit_notes').value = card.dataset.notes || '';
+
+            editModal.show();
+        }
+
+        function saveAppDetails(e) {
+            e.preventDefault();
+            const appId = document.getElementById('edit_app_id').value;
+            const company = document.getElementById('edit_company').value.trim();
+            const role = document.getElementById('edit_role').value.trim();
+            const priority = document.getElementById('edit_priority').value;
+            const newStage = document.getElementById('edit_stage').value;
+            const interviewDate = document.getElementById('edit_interview_date').value;
+            const salaryNotes = document.getElementById('edit_salary').value.trim();
+            const notes = document.getElementById('edit_notes').value.trim();
+
+            const card = document.getElementById(`card-${appId}`);
+            const oldStage = card ? card.dataset.stage : null;
+
+            // 1. Update metadata
+            fetch(`/api/applications/${appId}/update-details/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    company_name: company,
+                    role_title: role,
+                    priority: priority,
+                    interview_date: interviewDate,
+                    salary_notes: salaryNotes,
+                    notes: notes
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // 2. Check if stage was also changed in the modal
+                    if (card && oldStage && oldStage !== newStage) {
+                        return fetch(`/api/applications/${appId}/update-stage/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken()
+                            },
+                            body: JSON.stringify({ stage: newStage })
+                        }).then(r => r.json());
+                    }
+                    return { success: true };
+                } else {
+                    throw new Error(data.error || 'Failed to save details');
+                }
+            })
+            .then(() => {
+                editModal.hide();
+                showToast('Application updated successfully');
+                // Reload to refresh formatted display badges
+                setTimeout(() => window.location.reload(), 300);
+            })
+            .catch(err => {
+                showToast(err.message || 'Error saving details', true);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // Quick Add Application
+        // -------------------------------------------------------------
+        const createModal = new bootstrap.Modal(document.getElementById('createAppModal'));
+
+        function createApplication(e) {
+            e.preventDefault();
+            const company = document.getElementById('new_company').value.trim();
+            const role = document.getElementById('new_role').value.trim();
+            const email = document.getElementById('new_email').value.trim();
+            const name = document.getElementById('new_name').value.trim();
+            const stage = document.getElementById('new_stage').value;
+            const priority = document.getElementById('new_priority').value;
+            const notes = document.getElementById('new_notes').value.trim();
+
+            fetch('/api/applications/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    company_name: company,
+                    role_title: role,
+                    recipient_email: email,
+                    recipient_name: name,
+                    stage: stage,
+                    priority: priority,
+                    notes: notes
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    createModal.hide();
+                    showToast('Application card created!');
+                    setTimeout(() => window.location.reload(), 400);
+                } else {
+                    showToast(data.error || 'Failed to create card', true);
+                }
+            })
+            .catch(err => {
+                showToast('Network error while creating card', true);
+            });
+        }
+    </script>
+</body>
+</html>
