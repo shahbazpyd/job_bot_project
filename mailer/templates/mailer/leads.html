@@ -408,6 +408,16 @@
                         <input type="hidden" name="action" value="harvest_feed">
                         
                         <div class="mb-3">
+                            <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Target Platform Feed</label>
+                            <select name="platform" class="form-select">
+                                <option value="all" selected>🌐 All Platforms (Combined Multi-Feed)</option>
+                                <option value="remotive">⚡ Remotive (Official Tech API)</option>
+                                <option value="wwr">💼 We Work Remotely (Programming RSS)</option>
+                                <option value="hn">🔶 Hacker News ("Who is Hiring" Algolia)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
                             <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Role / Keyword</label>
                             <input type="text" name="query" class="form-control" value="Python" placeholder="e.g. Python, FastAPI, Django, Full Stack">
                         </div>
@@ -427,7 +437,7 @@
                         </div>
 
                         <button type="submit" class="btn btn-gradient-primary w-100 py-2 fw-semibold">
-                            <span>⚡ Run Automated Feed Harvester</span>
+                            <span>⚡ Run Automated Multi-Platform Harvester</span>
                         </button>
                     </form>
                 </div>
@@ -438,14 +448,14 @@
                         <h6 class="fw-bold text-gradient mb-0 fs-6">2. Text / Google Dorking Parser</h6>
                     </div>
                     <p class="text-white-50 small mb-3" style="font-size: 0.78rem;">
-                        Paste snippets from LinkedIn posts, Google Dork queries, or job boards to extract and classify recruiter contacts.
+                        Paste snippets from LinkedIn posts, Wellfound cards, Google Dork queries, or job boards to extract and classify recruiter contacts.
                     </p>
 
                     <form method="post" action="{% url 'lead_harvester' %}" class="scraper-form">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="harvest_text">
 
-                        <div class="row g-2 mb-3">
+                        <div class="row g-2 mb-2">
                             <div class="col-6">
                                 <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Location</label>
                                 <select name="location" class="form-select">
@@ -467,11 +477,20 @@
                                     <option value="Unspecified">Unspecified</option>
                                 </select>
                             </div>
+                            <div class="col-12 mt-2">
+                                <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Source Platform Tag</label>
+                                <select name="platform" class="form-select">
+                                    <option value="Manual / Dork" selected>Manual / Google Dork</option>
+                                    <option value="Wellfound">Wellfound (AngelList)</option>
+                                    <option value="LinkedIn">LinkedIn</option>
+                                    <option value="Other">Other Job Board</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Pasted Raw Text Block</label>
-                            <textarea name="raw_text" rows="4" class="form-control" placeholder="Paste recruiter posts or search text containing recruiter emails..."></textarea>
+                            <textarea name="raw_text" rows="4" class="form-control" placeholder="Paste recruiter posts, Wellfound snippets, or search text containing recruiter contacts..."></textarea>
                         </div>
 
                         <button type="submit" class="btn btn-glass-subtle w-100 py-2 fw-semibold border border-white border-opacity-25">
@@ -494,13 +513,19 @@
                                 <h6 class="text-gradient mb-0 fs-6">Verified Leads Queue</h6>
                                 <span class="text-white-50" style="font-size: 0.75rem;">Select leads to load directly into the Application Dispatcher.</span>
                             </div>
-                            <button type="submit" class="btn btn-gradient-success fw-semibold px-3 py-2 small">
-                                <span>🚀 Dispatch Selected Leads</span>
-                            </button>
+                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                <a href="{% url 'lead_harvester' %}" class="btn btn-sm btn-glass-subtle py-1 px-2 text-white-50 small" style="font-size: 0.72rem;">All</a>
+                                <a href="{% url 'lead_harvester' %}?platform=Remotive" class="btn btn-sm btn-glass-subtle py-1 px-2 text-info small" style="font-size: 0.72rem;">⚡ Remotive</a>
+                                <a href="{% url 'lead_harvester' %}?platform=We Work Remotely" class="btn btn-sm btn-glass-subtle py-1 px-2 text-danger small" style="font-size: 0.72rem;">💼 WWR</a>
+                                <a href="{% url 'lead_harvester' %}?platform=Hacker News" class="btn btn-sm btn-glass-subtle py-1 px-2 text-warning small" style="font-size: 0.72rem;">🔶 HN</a>
+                                <button type="submit" class="btn btn-gradient-success fw-semibold px-3 py-2 small ms-1">
+                                    <span>🚀 Dispatch Selected Leads</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="table-responsive scrollable-area flex-grow-1" style="max-height: 600px;">
-                            <table class="table glass-table align-middle mb-0" style="min-width: 680px;">
+                            <table class="table glass-table align-middle mb-0" style="min-width: 780px;">
                                 <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); z-index: 2;">
                                     <tr>
                                         <th style="width: 36px; min-width: 36px;">
@@ -509,6 +534,7 @@
                                         <th style="min-width: 170px;">Recruiter / Contact</th>
                                         <th style="min-width: 150px;">Company & Role</th>
                                         <th style="min-width: 120px;">Target & YOE</th>
+                                        <th style="min-width: 110px;">Platform</th>
                                         <th style="min-width: 110px;">Deliverability</th>
                                         <th class="text-end" style="min-width: 90px;">AI Hook</th>
                                     </tr>
@@ -542,6 +568,21 @@
                                             </div>
                                         </td>
                                         <td>
+                                            {% if lead.source_platform == 'Remotive' %}
+                                                <span class="badge rounded-pill bg-info bg-opacity-15 text-info border border-info border-opacity-30" style="font-size: 0.68rem;">⚡ Remotive</span>
+                                            {% elif lead.source_platform == 'We Work Remotely' %}
+                                                <span class="badge rounded-pill bg-danger bg-opacity-15 text-danger border border-danger border-opacity-30" style="font-size: 0.68rem;">💼 WWR</span>
+                                            {% elif lead.source_platform == 'Hacker News' %}
+                                                <span class="badge rounded-pill bg-warning bg-opacity-15 text-warning border border-warning border-opacity-30" style="font-size: 0.68rem;">🔶 HN</span>
+                                            {% elif lead.source_platform == 'Wellfound' %}
+                                                <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary border border-primary border-opacity-30" style="font-size: 0.68rem;">✌️ Wellfound</span>
+                                            {% elif lead.source_platform == 'LinkedIn' %}
+                                                <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary-emphasis border border-primary border-opacity-30" style="font-size: 0.68rem;">💼 LinkedIn</span>
+                                            {% else %}
+                                                <span class="badge rounded-pill bg-secondary bg-opacity-15 text-white-50 border border-secondary border-opacity-30" style="font-size: 0.68rem;">📝 {{ lead.source_platform|default:"Manual" }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
                                             {% if lead.is_contacted %}
                                                 <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10" style="font-size: 0.7rem;">
                                                     Contacted
@@ -568,7 +609,7 @@
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="6" class="text-center text-white-50 py-5 small">
+                                        <td colspan="7" class="text-center text-white-50 py-5 small">
                                             <div class="d-flex flex-column align-items-center gap-1">
                                                 <span style="font-size: 1.5rem; opacity: 0.5;">🎯</span>
                                                 <span>No recruiter leads discovered yet.</span>

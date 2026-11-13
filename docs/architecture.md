@@ -105,6 +105,7 @@ job_bot_project/
   - `email`: `EmailField(unique=True)`
   - `location`: Choices: `Gurugram`, `Hyderabad`, `Bengaluru`, `Pune`, `Mumbai`, `Remote`, `Pan-India`, `Other`.
   - `experience_tag`: Choices: `0-3 Years`, `3-5 Years`, `5+ Years`, `Unspecified`.
+  - `source_platform`: Choices: `Hacker News`, `Remotive`, `We Work Remotely`, `Manual / Dork`, `Other` (Default: `Hacker News`).
   - `is_verified`: Active DNS MX verified.
   - `is_contacted`: Boolean flag updated upon successful outreach dispatch.
 - **Accelerated B-Tree Indexing**:
@@ -113,6 +114,7 @@ job_bot_project/
   - `idx_lead_contacted_loc` on `RecruiterLead(is_contacted, location)`
   - `idx_lead_exp_contacted` on `RecruiterLead(experience_tag, is_contacted)`
   - `idx_lead_created_at` on `RecruiterLead(-created_at)`
+  - `idx_lead_source` on `RecruiterLead(source_platform, is_contacted)`
 - **Deduplication Constraints**: `EmailTemplate.title` and `ResumeDocument.title` enforce database-level `unique=True` constraints. `ApplicationLog` tracks per-recipient status (`SUCCESS`, `FAILED`) to guarantee idempotent retries.
 - **RFC 2822 Message Tracking (`ApplicationLog.message_id`)**: Stores the globally unique RFC 2822 identifier generated during SMTP delivery (e.g., `<uuid@jobbot.local>`), allowing follow-ups to cite parent message trees.
 - **Follow-Up Sequence Model (`FollowUpSequence`)**:
@@ -281,5 +283,59 @@ job_bot_project/
 |  - Real-time badges in Dispatch Feed: 👁️ Opened (3x) • 🔗 Clicked (1x) • ⏳ Unopened           |
 |  - High-priority indicator in Follow-Up Cadence Queue for recruiters with multiple opens      |
 +-----------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 9. Persistent Background Task Queue Topology (Django-Q2 & Neon PostgreSQL)
+
+```
+[ User Web Action ] -> [ send_application_view ]
+                              |
+                              +--> async_task('mailer.services.tasks.dispatch_applications_task', ...)
+                                      |
+                                      v
+                         [ Neon PostgreSQL (django_q_ormq) ]
+                                      |
+                                      v
+                             [ qcluster Worker ]
+                                      |
+             +------------------------+------------------------+
+             |                                                 |
+             v                                                 v
+  [ Dispatch Applications ]                        [ Process Follow-Ups ]
+  - Anti-spam jitter (4-8s)                        - Recurring schedule
+  - RFC 2822 headers                               - In-Reply-To thread
+  - Multi-part MIME                                - Jittered send
+```
+
+---
+
+## 10. Automated Multi-Platform Recruiter Harvester Topology
+
+```
+[ Hacker News Algolia API ] ----+
+                                |
+[ Remotive Public REST API ] ---+---> [ Harvester Normalizer Engine ]
+                                |       - Regex Email Extraction
+[ We Work Remotely RSS Feed ] --+       - Location & Experience Tagging
+                                |       - Domain Heuristic Fallback (careers@domain)
+[ Smart Text / Snippet Parser ] -+       - Platform Attribution Tagging
+                                        |
+                                        v
+                            [ In-Memory Deduplication Filter ]
+                              (Checks ApplicationLog & RecruiterLead)
+                                        |
+                                        v
+                            [ RFC 5321 DNS MX Deliverability Gate ]
+                              (Resolves mail exchanger via dnspython)
+                                        |
+                                 +------+------+
+                                 |             |
+                            [ Passed MX ]  [ Failed MX ]
+                                 |             |
+                                 v             v
+                    [ Neon PostgreSQL ]    [ Discarded ]
+                       RecruiterLead
 ```
 

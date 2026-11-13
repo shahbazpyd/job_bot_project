@@ -7,10 +7,10 @@
 
 ## 1. Project Status Summary
 - **Project**: `job_bot_project` (Job Application Dispatcher & Lead Harvester)
-- **Active Phase**: **Phase 11 (Real-Time Email Open & Link Click Tracking Telemetry) Completed & Verified**
-- **System State**: Multi-Part MIME Dispatch Live, 1x1 Pixel & Link Redirect Proxies Active, 100% Test Coverage (36/36 tests passing)
+- **Active Phase**: **Phase 13 (Automated Multi-Platform Recruiter Harvester) Completed & Verified**
+- **System State**: Multi-Platform Ingestion Active (Remotive API, We Work Remotely RSS, Hacker News, Text Parser), Option 2 Domain Heuristic Fallback Live, 100% Test Coverage (45/45 tests passing)
 - **Primary Database**: Neon Serverless PostgreSQL (`ep-calm-heart...`)
-- **Active Environment**: `.venv` (Python 3.15, Django 6.1, `psycopg` 3.3.8, `google-genai` 3.2.0)
+- **Active Environment**: `.venv` (Python 3.15, Django 6.1, `psycopg` 3.3.8, `google-genai` 3.2.0, `django-q2` 1.11.1)
 
 ---
 
@@ -92,6 +92,21 @@
   - Upgraded background dispatches and follow-up bumps to `EmailMultiAlternatives` sending both clean plain-text and rich HTML alternatives.
   - Enhanced dashboard Activity Feed with real-time badges (`👁️ Opened (X)`, `🔗 Clicked (X)`, `⏳ Unopened`) and Follow-Up Queue with recruiter engagement indicators.
   - Added 6 automated tests in `mailer/tests.py` covering open pixels, click proxies, open-redirect defense, and multipart emails. 100% pass rate (36/36 tests passing).
+- **Phase 12 (Persistent Background Task Queue via Django-Q2)**:
+  - Installed `django-q2` (1.11.1) and `django-picklefield` (3.4.0) into `.venv`; updated `requirements.txt`.
+  - Configured `Q_CLUSTER` in `job_bot_project/settings.py` using Neon PostgreSQL (`orm: 'default'`) as the crash-resilient queue broker (zero Redis/RabbitMQ required).
+  - Applied 19 Django-Q database migrations to Neon PostgreSQL.
+  - Built `mailer/services/tasks.py` with standalone, picklable tasks: `dispatch_applications_task` and `process_followups_scheduled_task`.
+  - Refactored `send_application_view` in `mailer/views.py` to enqueue background jobs via `async_task()`, eliminating ephemeral in-memory threads.
+  - Added 3 automated tests in `mailer/tests.py` (`DjangoQPersistentTaskQueueTest`). Full test suite verified: 39/39 passing tests (100% pass rate).
+- **Phase 13 (Automated Multi-Platform Recruiter Harvester)**:
+  - Added `source_platform` to `RecruiterLead` model (`Hacker News`, `Remotive`, `We Work Remotely`, `Manual / Dork`, `Other`) with composite B-Tree index `(source_platform, is_contacted)`.
+  - Applied migration `0008_recruiterlead_source_platform_and_more` to Neon PostgreSQL.
+  - Built `harvest_from_remotive` (Remotive API) and `harvest_from_wwr` (We Work Remotely RSS) in `mailer/services/harvester.py`.
+  - Implemented Option 2 Domain Heuristic Fallback: derives company domain and verifies `careers@` / `jobs@` against `verify_email_mx()` when listings lack explicit emails.
+  - Built `harvest_multi_platform` supporting single or combined multi-platform extractions.
+  - Upgraded Harvester UI (`mailer/templates/mailer/leads.html`) with platform source dropdown, text parser source selector, quick-filter platform pills, and colored platform badges (`[⚡ Remotive]`, `[💼 WWR]`, `[🔶 HN]`, `[✌️ Wellfound]`, `[💼 LinkedIn]`, `[📝 Manual]`).
+  - Added 6 automated tests in `mailer/tests.py` (`MultiPlatformHarvesterTest`). Full regression test suite verified: 45/45 passing tests (100% pass rate).
 
 ---
 
@@ -103,15 +118,19 @@
 - [x] Permissive open-source licenses verified via automated audit script (MIT, Apache 2.0, BSD-3, ISC).
 - [x] Zero-cache staleness and compression via WhiteNoise static pipeline.
 - [x] 60FPS GPU-composited animations strictly manipulating `transform` and `opacity` with reduced-motion accessibility.
+- [x] Crash-resilient background task persistence with database broker transactions.
+- [x] RFC 5321 DNS MX pre-flight verification protecting sender reputation across all platform sources.
 
 ---
 
 ## 4. Known Blockers & Technical Debt
 - **Network in Sandbox**: Outbound network requests to Neon Postgres or external websites require `BypassSandbox: true` approval in terminal commands.
-- **In-Memory Threading**: Background sending currently relies on `threading.Thread`. Performs reliably for batches of 10–50 recipients; can optionally transition to Celery or Django-Q2 for enterprise distributed clustering in future iterations.
 
 ---
 
 ## 5. Next Immediate Steps (Operational Recommendations)
-1. **User Operational Verification**: Launch the development server (`python manage.py runserver`) and experience the Obsidian Dark Glass interface and 6-tier motion effects live in the browser.
-2. **Git Commit & Push**: Commit all completed phases (1–7) and push the production-ready code to GitHub.
+1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and test multi-platform lead harvesting live across Remotive, We Work Remotely, and Hacker News.
+2. **Select Next Architectural Feature**:
+   - Option A: Kanban Visual Application Tracker & ATS Board.
+   - Option B: Automated Daily Scheduled Harvester (via Django-Q Cron).
+   - Option C: Custom feature requested by Shahbaz.

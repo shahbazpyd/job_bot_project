@@ -34,118 +34,15 @@ from .services.tracking import (
 )
 
 from django.contrib.auth.decorators import login_required
+from django_q.tasks import async_task
+from .services.tasks import dispatch_applications_task
 
 def send_emails_in_background(parsed_recipients, template_id, resume_id, custom_hook=None, base_url=""):
-    """Handles SMTP network calls with delay jitter, custom AI hook resolution, per-recipient template interpolation, and MIME multi-part open/click telemetry injection in a separate background thread."""
-    success_count = 0
-    failure_count = 0
-
-    try:
-        template_obj = EmailTemplate.objects.get(id=template_id)
-        resume_obj = ResumeDocument.objects.get(id=resume_id)
-    except Exception as e:
-        # If we can't even load the objects, we can't log properly. 
-        print(f"Background thread crashed loading objects: {e}")
-        return
-
-    # Optimization: Read file into memory once
-    try:
-        # memoryview from BinaryField must be cast to bytes for email attachments
-        resume_content = bytes(resume_obj.pdf_content)
-        resume_filename = resume_obj.filename
-    except Exception as e:
-        # If we can't read the file, log a failure for all and abort
-        for recipient in parsed_recipients:
-            to_email = recipient['email'] if isinstance(recipient, dict) else str(recipient)
-            ApplicationLog.objects.create(recipient_email=to_email, template=template_obj, resume=resume_obj, status=f"FAILED IO: {str(e)[:25]}")
-        return
-
-    with get_connection() as connection:
-        for index, recipient in enumerate(parsed_recipients):
-            # Anti-spam delay jitter: Pause between consecutive sends to avoid triggering spam burst filters
-            if index > 0:
-                delay = random.uniform(4.0, 8.0)
-                time.sleep(delay)
-
-            # Resolve per-recipient or global custom AI hook with graceful default fallback
-            hook_content = ''
-            if isinstance(recipient, dict):
-                hook_content = recipient.get('custom_hook', '').strip()
-            if not hook_content and custom_hook:
-                hook_content = custom_hook.strip()
-            if not hook_content:
-                hook_content = DEFAULT_CANDIDATE_HIGHLIGHTS
-
-            # Handle both dictionary payload and fallback string email
-            if isinstance(recipient, dict):
-                to_email = recipient.get('email', '')
-                context_data = {
-                    'email': to_email,
-                    'name': recipient.get('name', '').strip() or 'Hiring Manager',
-                    'company': recipient.get('company', '').strip() or 'your company',
-                    'role': recipient.get('role', '').strip() or 'the open position',
-                    'custom_hook': hook_content,
-                }
-            else:
-                to_email = str(recipient)
-                context_data = {
-                    'email': to_email,
-                    'name': 'Hiring Manager',
-                    'company': 'your company',
-                    'role': 'the open position',
-                    'custom_hook': hook_content,
-                }
-
-            try:
-                # Render personalized subject and body using Django's template engine
-                context = Context(context_data)
-                personalized_subject = Template(template_obj.subject).render(context)
-                personalized_body = Template(template_obj.body).render(context)
-
-                # Generate unique RFC 2822 Message-ID for email conversation threading
-                rfc_message_id = generate_rfc2822_message_id()
-
-                # Generate unique tracking token and prepare MIME multi-part bodies (plain text + tracked HTML)
-                tracking_token = uuid.uuid4()
-                effective_base_url = base_url or get_tracking_base_url()
-                plain_body, html_body = prepare_multipart_email_bodies(personalized_body, tracking_token, effective_base_url)
-
-                email = EmailMultiAlternatives(
-                    subject=personalized_subject,
-                    body=plain_body,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[to_email],
-                    connection=connection,
-                    headers={'Message-ID': rfc_message_id},
-                )
-                email.attach_alternative(html_body, 'text/html')
-                # Attach from memory (filename, content, mimetype)
-                email.attach(resume_filename, resume_content, 'application/pdf')
-                email.send(fail_silently=False)
-
-                app_log = ApplicationLog.objects.create(
-                    recipient_email=to_email,
-                    template=template_obj,
-                    resume=resume_obj,
-                    status="SUCCESS",
-                    message_id=rfc_message_id,
-                    tracking_token=tracking_token,
-                )
-                # Automatically schedule Day 4 follow-up bump sequence
-                schedule_followup_for_application(app_log, context_data, cadence_days=4)
-
-                # Mark lead as contacted in Harvester registry
-                RecruiterLead.objects.filter(email=to_email).update(is_contacted=True)
-                success_count += 1
-
-            except Exception as e:
-                ApplicationLog.objects.create(
-                    recipient_email=to_email,
-                    template=template_obj,
-                    resume=resume_obj,
-                    status=f"FAILED: {str(e)[:30]}"
-                )
-                failure_count += 1
+    """
+    Backwards-compatible wrapper delegating to dispatch_applications_task.
+    Used for synchronous test execution and direct script execution.
+    """
+    return dispatch_applications_task(parsed_recipients, template_id, resume_id, custom_hook, base_url)
 
 @login_required
 def send_application_view(request):
@@ -170,15 +67,18 @@ def send_application_view(request):
             if new_recipients:
                 custom_hook = request.POST.get('custom_hook', '').strip()
                 base_url = get_tracking_base_url(request)
-                # Spawn a background thread to handle the slow network calls
-                thread = threading.Thread(
-                    target=send_emails_in_background, 
-                    args=(new_recipients, template_obj.id, resume_obj.id, custom_hook, base_url)
+                # Enqueue into Django-Q2 database-backed task queue (Neon PostgreSQL)
+                task_id = async_task(
+                    'mailer.services.tasks.dispatch_applications_task',
+                    new_recipients,
+                    template_obj.id,
+                    resume_obj.id,
+                    custom_hook,
+                    base_url
                 )
-                thread.daemon = True  # Allows Django to shut down even if thread is running
-                thread.start()
                 
-                msg = f"Started sending applications to {len(new_recipients)} recipients in the background!"
+                task_ref = f" (Task #{str(task_id)[:8]})" if task_id else ""
+                msg = f"Enqueued applications for {len(new_recipients)} recipients in persistent task queue{task_ref}!"
                 if skipped_count > 0:
                     msg += f" Skipped {skipped_count} emails that were already successfully contacted."
                 messages.success(request, msg)
@@ -308,18 +208,19 @@ def generate_ai_hook_view(request):
 def lead_harvester_view(request):
     """
     Dashboard for discovering, validating, and managing recruiter leads.
-    Supports automated scraping from public tech hiring feeds as well as
-    manual pasted text/Google Dork extraction with DNS MX verification.
+    Supports automated scraping from public tech hiring feeds (Hacker News, Remotive, We Work Remotely)
+    as well as manual pasted text/Google Dork extraction with DNS MX verification.
     """
-    from .services.harvester import harvest_from_hacker_news, harvest_from_text_block, process_and_save_leads
+    from .services.harvester import harvest_multi_platform, harvest_from_text_block, process_and_save_leads
 
     if request.method == 'POST':
         action = request.POST.get('action')
 
         if action == 'harvest_feed':
+            platform = request.POST.get('platform', 'all').strip() or 'all'
             query = request.POST.get('query', 'Python').strip() or 'Python'
             location = request.POST.get('location', 'All')
-            candidates = harvest_from_hacker_news(query=query, location_filter=location)
+            candidates = harvest_multi_platform(platform=platform, query=query, location_filter=location)
             stats = process_and_save_leads(candidates)
             messages.success(
                 request, 
@@ -332,8 +233,14 @@ def lead_harvester_view(request):
             raw_text = request.POST.get('raw_text', '')
             location = request.POST.get('location', 'Remote')
             experience = request.POST.get('experience', '0-3 Years')
+            platform_tag = request.POST.get('platform', 'Manual / Dork')
             if raw_text:
-                candidates = harvest_from_text_block(raw_text, default_location=location, default_experience=experience)
+                candidates = harvest_from_text_block(
+                    raw_text, 
+                    default_location=location, 
+                    default_experience=experience,
+                    default_platform=platform_tag
+                )
                 stats = process_and_save_leads(candidates)
                 messages.success(
                     request,
@@ -386,12 +293,15 @@ def lead_harvester_view(request):
 
     filter_loc = request.GET.get('location', '')
     filter_exp = request.GET.get('experience', '')
+    filter_platform = request.GET.get('platform', '')
 
     leads_qs = RecruiterLead.objects.all()
     if filter_loc:
         leads_qs = leads_qs.filter(location=filter_loc)
     if filter_exp:
         leads_qs = leads_qs.filter(experience_tag=filter_exp)
+    if filter_platform:
+        leads_qs = leads_qs.filter(source_platform=filter_platform)
 
     leads = leads_qs.order_by('-created_at')[:100]
     total_leads = RecruiterLead.objects.count()
@@ -405,6 +315,7 @@ def lead_harvester_view(request):
         'contacted_count': contacted_count,
         'current_filter_loc': filter_loc,
         'current_filter_exp': filter_exp,
+        'current_filter_platform': filter_platform,
     })
 
 @login_required

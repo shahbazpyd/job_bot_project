@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_q',
     'mailer',
 ]
 
@@ -125,3 +126,17 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()
 
 # Base URL for email open tracking beacons and link redirects (default fallback: http://127.0.0.1:8000)
 TRACKING_BASE_URL = os.getenv('TRACKING_BASE_URL', '').strip()
+
+# Django-Q2 Cluster Configuration (Database-Backed Persistent Task Queue)
+Q_CLUSTER = {
+    'name': 'job_bot_cluster',
+    'workers': 2,
+    'recycle': 500,
+    'timeout': 600,         # 10 minutes (room for 50 emails with 4-8s jitter)
+    'retry': 660,           # Slightly higher than timeout to avoid premature retry
+    'queue_limit': 50,
+    'bulk': 10,
+    'orm': 'default',       # Uses Neon PostgreSQL (zero Redis/RabbitMQ required)
+    'save_limit': 250,      # Retain up to 250 completed tasks for auditing
+    'sync': os.getenv('DJANGO_Q_SYNC', 'False').lower() in ('true', '1', 'yes'),
+}

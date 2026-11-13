@@ -66,12 +66,21 @@ class RecruiterLead(models.Model):
         ('Unspecified', 'Unspecified'),
     ]
 
+    SOURCE_PLATFORM_CHOICES = [
+        ('Hacker News', 'Hacker News'),
+        ('Remotive', 'Remotive'),
+        ('We Work Remotely', 'We Work Remotely'),
+        ('Manual / Dork', 'Manual / Dork'),
+        ('Other', 'Other'),
+    ]
+
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=150, blank=True)
     company = models.CharField(max_length=150, blank=True)
     role = models.CharField(max_length=150, blank=True)
     location = models.CharField(max_length=50, choices=LOCATION_CHOICES, default='Remote')
     experience_tag = models.CharField(max_length=50, choices=EXPERIENCE_CHOICES, default='0-3 Years')
+    source_platform = models.CharField(max_length=50, choices=SOURCE_PLATFORM_CHOICES, default='Hacker News')
     source_url = models.URLField(max_length=500, blank=True)
     is_verified = models.BooleanField(default=False, help_text="True if domain has active MX records")
     is_contacted = models.BooleanField(default=False, help_text="True if email dispatched successfully")
@@ -86,6 +95,8 @@ class RecruiterLead(models.Model):
             models.Index(fields=['experience_tag', 'is_contacted'], name='idx_lead_exp_contacted'),
             # Accelerates harvester chronology sorting
             models.Index(fields=['-created_at'], name='idx_lead_created_at'),
+            # Accelerates platform origin filtering
+            models.Index(fields=['source_platform', 'is_contacted'], name='idx_lead_source'),
         ]
 
     def __str__(self):

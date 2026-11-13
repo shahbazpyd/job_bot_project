@@ -75,9 +75,17 @@ A unified, private Django platform that:
   - **Invisible 1x1 Beacon Pixel**: Automatically injects a cached-proof 1x1 GIF into outbound emails (`/track/open/<token>/`) to track email opens and view frequencies.
   - **Click-Through Tracking Proxy**: Rewrites candidate portfolio links (GitHub, LinkedIn, live B2B platform `ssenterprisesncr.in`) via `/track/click/<token>/?url=...` with open redirect protection.
   - **Live Dashboard Telemetry Badges**: Real-time visual status badges in the Dispatch Feed and Follow-Up Queue (`👁️ Opened X times`, `🔗 Clicked X times`, `⏳ Unopened`).
+- **Phase 12: Persistent Background Task Queue (Django-Q2)**:
+  - **Database-Backed Task Broker**: Replaces ephemeral in-memory threads with Django-Q2 using Neon PostgreSQL as the task queue (zero Redis or RabbitMQ dependencies).
+  - **Worker Resilience**: Queued dispatches and follow-ups survive server restarts, worker timeouts, and deployment restarts.
+  - **Automated Scheduling**: Automatically processes due follow-up bumps on a recurring cadence without manual intervention.
+- **Phase 13: Automated Multi-Platform Recruiter Harvester**:
+  - **Multi-Source Aggregation**: Expands lead discovery beyond Hacker News to ingest live tech listings from the **Remotive Developer API** (`remotive.com`) and **We Work Remotely (WWR) RSS feed**.
+  - **Smart Domain Contact Heuristics**: When an external listing lacks an explicit recruiter email, extracts the company website domain and tests standard recruiter mailboxes (`careers@company.com`, `jobs@company.com`) through DNS MX pre-flight checks, discarding any invalid hosts.
+  - **Platform Origin Tracking**: Persists `source_platform` (`Hacker News`, `Remotive`, `We Work Remotely`, `Manual / Dork`) on `RecruiterLead` for transparent attribution and dashboard filtering.
+  - **Single & Unified Aggregation Modes**: Enables 1-click harvesting per specific platform or parallel combined aggregation across all feeds.
 
 ### Post-MVP Scope (Future Phases)
-- Persistent Task Queue with Django-Q2.
 - Headless browser automation (Playwright) for interactive portal submissions.
 - Kanban Visual Application Pipeline (ATS).
 

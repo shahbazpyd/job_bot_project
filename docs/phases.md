@@ -217,4 +217,54 @@
   - Authored 6 new unit tests for pixel tracking, click redirection, atomic increments, security against malicious redirects, and template multi-part rendering.
   - Verified 100% test pass rate with `--keepdb` (36/36 tests passing).
 
+---
+
+## Phase 12: Persistent Background Task Queue (Django-Q2) (Completed)
+- [x] **Dependency & Environment Setup**:
+  - Installed `django-q2` (1.11.1) and `django-picklefield` (3.4.0) in `.venv` and declared in `requirements.txt`.
+  - Added `'django_q'` to `INSTALLED_APPS` in `job_bot_project/settings.py`.
+  - Configured `Q_CLUSTER` in `job_bot_project/settings.py` using Neon PostgreSQL as ORM message broker (`orm: 'default'`, `timeout: 600`, `retry: 660`, `workers: 2`, configurable sync toggle via `DJANGO_Q_SYNC`).
+  - Applied all 19 database migrations (`django_q.0001_initial` through `0019`) to Neon PostgreSQL.
+- [x] **Service Layer Task Refactoring (`mailer/services/tasks.py`)**:
+  - Implemented standalone, picklable task functions:
+    - `dispatch_applications_task(recipients, template_id, resume_id, candidate_notes)`: Dispatches personalized outreach, persists application logs, updates recruiter lead status, and schedules follow-up sequences.
+    - `process_followups_scheduled_task(limit)`: Headless runner calling `dispatch_due_followups()` for automated follow-up cadences.
+  - Refactored `send_application_view` in `mailer/views.py` to enqueue background jobs via `async_task()`, completely eliminating ephemeral in-memory `threading.Thread`.
+  - Maintained backward compatibility by having `send_emails_in_background()` delegate directly to `dispatch_applications_task()`.
+- [x] **Headless Cluster Support**:
+  - Enabled worker execution via `python manage.py qcluster` for robust production and background task execution with zero Redis/RabbitMQ infrastructure needed.
+- [x] **Verification & Automated Regression Testing**:
+  - Authored comprehensive test suite `DjangoQPersistentTaskQueueTest` in `mailer/tests.py` verifying direct task execution, synchronous `async_task()` dispatch, and scheduled follow-up batch processing.
+  - Executed full Django test suite (`python manage.py test mailer --keepdb`): 100% pass rate (39/39 tests passing).
+
+---
+
+## Phase 13: Automated Multi-Platform Recruiter Harvester (Completed)
+- [x] **Data Model & Schema Evolution**:
+  - Added `source_platform` to `RecruiterLead` model (`Hacker News`, `Remotive`, `We Work Remotely`, `Manual / Dork`, `Other`) with default `'Hacker News'`.
+  - Added composite B-Tree index `idx_lead_source` on `(source_platform, is_contacted)` for fast platform filtering.
+  - Generated and applied migration `0008_recruiterlead_source_platform_and_more` to Neon PostgreSQL.
+- [x] **Multi-Source Ingestion Pipeline (`mailer/services/harvester.py`)**:
+  - Implemented `harvest_from_remotive(query, location_filter, max_leads)` connecting to Remotive's public developer REST API.
+  - Implemented `harvest_from_wwr(query, location_filter, max_leads)` parsing We Work Remotely's public programming RSS feed via `xml.etree.ElementTree`.
+  - Implemented `harvest_multi_platform(platform, query, location_filter, max_leads)` coordinating per-source or combined multi-source extractions.
+  - Implemented Option 2 Domain Heuristic Fallback: when a listing lacks an explicit email, `infer_recruiter_email()` extracts the company domain and verifies standard recruiter addresses (`careers@{domain}`, `jobs@{domain}`) with `verify_email_mx()`, discarding any invalid hosts.
+  - Updated `harvest_from_hacker_news()` and `harvest_from_text_block()` with explicit platform attribution tags.
+- [x] **Dashboard UI & Source Controls (`mailer/templates/mailer/leads.html`)**:
+  - Added Platform Source Selector dropdown to the Automated Harvester Card:
+    - `🌐 All Platforms (Combined Multi-Feed)`
+    - `⚡ Remotive (Official Tech API)`
+    - `💼 We Work Remotely (Programming RSS)`
+    - `🔶 Hacker News ("Who is Hiring" Algolia)`
+  - Added Source Platform Tag dropdown to the Text Parser for Wellfound and LinkedIn snippets.
+  - Added Platform filter quick-pills (`All`, `⚡ Remotive`, `💼 WWR`, `🔶 HN`) above the Verified Leads Queue.
+  - Added colored Source Platform badges in the Verified Leads table (`[⚡ Remotive]`, `[💼 WWR]`, `[🔶 HN]`, `[✌️ Wellfound]`, `[💼 LinkedIn]`, `[📝 Manual]`).
+- [x] **Controller & Routing Integration (`mailer/views.py`)**:
+  - Updated `lead_harvester_view` POST handler to accept `platform` and dispatch to `harvest_multi_platform()`.
+  - Added `platform` GET filter parameter to filter discovered leads by origin platform.
+- [x] **Automated Regression Test Suite Expansion**:
+  - Authored 6 comprehensive tests in `mailer/tests.py` (`MultiPlatformHarvesterTest`): Remotive API parsing, WWR RSS XML parsing, domain heuristic fallback, multi-platform aggregation, database persistence, and web view filtering.
+  - Executed full Django regression test suite (`python manage.py test mailer --keepdb`): 100% pass rate (45/45 tests passing).
+
+
 

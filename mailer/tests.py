@@ -17,6 +17,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.core import mail
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.template import Template, Context
 from django.utils import timezone
@@ -25,7 +26,18 @@ from django.core.management import call_command
 from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead, FollowUpSequence
 from .forms import ApplicationDispatchForm
 from .services.verifier import verify_email_mx
-from .services.harvester import detect_location, detect_experience, harvest_from_text_block, process_and_save_leads
+from .services.harvester import (
+    detect_location, 
+    detect_experience, 
+    extract_clean_domain,
+    infer_recruiter_email,
+    harvest_from_hacker_news,
+    harvest_from_remotive,
+    harvest_from_wwr,
+    harvest_multi_platform,
+    harvest_from_text_block, 
+    process_and_save_leads
+)
 from .services.followup import (
     generate_rfc2822_message_id,
     schedule_followup_for_application,
@@ -47,6 +59,8 @@ from .services.tracking import (
     record_link_click,
     is_safe_redirect_url
 )
+from django_q.tasks import async_task
+from .services.tasks import dispatch_applications_task, process_followups_scheduled_task
 from .views import send_emails_in_background
 
 
@@ -768,4 +782,260 @@ class EmailOpenAndClickTelemetryTest(TestCase):
         self.assertIsNotNone(log_entry.tracking_token)
         self.assertEqual(log_entry.open_count, 0)
         self.assertEqual(log_entry.click_count, 0)
+
+
+class DjangoQPersistentTaskQueueTest(TestCase):
+    """Unit and integration tests for Django-Q2 persistent background task queue."""
+
+    def setUp(self):
+        self.template = EmailTemplate.objects.create(
+            title="Task Queue Template",
+            subject="Python Lead at {{ company }}",
+            body="Hi {{ name }}, I love building with FastAPI."
+        )
+        self.resume = ResumeDocument.objects.create(
+            title="Task Queue Resume",
+            filename="task_queue_resume.pdf",
+            pdf_content=b"%PDF-1.4 mock task queue resume"
+        )
+        self.recruiter = RecruiterLead.objects.create(
+            email="lead@scaleup.io",
+            name="Rohit",
+            company="ScaleUp",
+            role="Backend Engineer",
+            is_verified=True,
+            is_contacted=False
+        )
+
+    def test_dispatch_applications_task_direct_execution(self):
+        """Verify dispatch_applications_task executes cleanly and returns summary stats."""
+        mail.outbox.clear()
+        result = dispatch_applications_task(
+            parsed_recipients=[{'email': 'lead@scaleup.io', 'name': 'Rohit', 'company': 'ScaleUp', 'role': 'Backend'}],
+            template_id=self.template.id,
+            resume_id=self.resume.id
+        )
+
+        self.assertTrue(result['success'])
+        self.assertEqual(result['success_count'], 1)
+        self.assertEqual(result['failure_count'], 0)
+        self.assertEqual(len(mail.outbox), 1)
+
+        # Verify ApplicationLog was persisted
+        log_entry = ApplicationLog.objects.get(recipient_email='lead@scaleup.io')
+        self.assertEqual(log_entry.status, "SUCCESS")
+        self.assertIsNotNone(log_entry.tracking_token)
+
+        # Verify FollowUpSequence was scheduled
+        self.assertTrue(FollowUpSequence.objects.filter(recipient_email='lead@scaleup.io').exists())
+
+        # Verify RecruiterLead marked as contacted
+        self.recruiter.refresh_from_db()
+        self.assertTrue(self.recruiter.is_contacted)
+
+    def test_async_task_synchronous_mode(self):
+        """Verify async_task executes with sync=True and creates database records."""
+        mail.outbox.clear()
+        with patch('django_q.tasks.Conf.SYNC', True):
+            task_id = async_task(
+                'mailer.services.tasks.dispatch_applications_task',
+                [{'email': 'vp@enterprise.com', 'name': 'Vikram', 'company': 'Enterprise', 'role': 'Lead'}],
+                self.template.id,
+                self.resume.id
+            )
+
+        self.assertIsNotNone(task_id)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertTrue(ApplicationLog.objects.filter(recipient_email='vp@enterprise.com', status='SUCCESS').exists())
+
+    def test_process_followups_scheduled_task(self):
+        """Verify process_followups_scheduled_task executes due follow-ups correctly."""
+        mail.outbox.clear()
+        initial_log = ApplicationLog.objects.create(
+            recipient_email="due.recruiter@bigtech.in",
+            template=self.template,
+            resume=self.resume,
+            status="SUCCESS",
+            message_id="<orig.due@mail.com>"
+        )
+        followup_template = EmailTemplate.objects.create(
+            title="Python Full Stack Follow-Up (Day 4 Bump)",
+            subject="Following up on my application",
+            body="Hi {{ name }}, bumping my note."
+        )
+        # Create a sequence scheduled in the past (due now)
+        past_time = timezone.now() - timedelta(days=5)
+        seq = FollowUpSequence.objects.create(
+            initial_log=initial_log,
+            recipient_email="due.recruiter@bigtech.in",
+            candidate_name="Shahbaz",
+            company_name="BigTech",
+            role_title="Python Developer",
+            status='WAITING',
+            scheduled_at=past_time
+        )
+
+        summary = process_followups_scheduled_task()
+        self.assertGreaterEqual(summary['dispatched_count'], 1)
+
+        seq.refresh_from_db()
+        self.assertEqual(seq.status, 'SENT')
+        self.assertIsNotNone(seq.dispatched_at)
+        self.assertEqual(len(mail.outbox), 1)
+
+
+class MultiPlatformHarvesterTest(TestCase):
+    """
+    Automated Test Suite for Phase 13 Multi-Platform Recruiter Harvester.
+    Covers:
+      - Remotive public API response parsing & lead extraction.
+      - We Work Remotely RSS XML parsing & lead extraction.
+      - Domain heuristic fallback (Option 2) when direct email is absent.
+      - Multi-platform aggregation & platform routing.
+      - Platform attribution persistence in Neon PostgreSQL.
+      - Harvester web view POST/GET platform filtering.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="leadseeker", password="pass123Secure")
+        self.client = Client()
+        self.client.login(username="leadseeker", password="pass123Secure")
+
+    @patch('requests.get')
+    def test_harvest_from_remotive_api(self, mock_get):
+        """Verify Remotive API returns normalized leads with source_platform='Remotive'."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            'jobs': [
+                {
+                    'id': 101,
+                    'url': 'https://remotive.com/remote-jobs/software-dev/python-dev-101',
+                    'title': 'Senior Python Backend Developer',
+                    'company_name': 'CloudScale Systems',
+                    'candidate_required_location': 'Worldwide',
+                    'description': '<p>We are hiring! Reach out directly to talent@cloudscale.io with your resume. 3-5 years required.</p>'
+                }
+            ]
+        }
+        mock_get.return_value = mock_response
+
+        leads = harvest_from_remotive(query="Python", location_filter="All", max_leads=5)
+        self.assertEqual(len(leads), 1)
+        lead = leads[0]
+        self.assertEqual(lead['email'], 'talent@cloudscale.io')
+        self.assertEqual(lead['company'], 'CloudScale Systems')
+        self.assertEqual(lead['role'], 'Senior Python Backend Developer')
+        self.assertEqual(lead['location'], 'Remote')
+        self.assertEqual(lead['experience_tag'], '3-5 Years')
+        self.assertEqual(lead['source_platform'], 'Remotive')
+
+    @patch('requests.get')
+    def test_harvest_from_wwr_rss(self, mock_get):
+        """Verify We Work Remotely RSS parses XML items with source_platform='We Work Remotely'."""
+        mock_xml = """<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0">
+            <channel>
+                <title>We Work Remotely: Programming</title>
+                <item>
+                    <title>NextGen AI: Full Stack Python / Django Engineer</title>
+                    <description>&lt;p&gt;Looking for an entry level fresher or junior 0-2 years developer. Email hiring@nextgenai.tech to apply.&lt;/p&gt;</description>
+                    <link>https://weworkremotely.com/jobs/nextgen-ai-python</link>
+                    <pubDate>Mon, 12 Nov 2026 12:00:00 GMT</pubDate>
+                </item>
+            </channel>
+        </rss>
+        """
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.content = mock_xml.encode('utf-8')
+        mock_get.return_value = mock_response
+
+        leads = harvest_from_wwr(query="Python", location_filter="All", max_leads=5)
+        self.assertEqual(len(leads), 1)
+        lead = leads[0]
+        self.assertEqual(lead['email'], 'hiring@nextgenai.tech')
+        self.assertEqual(lead['company'], 'NextGen AI')
+        self.assertEqual(lead['role'], 'Full Stack Python / Django Engineer')
+        self.assertEqual(lead['location'], 'Remote')
+        self.assertEqual(lead['experience_tag'], '0-3 Years')
+        self.assertEqual(lead['source_platform'], 'We Work Remotely')
+
+    @patch('mailer.services.harvester.verify_email_mx')
+    def test_domain_heuristic_fallback(self, mock_mx):
+        """Verify Option 2 domain fallback derives careers@domain when direct email is missing."""
+        mock_mx.return_value = (True, "MX verified")
+        raw_text = "Join our engineering team! Visit our careers page at https://scaletech.io/jobs for info."
+        email = infer_recruiter_email(company_name="ScaleTech", raw_text=raw_text, source_url="https://scaletech.io/jobs")
+        self.assertEqual(email, 'careers@scaletech.io')
+
+    @patch('mailer.services.harvester.harvest_from_hacker_news')
+    @patch('mailer.services.harvester.harvest_from_remotive')
+    @patch('mailer.services.harvester.harvest_from_wwr')
+    def test_harvest_multi_platform_aggregation(self, mock_wwr, mock_remotive, mock_hn):
+        """Verify harvest_multi_platform aggregates leads across all platforms."""
+        mock_hn.return_value = [{'email': 'hn@lead.io', 'source_platform': 'Hacker News'}]
+        mock_remotive.return_value = [{'email': 'remotive@lead.io', 'source_platform': 'Remotive'}]
+        mock_wwr.return_value = [{'email': 'wwr@lead.io', 'source_platform': 'We Work Remotely'}]
+
+        all_leads = harvest_multi_platform(platform='all', query='Python', location_filter='All', max_leads=10)
+        self.assertEqual(len(all_leads), 3)
+        platforms = {l['source_platform'] for l in all_leads}
+        self.assertEqual(platforms, {'Hacker News', 'Remotive', 'We Work Remotely'})
+
+    @patch('mailer.services.harvester.verify_email_mx')
+    def test_process_and_save_leads_persists_source_platform(self, mock_mx):
+        """Verify process_and_save_leads saves source_platform to RecruiterLead model."""
+        mock_mx.return_value = (True, "MX verified")
+        candidate_leads = [
+            {
+                'email': 'remotive.candidate@startup.io',
+                'name': 'Priya',
+                'company': 'StartupHQ',
+                'role': 'Backend Dev',
+                'location': 'Remote',
+                'experience_tag': '0-3 Years',
+                'source_platform': 'Remotive',
+                'source_url': 'https://remotive.com/123'
+            }
+        ]
+        stats = process_and_save_leads(candidate_leads)
+        self.assertEqual(stats['saved'], 1)
+
+        lead = RecruiterLead.objects.get(email='remotive.candidate@startup.io')
+        self.assertEqual(lead.source_platform, 'Remotive')
+
+    @patch('mailer.services.harvester.harvest_multi_platform')
+    @patch('mailer.services.harvester.verify_email_mx')
+    def test_lead_harvester_view_feed_post_and_platform_filter(self, mock_mx, mock_harvest):
+        """Verify lead_harvester_view handles multi-platform POST and filters by platform in GET."""
+        mock_mx.return_value = (True, "MX verified")
+        mock_harvest.return_value = [
+            {
+                'email': 'harvested.view@remotive.io',
+                'name': 'Alex',
+                'company': 'RemotiveCorp',
+                'role': 'FastAPI Dev',
+                'location': 'Gurugram',
+                'experience_tag': '0-3 Years',
+                'source_platform': 'Remotive',
+                'source_url': 'https://remotive.com/456'
+            }
+        ]
+
+        response = self.client.post(reverse('lead_harvester'), {
+            'action': 'harvest_feed',
+            'platform': 'remotive',
+            'query': 'FastAPI',
+            'location': 'Gurugram'
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(RecruiterLead.objects.filter(email='harvested.view@remotive.io', source_platform='Remotive').exists())
+
+        # Test GET with ?platform=Remotive
+        get_response = self.client.get(reverse('lead_harvester') + '?platform=Remotive')
+        self.assertEqual(get_response.status_code, 200)
+        self.assertEqual(get_response.context['current_filter_platform'], 'Remotive')
+
+
 
