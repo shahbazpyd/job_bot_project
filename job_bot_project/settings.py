@@ -127,6 +127,13 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()
 # Base URL for email open tracking beacons and link redirects (default fallback: http://127.0.0.1:8000)
 TRACKING_BASE_URL = os.getenv('TRACKING_BASE_URL', '').strip()
 
+# Inbound IMAP Email Configuration
+IMAP_HOST = os.getenv('IMAP_HOST', 'imap.gmail.com')
+IMAP_PORT = int(os.getenv('IMAP_PORT', 993))
+IMAP_USER = os.getenv('IMAP_USER', EMAIL_HOST_USER)
+IMAP_PASSWORD = os.getenv('IMAP_PASSWORD', EMAIL_HOST_PASSWORD)
+IMAP_USE_SSL = os.getenv('IMAP_USE_SSL', 'True').lower() in ('true', '1', 'yes')
+
 # Django-Q2 Cluster Configuration (Database-Backed Persistent Task Queue)
 Q_CLUSTER = {
     'name': 'job_bot_cluster',

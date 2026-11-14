@@ -408,7 +408,7 @@ def kanban_tracker_view(request):
     search_query = request.GET.get('q', '').strip()
     priority_filter = request.GET.get('priority', '').strip().upper()
 
-    applications_qs = JobApplication.objects.select_related('initial_log')
+    applications_qs = JobApplication.objects.select_related('initial_log').prefetch_related('inbound_replies')
 
     if search_query:
         applications_qs = applications_qs.filter(
@@ -452,6 +452,9 @@ def kanban_tracker_view(request):
     opened_count = sum(1 for a in applications if a.stage in ('OPENED', 'FOLLOWUP_SENT', 'INTERVIEWING', 'OFFER'))
     response_rate = round((opened_count / total_apps * 100), 1) if total_apps > 0 else 0.0
 
+    from .services.scheduler import get_inbound_schedule_status
+    inbound_status = get_inbound_schedule_status()
+
     return render(request, 'mailer/kanban.html', {
         'columns': columns,
         'total_apps': total_apps,
@@ -460,6 +463,7 @@ def kanban_tracker_view(request):
         'response_rate': response_rate,
         'search_query': search_query,
         'priority_filter': priority_filter,
+        'inbound_status': inbound_status,
     })
 
 
@@ -602,5 +606,19 @@ def create_application_view(request):
         'app_id': application.id,
         'message': 'Application card created successfully'
     })
+
+
+@login_required
+@require_POST
+def check_inbound_replies_view(request):
+    """
+    RESTful AJAX endpoint for on-demand inbox polling.
+    Connects to email inbox via IMAP SSL, matches incoming replies,
+    classifies intent with Gemini, halts follow-ups, and updates Kanban cards.
+    """
+    from .services.inbound import poll_and_process_inbound_replies
+    result = poll_and_process_inbound_replies(max_emails=25)
+    return JsonResponse(result)
+
 
 

@@ -94,6 +94,26 @@ A unified, private Django platform that:
   - **Rich Application Cards**: Cards display company, role title, recruiter email, priority chip (`High`, `Medium`, `Low`), elapsed days counter, and engagement telemetry beacons.
   - **ATS Detail Modal**: Quick-edit modal to attach interview date/time reminders, salary discussion notes, and personal recruiter feedback.
   - **Dedicated Navigation**: Accessible via top navigation bar (`/tracker/`) with live stage counts.
+- **Phase 16: Inbound Email & Recruiter Reply Reader (IMAP + Gemini)**:
+  - **Direct IMAP4 SSL Ingestion**: Securely connects to user's mailbox (`imap.gmail.com:993`) using standard SSL; queries unseen replies without requiring public webhooks or domain MX changes.
+  - **Conversation Matching Engine**: Associates incoming recruiter emails with existing `JobApplication` cards via RFC 2822 `In-Reply-To` / `References` headers and sender email matching.
+  - **Gemini Sentiment & Intent Classification**: Analyzes message text with `gemini-2.5-flash` to classify replies into:
+    - `INTERVIEW_REQUEST`: Advances card to `INTERVIEWING`, extracts interview instructions, and appends notes.
+    - `REJECTION`: Advances card to `ARCHIVED` and notes rejection context.
+    - `CLARIFICATION`: Advances card to `INTERVIEWING` and logs recruiter's query.
+    - `AUTO_REPLY`: Out of Office / auto-acknowledgement; preserves active stage.
+  - **Automated Cadence Kill-Switch**: Automatically flags matching `FollowUpSequence` as `REPLIED`, preventing awkward follow-ups to responsive recruiters.
+  - **Hybrid Execution**: Recurring 30-minute automated background scan via Django-Q plus an on-demand **"📥 Check Inbox Now"** button on the Kanban board.
+  - **Audit Logging**: Persists `InboundReply` records for complete conversation history and telemetry.
+- **Phase 17: UI/UX Comfort, Typography & Layout Ergonomics Overhaul**:
+  - **Refined Charcoal & Slate Dark Palette**: Replaces harsh pitch-black void (`#080b11`) and aggressive neon glows with a soft, developer-focused charcoal & slate palette (`#0b0f19` base, `#111827` surface cards, `#1e293b` elevated surfaces) modeled after GitHub Dark and Linear.
+  - **Eye Comfort & Reduced Visual Fatigue**: Disables erratic ambient orb motion in favor of subtle, calm radial backdrops; eliminates harsh neon borders; establishes WCAG-compliant contrast ratios with off-white typography (`#f1f5f9`) and cool slate accents (`#94a3b8`).
+  - **Comfortable Typography & Hierarchy**: Eliminates hard-to-read sub-11px text; scales base body font to 14–15px with proportional line-heights (`1.6`), crisp section headings, and high-visibility status badges (12px).
+  - **Unified Global Navigation Component**: Replaces fragmented headers with an identical, premium glass navigation bar across all 3 primary screens (`🚀 Dispatcher`, `🎯 Lead Harvester`, `📊 ATS Tracker`) featuring active route highlighting, system health beacons, and user controls.
+  - **Spacious & Balanced Screen Layouts**:
+    - *ATS Kanban Board (`/tracker/`)*: Expands column widths to 340px with generous padding, improved card spacing, distinct priority borders, and readable recruiter message badges.
+    - *Application Dispatcher (`/`)*: Streamlines form inputs, increases field touch targets, softens variable guidance banners, and structures Activity Feed / Follow-Up tables with comfortable row heights.
+    - *Lead Harvester (`/leads/`)*: Cleans up the Automated Schedule card with structured metric cards, spacious filter pills, and a readable Verified Leads data grid.
 
 ### Post-MVP Scope (Future Phases)
 - Headless browser automation (Playwright) for interactive portal submissions.

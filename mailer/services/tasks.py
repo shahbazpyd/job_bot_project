@@ -205,3 +205,16 @@ def automated_daily_harvester_task(
         'executed_at': timezone.now().isoformat(),
     }
 
+
+def check_inbound_replies_task(max_emails: int = 25) -> Dict[str, Any]:
+    """
+    Automated background task executed by Django-Q recurring schedule or manual trigger.
+    Polls user inbox via IMAP SSL, correlates incoming emails with JobApplication cards,
+    classifies recruiter intent with Gemini, halts follow-ups, and advances stages.
+    """
+    from .inbound import poll_and_process_inbound_replies
+    results = poll_and_process_inbound_replies(max_emails=max_emails)
+    results['executed_at'] = timezone.now().isoformat()
+    return results
+
+

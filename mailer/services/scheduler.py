@@ -141,3 +141,68 @@ def get_harvester_schedule_status() -> Dict[str, Any]:
         'last_run_success': last_run_success,
         'last_run_result': last_run_result,
     }
+
+
+# Inbound Reply Poller Schedule (Recurring 30 Minutes)
+INBOUND_SCHEDULE_NAME = "inbound_reply_poller"
+INBOUND_SCHEDULE_FUNC = "mailer.services.tasks.check_inbound_replies_task"
+
+
+def get_or_create_inbound_schedule(minutes: int = 30) -> Schedule:
+    """
+    Retrieves or initializes the 30-minute recurring inbox poller schedule in django_q_schedule table.
+    """
+    sched = Schedule.objects.filter(name=INBOUND_SCHEDULE_NAME).first()
+    if not sched:
+        sched = Schedule.objects.create(
+            name=INBOUND_SCHEDULE_NAME,
+            func=INBOUND_SCHEDULE_FUNC,
+            schedule_type=Schedule.MINUTES,
+            minutes=minutes,
+            repeats=-1,
+            next_run=timezone.now() + timedelta(minutes=minutes)
+        )
+        logger.info(f"Initialized Django-Q schedule '{INBOUND_SCHEDULE_NAME}' every {minutes} mins.")
+    return sched
+
+
+def trigger_immediate_inbound_check(max_emails: int = 25) -> Optional[str]:
+    """
+    Dispatches an on-demand background run of the inbound reply poller task.
+    """
+    try:
+        task_id = async_task(
+            INBOUND_SCHEDULE_FUNC,
+            max_emails=max_emails
+        )
+        logger.info(f"Triggered immediate inbound inbox check: Task #{task_id}")
+        return str(task_id)
+    except Exception as e:
+        logger.error(f"Failed triggering immediate inbound check: {e}")
+        return None
+
+
+def get_inbound_schedule_status() -> Dict[str, Any]:
+    """
+    Returns live telemetry for the Inbound Poller on the Kanban ATS Board.
+    """
+    sched = Schedule.objects.filter(name=INBOUND_SCHEDULE_NAME).first()
+    is_active = sched is not None and sched.repeats != 0
+    next_run = sched.next_run if sched and is_active else None
+
+    latest_task = Task.objects.filter(func=INBOUND_SCHEDULE_FUNC).order_by('-stopped').first()
+    last_run_time = latest_task.stopped if latest_task else None
+    last_run_success = latest_task.success if latest_task else None
+    last_run_result = latest_task.result if latest_task else None
+
+    return {
+        'exists': sched is not None,
+        'is_active': is_active,
+        'next_run': next_run,
+        'schedule_name': INBOUND_SCHEDULE_NAME,
+        'interval_minutes': 30,
+        'last_run_time': last_run_time,
+        'last_run_success': last_run_success,
+        'last_run_result': last_run_result,
+    }
+

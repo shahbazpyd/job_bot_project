@@ -320,3 +320,62 @@
 
 
 
+
+---
+
+## Phase 16: Inbound Email & Recruiter Reply Reader (Completed)
+- [x] **Data Model & Schema Evolution (`mailer/models.py`)**:
+  - Created `InboundReply` model to audit all received replies:
+    - Fields: `application` (FK to `JobApplication`, nullable), `sender_email`, `sender_name`, `subject`, `message_id`, `in_reply_to`, `classification` (`INTERVIEW_REQUEST`, `REJECTION`, `CLARIFICATION`, `AUTO_REPLY`, `UNKNOWN`), `summary`, `body_snippet`, `interview_time`, `received_at`.
+    - Added indexes: `idx_inbound_sender` on `sender_email`, `idx_inbound_class` on `classification`, and `idx_inbound_received` on `-received_at`.
+  - Generated migration `0010_inboundreply` and applied it to Neon PostgreSQL.
+- [x] **IMAP Inbound Mail Poller Service (`mailer/services/inbound.py`)**:
+  - Implemented `poll_and_process_inbound_replies(max_emails=25, mark_seen=True)` using Python's standard `imaplib.IMAP4_SSL` and `email` parsing module.
+  - Parsed RFC 2822 `In-Reply-To` and `References` headers and sender address (`From`) to match against `ApplicationLog.message_id` and `JobApplication.recipient_email`.
+- [x] **Gemini Intent & Sentiment Classifier (`mailer/services/inbound.py`)**:
+  - Implemented `classify_recruiter_reply(body_text, company_name, role_title)` using Google Gemini (`gemini-2.5-flash` via `google-genai`).
+  - Extracted structured intent (`INTERVIEW_REQUEST`, `REJECTION`, `CLARIFICATION`, `AUTO_REPLY`), 1-2 sentence summary, and suggested interview timestamps.
+  - Implemented deterministic keyword fallback heuristics for zero downtime on missing API keys or timeouts.
+- [x] **Automated Progression & Follow-Up Safeguards**:
+  - `INTERVIEW_REQUEST` -> Automatically halted follow-up sequence (`status='REPLIED'`), advanced card to `INTERVIEWING`, and appended interview notes/dates.
+  - `REJECTION` -> Automatically halted follow-up sequence (`status='REPLIED'`), advanced card to `ARCHIVED`, and logged rejection context.
+  - `CLARIFICATION` -> Automatically halted follow-up sequence (`status='REPLIED'`), advanced card to `INTERVIEWING`, and logged queries.
+  - `AUTO_REPLY` -> Preserved active card stage and active follow-up cadence.
+- [x] **Background Task & Recurring Scheduler (`mailer/services/tasks.py`, `mailer/services/scheduler.py`)**:
+  - Implemented `check_inbound_replies_task(max_emails=25)` as a standalone Django-Q background task.
+  - Configured 30-minute recurring schedule helpers (`get_or_create_inbound_schedule`, `trigger_immediate_inbound_check`, `get_inbound_schedule_status`).
+- [x] **Dashboard Controls & AJAX Trigger (`mailer/templates/mailer/kanban.html`, `mailer/views.py`, `mailer/urls.py`)**:
+  - Added **"📥 Check Replies"** button with live spinner and status feedback to the ATS Kanban header.
+  - Added `POST /api/inbox/check/` endpoint returning verified match counts and updated stages.
+  - Displayed reply badge (`💬 Recruiter Replied`) on affected Kanban cards.
+- [x] **Automated Regression Test Suite Expansion**:
+  - Authored 9 unit and integration tests in `mailer/tests.py` (`InboundReplyReaderTest`): model creation and fields, RFC 2822 message parsing, thread correlation (by Message-ID and sender email), keyword heuristic classification, side effects execution (interview & rejection), mocked IMAP polling, and AJAX web endpoint.
+  - Executed full Django regression test suite (`python manage.py test mailer --keepdb`): 100% pass rate (69/69 tests passing in 418.7s).
+
+
+---
+
+## Phase 17: UI/UX Comfort, Typography & Layout Ergonomics Overhaul (Completed)
+- [x] **Global Design System & Slate Theme Refinement**:
+  - Transitioned core CSS variables from pitch-black void (`#080b11`) to soft developer charcoal/slate (`#0b0f19` canvas, `#111827` surface cards, `#1e293b` elevated surfaces, `#f1f5f9` primary text, `#94a3b8` muted text, `#334155` subtle borders).
+  - Subdued ambient glowing orbs: eliminated erratic drifting floating animation (`float-orb`), lowered opacity to 0.05, and replaced high-glare lighting with calm, static background radial illumination.
+  - Established WCAG-compliant contrast ratios: Primary text `#f1f5f9` (soft off-white), Secondary text `#94a3b8`, Muted text `#64748b`.
+  - Upgraded typography scale: eliminated sub-11px text; scaled body font to 14–15px with line-height `1.6`, badges to minimum 12px (`0.75rem`), and headings to 18–24px.
+- [x] **Unified Global Navigation Header Component**:
+  - Built a consistent, reusable top navigation layout across all 3 pages (`send_mail.html`, `leads.html`, `kanban.html`).
+  - Rendered branded `⚡ JobBot Pro` logo, page purpose pill, active route indicator pills (`🚀 Dispatcher`, `🎯 Lead Harvester`, `📊 ATS Tracker`), and aligned user controls (`Admin`, `Logout`).
+- [x] **Spacious Layout Ergonomics on ATS Kanban Board (`mailer/templates/mailer/kanban.html`)**:
+  - Expanded column width to 340px with generous dropzone padding (1rem / 16px).
+  - Increased card padding (1.1rem / 18px) with clean card separation, distinct priority borders, and readable recruiter reply badges.
+  - Refined KPI metrics ribbon with clear spacing, larger numbers, and readable labels.
+- [x] **Spacious Layout Ergonomics on Application Dispatcher (`mailer/templates/mailer/send_mail.html`)**:
+  - Placed Unified Global Navigation Bar at the top of the viewport above the 2-column layout.
+  - Increased padding on form inputs, file pickers, and select dropdowns; cleaned up compose header with daily quota progress badge.
+  - Softened token instruction banner styling (`rgba(99, 102, 241, 0.05)`) to eliminate visual glare.
+  - Increased table row height and padding on Activity Feed and Follow-Up Queue for comfortable reading.
+- [x] **Spacious Layout Ergonomics on Lead Harvester (`mailer/templates/mailer/leads.html`)**:
+  - Structured the Automated Harvester Schedule card with balanced metrics and clear action buttons.
+  - Increased spacing in the search forms and text block parser.
+  - Enhanced Verified Leads Queue table with comfortable row padding, readable badges (min 12px), and aligned action buttons.
+- [x] **Automated Regression Verification**:
+  - Executed full Django test suite (`python manage.py test mailer --keepdb`): 100% pass rate (69/69 tests passing in 284.5s).

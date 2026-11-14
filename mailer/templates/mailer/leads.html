@@ -13,17 +13,17 @@
     
     <style>
         :root {
-            --bg-void: #080b11;
-            --surface-glass: rgba(15, 23, 42, 0.7);
-            --surface-glass-elevated: rgba(22, 32, 54, 0.85);
-            --border-glass: rgba(255, 255, 255, 0.08);
-            --border-glass-hover: rgba(99, 102, 241, 0.45);
+            --bg-void: #0b0f19;
+            --surface-glass: rgba(17, 24, 39, 0.75);
+            --surface-glass-elevated: rgba(30, 41, 59, 0.85);
+            --border-glass: rgba(148, 163, 184, 0.12);
+            --border-glass-hover: rgba(99, 102, 241, 0.4);
             --accent-indigo: #6366f1;
             --accent-purple: #a855f7;
             --accent-emerald: #10b981;
             --accent-amber: #f59e0b;
             --accent-rose: #f43f5e;
-            --text-primary: #f8fafc;
+            --text-primary: #f1f5f9;
             --text-muted: #94a3b8;
             --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
@@ -56,43 +56,35 @@
             scrollbar-color: rgba(99, 102, 241, 0.35) transparent;
         }
 
-        /* 2. Continuous Effects: Living Ambient Aura Orbs */
+        /* 2. Ambient Lighting: Calm, Static Backlighting (Zero Motion Fatigue) */
         .ambient-orb {
             position: fixed;
             border-radius: 50%;
-            filter: blur(100px);
+            filter: blur(120px);
             pointer-events: none;
             z-index: 0;
-            opacity: 0.65;
-            animation: float-orb 22s ease-in-out infinite alternate;
+            opacity: 0.05;
         }
         .orb-1 {
-            top: -100px;
-            left: -80px;
+            top: -80px;
+            left: -60px;
             width: 480px;
             height: 480px;
-            background: radial-gradient(circle, rgba(99, 102, 241, 0.2), transparent 70%);
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.35), transparent 70%);
         }
         .orb-2 {
-            bottom: -120px;
-            right: -100px;
+            bottom: -100px;
+            right: -80px;
             width: 520px;
             height: 520px;
-            background: radial-gradient(circle, rgba(168, 85, 247, 0.18), transparent 70%);
-            animation-delay: -8s;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.3), transparent 70%);
         }
         .orb-3 {
-            top: 30%;
-            left: 55%;
-            width: 420px;
-            height: 420px;
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.1), transparent 70%);
-            animation-delay: -15s;
-        }
-        @keyframes float-orb {
-            0% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(45px, 40px) scale(1.08); }
-            100% { transform: translate(-30px, -35px) scale(0.94); }
+            top: 40%;
+            left: 50%;
+            width: 380px;
+            height: 380px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.25), transparent 70%);
         }
 
         /* Continuous Pulse Beacon */
@@ -256,6 +248,33 @@
             transform: translateY(-1px);
         }
 
+        .btn-glass-nav {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            color: #cbd5e1;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 0.4rem 0.85rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+        }
+        .btn-glass-nav:hover {
+            background: rgba(51, 65, 85, 0.8);
+            border-color: rgba(99, 102, 241, 0.4);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+        .btn-glass-nav.active {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(168, 85, 247, 0.35));
+            border-color: rgba(99, 102, 241, 0.5);
+            color: #ffffff;
+            box-shadow: 0 2px 10px rgba(99, 102, 241, 0.25);
+        }
+
         /* 5. Table Row Hover & Neon Accent */
         .glass-table {
             color: var(--text-primary);
@@ -264,7 +283,7 @@
         .glass-table thead th {
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             color: #94a3b8;
-            font-size: 0.72rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             padding-bottom: 0.75rem;
@@ -320,36 +339,45 @@
 
     <div class="container-fluid px-2 px-sm-3 px-lg-4 position-relative" style="max-width: 1560px; z-index: 2;">
 
-        <!-- Top Navigation Glass Header -->
-        <div class="glass-card p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <!-- Unified Global Navigation Glass Header -->
+        <header class="glass-card px-4 py-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center gap-2">
-                    <h4 class="text-gradient mb-0 fs-5">Recruiter Lead Harvester</h4>
-                    <span class="radar-beacon" title="Automated Engine Active"></span>
-                </div>
-                <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10 py-1 px-2" style="font-size: 0.72rem;">
-                    Pan-India & 0–3 YOE Active
+                <a href="{% url 'send_application' %}" class="d-flex align-items-center gap-2 text-decoration-none">
+                    <span class="fs-5">⚡</span>
+                    <h1 class="text-gradient mb-0 fs-5 fw-bold">JobBot Pro</h1>
+                </a>
+                <span class="badge rounded-pill bg-white bg-opacity-10 text-slate-300 border border-white border-opacity-10 px-2.5 py-1" style="font-size: 0.75rem;">
+                    Lead Harvester
                 </span>
+                <span class="radar-beacon" title="Automated Engine Active"></span>
             </div>
-            
+
+            <!-- Route Navigation Pills -->
+            <nav class="d-flex align-items-center gap-2">
+                <a href="{% url 'send_application' %}" class="btn-glass-nav">
+                    <span>🚀</span> Dispatcher
+                </a>
+                <a href="{% url 'lead_harvester' %}" class="btn-glass-nav active">
+                    <span>🎯</span> Lead Harvester
+                </a>
+                <a href="{% url 'kanban_tracker' %}" class="btn-glass-nav">
+                    <span>📊</span> ATS Tracker
+                </a>
+            </nav>
+
+            <!-- Controls -->
             <div class="d-flex align-items-center gap-2">
-                <a href="{% url 'kanban_tracker' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-3 py-1">
-                    📊 ATS Tracker
-                </a>
-                <a href="{% url 'send_application' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-3 py-1">
-                    &larr; Application Dispatcher
-                </a>
-                <a href="{% url 'admin:index' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-3 py-1">
-                    Admin Panel
+                <a href="{% url 'admin:index' %}" class="btn-glass-nav">
+                    <span>⚙️</span> Admin
                 </a>
                 <form method="post" action="{% url 'logout' %}" class="m-0">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-glass-subtle text-danger-emphasis fw-semibold px-3 py-1">
-                        Logout
+                    <button type="submit" class="btn-glass-nav text-danger-emphasis border-danger border-opacity-25" style="background: rgba(244, 63, 94, 0.08);">
+                        <span>🚪</span> Logout
                     </button>
                 </form>
             </div>
-        </div>
+        </header>
 
         <!-- Alert Notifications -->
         {% if messages %}
@@ -366,8 +394,8 @@
             <div class="col-md-4">
                 <div class="glass-card p-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.05em;">Total Discovered Leads</span>
-                        <span class="text-muted" style="font-size: 0.8rem;">🌐</span>
+                        <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.05em;">Total Discovered Leads</span>
+                        <span class="text-muted" style="font-size: 0.85rem;">🌐</span>
                     </div>
                     <h3 class="fw-bold mb-0 text-white glow-stat fs-3">{{ total_leads }}</h3>
                 </div>
@@ -375,7 +403,7 @@
             <div class="col-md-4">
                 <div class="glass-card p-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.05em;">DNS MX Verified (Zero Bounce)</span>
+                        <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.05em;">DNS MX Verified (Zero Bounce)</span>
                         <span class="radar-beacon"></span>
                     </div>
                     <h3 class="fw-bold mb-0 text-gradient-emerald glow-emerald fs-3">{{ verified_count }}</h3>
@@ -384,8 +412,8 @@
             <div class="col-md-4">
                 <div class="glass-card p-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.05em;">Already Contacted</span>
-                        <span class="text-muted" style="font-size: 0.8rem;">📬</span>
+                        <span class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.05em;">Already Contacted</span>
+                        <span class="text-muted" style="font-size: 0.85rem;">📬</span>
                     </div>
                     <h3 class="fw-bold mb-0 text-gradient-purple glow-purple fs-3">{{ contacted_count }}</h3>
                 </div>
@@ -405,25 +433,25 @@
                             <h6 class="fw-bold text-white mb-0 fs-6">Daily Morning Automation</h6>
                         </div>
                         {% if schedule_status.is_active %}
-                            <span class="badge rounded-pill bg-success bg-opacity-20 text-success border border-success border-opacity-30 px-2 py-1" style="font-size: 0.7rem;">
+                            <span class="badge rounded-pill bg-success bg-opacity-20 text-success border border-success border-opacity-30 px-2.5 py-1" style="font-size: 0.75rem;">
                                 <span class="d-inline-block rounded-circle me-1" style="width: 6px; height: 6px; background: #10b981;"></span>
                                 Active (08:30 AM IST)
                             </span>
                         {% else %}
-                            <span class="badge rounded-pill bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 px-2 py-1" style="font-size: 0.7rem;">
+                            <span class="badge rounded-pill bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 px-2.5 py-1" style="font-size: 0.75rem;">
                                 Paused
                             </span>
                         {% endif %}
                     </div>
 
-                    <p class="text-white-50 small mb-3" style="font-size: 0.78rem;">
+                    <p class="text-white-50 mb-3" style="font-size: 0.84rem; line-height: 1.5;">
                         Automatically harvests 25 fresh verified leads from Remotive, We Work Remotely, and Hacker News every morning before your day begins.
                     </p>
 
-                    <div class="p-2 mb-3 rounded-3" style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.08);">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-white-50 small" style="font-size: 0.72rem;">Next Scheduled Run:</span>
-                            <span class="text-white font-mono small fw-semibold" style="font-size: 0.75rem;">
+                    <div class="p-2.5 mb-3 rounded-3" style="background: rgba(11, 15, 25, 0.6); border: 1px solid rgba(148, 163, 184, 0.12);">
+                        <div class="d-flex justify-content-between align-items-center mb-1.5">
+                            <span class="text-white-50" style="font-size: 0.78rem;">Next Scheduled Run:</span>
+                            <span class="text-white font-mono fw-semibold" style="font-size: 0.8rem;">
                                 {% if schedule_status.next_run %}
                                     {{ schedule_status.next_run|date:"D, d M • h:i A" }}
                                 {% else %}
@@ -432,8 +460,8 @@
                             </span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-white-50 small" style="font-size: 0.72rem;">Last Execution:</span>
-                            <span class="text-white-50 font-mono small" style="font-size: 0.72rem;">
+                            <span class="text-white-50" style="font-size: 0.78rem;">Last Execution:</span>
+                            <span class="text-white-50 font-mono" style="font-size: 0.78rem;">
                                 {% if schedule_status.last_run_time %}
                                     {{ schedule_status.last_run_time|timesince }} ago
                                     {% if schedule_status.last_run_result %}
@@ -479,7 +507,7 @@
                     <div class="d-flex align-items-center gap-2 mb-2">
                         <h6 class="fw-bold text-gradient mb-0 fs-6">1. Automated Tech Feed Harvester</h6>
                     </div>
-                    <p class="text-white-50 small mb-3" style="font-size: 0.78rem;">
+                    <p class="text-white-50 mb-3" style="font-size: 0.84rem; line-height: 1.5;">
                         Directly queries public hiring manager comments from the Hacker News "Who is Hiring" Algolia feed with MX pre-flight checks.
                     </p>
 
@@ -488,7 +516,7 @@
                         <input type="hidden" name="action" value="harvest_feed">
                         
                         <div class="mb-3">
-                            <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Target Platform Feed</label>
+                            <label class="form-label text-white-50 fw-semibold text-uppercase" style="font-size: 0.75rem;">Target Platform Feed</label>
                             <select name="platform" class="form-select">
                                 <option value="all" selected>🌐 All Platforms (Combined Multi-Feed)</option>
                                 <option value="remotive">⚡ Remotive (Official Tech API)</option>
@@ -498,12 +526,12 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Role / Keyword</label>
+                            <label class="form-label text-white-50 fw-semibold text-uppercase" style="font-size: 0.75rem;">Role / Keyword</label>
                             <input type="text" name="query" class="form-control" value="Python" placeholder="e.g. Python, FastAPI, Django, Full Stack">
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Target Location Hub</label>
+                            <label class="form-label text-white-50 fw-semibold text-uppercase" style="font-size: 0.75rem;">Target Location Hub</label>
                             <select name="location" class="form-select">
                                 <option value="All">All Locations / Any Hub</option>
                                 <option value="Remote">Remote (Pan-India)</option>
@@ -527,7 +555,7 @@
                     <div class="d-flex align-items-center gap-2 mb-2">
                         <h6 class="fw-bold text-gradient mb-0 fs-6">2. Text / Google Dorking Parser</h6>
                     </div>
-                    <p class="text-white-50 small mb-3" style="font-size: 0.78rem;">
+                    <p class="text-white-50 mb-3" style="font-size: 0.84rem; line-height: 1.5;">
                         Paste snippets from LinkedIn posts, Wellfound cards, Google Dork queries, or job boards to extract and classify recruiter contacts.
                     </p>
 
@@ -537,7 +565,7 @@
 
                         <div class="row g-2 mb-2">
                             <div class="col-6">
-                                <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Location</label>
+                                <label class="form-label text-white-50 fw-semibold text-uppercase" style="font-size: 0.75rem;">Location</label>
                                 <select name="location" class="form-select">
                                     <option value="Remote" selected>Remote</option>
                                     <option value="Gurugram">Gurugram</option>
@@ -549,7 +577,7 @@
                                 </select>
                             </div>
                             <div class="col-6">
-                                <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Experience Tag</label>
+                                <label class="form-label text-white-50 fw-semibold text-uppercase" style="font-size: 0.75rem;">Experience Tag</label>
                                 <select name="experience" class="form-select">
                                     <option value="0-3 Years" selected>0–3 Years (Entry/Mid)</option>
                                     <option value="3-5 Years">3–5 Years</option>
@@ -558,7 +586,7 @@
                                 </select>
                             </div>
                             <div class="col-12 mt-2">
-                                <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Source Platform Tag</label>
+                                <label class="form-label text-white-50 fw-semibold text-uppercase" style="font-size: 0.75rem;">Source Platform Tag</label>
                                 <select name="platform" class="form-select">
                                     <option value="Manual / Dork" selected>Manual / Google Dork</option>
                                     <option value="Wellfound">Wellfound (AngelList)</option>
@@ -569,7 +597,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label text-white-50 small fw-semibold text-uppercase" style="font-size: 0.7rem;">Pasted Raw Text Block</label>
+                            <label class="form-label text-white-50 fw-semibold text-uppercase" style="font-size: 0.75rem;">Pasted Raw Text Block</label>
                             <textarea name="raw_text" rows="4" class="form-control" placeholder="Paste recruiter posts, Wellfound snippets, or search text containing recruiter contacts..."></textarea>
                         </div>
 
@@ -591,22 +619,22 @@
                         <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10 flex-wrap gap-2">
                             <div>
                                 <h6 class="text-gradient mb-0 fs-6">Verified Leads Queue</h6>
-                                <span class="text-white-50" style="font-size: 0.75rem;">Select leads to load directly into the Application Dispatcher.</span>
+                                <span class="text-white-50" style="font-size: 0.8rem;">Select leads to load directly into the Application Dispatcher.</span>
                             </div>
-                            <div class="d-flex align-items-center gap-1 flex-wrap">
-                                <a href="{% url 'lead_harvester' %}" class="btn btn-sm btn-glass-subtle py-1 px-2 text-white-50 small" style="font-size: 0.72rem;">All</a>
-                                <a href="{% url 'lead_harvester' %}?platform=Remotive" class="btn btn-sm btn-glass-subtle py-1 px-2 text-info small" style="font-size: 0.72rem;">⚡ Remotive</a>
-                                <a href="{% url 'lead_harvester' %}?platform=We Work Remotely" class="btn btn-sm btn-glass-subtle py-1 px-2 text-danger small" style="font-size: 0.72rem;">💼 WWR</a>
-                                <a href="{% url 'lead_harvester' %}?platform=Hacker News" class="btn btn-sm btn-glass-subtle py-1 px-2 text-warning small" style="font-size: 0.72rem;">🔶 HN</a>
-                                <button type="submit" class="btn btn-gradient-success fw-semibold px-3 py-2 small ms-1">
-                                    <span>🚀 Dispatch Selected Leads</span>
+                            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                <a href="{% url 'lead_harvester' %}" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-white-50" style="font-size: 0.78rem;">All</a>
+                                <a href="{% url 'lead_harvester' %}?platform=Remotive" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-info" style="font-size: 0.78rem;">⚡ Remotive</a>
+                                <a href="{% url 'lead_harvester' %}?platform=We Work Remotely" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-danger" style="font-size: 0.78rem;">💼 WWR</a>
+                                <a href="{% url 'lead_harvester' %}?platform=Hacker News" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-warning" style="font-size: 0.78rem;">🔶 HN</a>
+                                <button type="submit" class="btn btn-gradient-success fw-semibold px-3 py-1.5 small ms-1">
+                                    <span>🚀 Dispatch Selected</span>
                                 </button>
                             </div>
                         </div>
 
                         <div class="table-responsive scrollable-area flex-grow-1" style="max-height: 600px;">
                             <table class="table glass-table align-middle mb-0" style="min-width: 780px;">
-                                <thead class="sticky-top" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); z-index: 2;">
+                                <thead class="sticky-top" style="background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(8px); z-index: 2;">
                                     <tr>
                                         <th style="width: 36px; min-width: 36px;">
                                             <input type="checkbox" id="select-all-leads" class="form-check-input">
@@ -626,60 +654,60 @@
                                             <input type="checkbox" name="selected_leads" value="{{ lead.id }}" class="form-check-input lead-checkbox" {% if lead.is_contacted %}disabled{% else %}checked{% endif %}>
                                         </td>
                                         <td>
-                                            <div class="fw-semibold text-white copy-email-btn copyable-email" data-email="{{ lead.email }}" title="Click to copy email" style="font-family: var(--font-mono, monospace); font-size: 0.82rem;">
+                                            <div class="fw-semibold text-white copy-email-btn copyable-email" data-email="{{ lead.email }}" title="Click to copy email" style="font-family: var(--font-mono, monospace); font-size: 0.85rem;">
                                                 {{ lead.email }}
                                             </div>
                                             {% if lead.name %}
-                                                <div class="text-white-50" style="font-size: 0.72rem;">{{ lead.name }}</div>
+                                                <div class="text-white-50" style="font-size: 0.78rem;">{{ lead.name }}</div>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <div class="small fw-semibold text-white text-truncate" style="max-width: 170px;">{{ lead.company|default:"Hiring Company" }}</div>
-                                            <div class="text-white-50" style="font-size: 0.72rem;">{{ lead.role|default:"Python Developer" }}</div>
+                                            <div class="fw-semibold text-white text-truncate" style="max-width: 170px; font-size: 0.84rem;">{{ lead.company|default:"Hiring Company" }}</div>
+                                            <div class="text-white-50" style="font-size: 0.78rem;">{{ lead.role|default:"Python Developer" }}</div>
                                         </td>
                                         <td>
                                             <div class="d-flex flex-column gap-1">
-                                                <span class="badge rounded-pill {% if lead.location == 'Gurugram' %}bg-info bg-opacity-10 text-info border border-info border-opacity-25{% elif lead.location == 'Hyderabad' %}bg-primary bg-opacity-10 text-primary-emphasis border border-primary border-opacity-25{% elif lead.location == 'Remote' %}bg-success bg-opacity-10 text-success border border-success border-opacity-25{% elif lead.location == 'Bengaluru' %}bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25{% else %}bg-secondary bg-opacity-10 text-secondary-emphasis border border-secondary border-opacity-25{% endif %}" style="width: fit-content; font-size: 0.7rem;">
+                                                <span class="badge rounded-pill {% if lead.location == 'Gurugram' %}bg-info bg-opacity-10 text-info border border-info border-opacity-25{% elif lead.location == 'Hyderabad' %}bg-primary bg-opacity-10 text-primary-emphasis border border-primary border-opacity-25{% elif lead.location == 'Remote' %}bg-success bg-opacity-10 text-success border border-success border-opacity-25{% elif lead.location == 'Bengaluru' %}bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25{% else %}bg-secondary bg-opacity-10 text-secondary-emphasis border border-secondary border-opacity-25{% endif %}" style="width: fit-content; font-size: 0.75rem;">
                                                     {{ lead.location }}
                                                 </span>
-                                                <span class="badge rounded-pill {% if lead.experience_tag == '0-3 Years' %}bg-success text-white border border-success{% else %}bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10{% endif %}" style="font-size: 0.65rem; width: fit-content;">
+                                                <span class="badge rounded-pill {% if lead.experience_tag == '0-3 Years' %}bg-success text-white border border-success{% else %}bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10{% endif %}" style="font-size: 0.75rem; width: fit-content;">
                                                     {{ lead.experience_tag }}
                                                 </span>
                                             </div>
                                         </td>
                                         <td>
                                             {% if lead.source_platform == 'Remotive' %}
-                                                <span class="badge rounded-pill bg-info bg-opacity-15 text-info border border-info border-opacity-30" style="font-size: 0.68rem;">⚡ Remotive</span>
+                                                <span class="badge rounded-pill bg-info bg-opacity-15 text-info border border-info border-opacity-30" style="font-size: 0.75rem;">⚡ Remotive</span>
                                             {% elif lead.source_platform == 'We Work Remotely' %}
-                                                <span class="badge rounded-pill bg-danger bg-opacity-15 text-danger border border-danger border-opacity-30" style="font-size: 0.68rem;">💼 WWR</span>
+                                                <span class="badge rounded-pill bg-danger bg-opacity-15 text-danger border border-danger border-opacity-30" style="font-size: 0.75rem;">💼 WWR</span>
                                             {% elif lead.source_platform == 'Hacker News' %}
-                                                <span class="badge rounded-pill bg-warning bg-opacity-15 text-warning border border-warning border-opacity-30" style="font-size: 0.68rem;">🔶 HN</span>
+                                                <span class="badge rounded-pill bg-warning bg-opacity-15 text-warning border border-warning border-opacity-30" style="font-size: 0.75rem;">🔶 HN</span>
                                             {% elif lead.source_platform == 'Wellfound' %}
-                                                <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary border border-primary border-opacity-30" style="font-size: 0.68rem;">✌️ Wellfound</span>
+                                                <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary border border-primary border-opacity-30" style="font-size: 0.75rem;">✌️ Wellfound</span>
                                             {% elif lead.source_platform == 'LinkedIn' %}
-                                                <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary-emphasis border border-primary border-opacity-30" style="font-size: 0.68rem;">💼 LinkedIn</span>
+                                                <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary-emphasis border border-primary border-opacity-30" style="font-size: 0.75rem;">💼 LinkedIn</span>
                                             {% else %}
-                                                <span class="badge rounded-pill bg-secondary bg-opacity-15 text-white-50 border border-secondary border-opacity-30" style="font-size: 0.68rem;">📝 {{ lead.source_platform|default:"Manual" }}</span>
+                                                <span class="badge rounded-pill bg-secondary bg-opacity-15 text-white-50 border border-secondary border-opacity-30" style="font-size: 0.75rem;">📝 {{ lead.source_platform|default:"Manual" }}</span>
                                             {% endif %}
                                         </td>
                                         <td>
                                             {% if lead.is_contacted %}
-                                                <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10" style="font-size: 0.7rem;">
+                                                <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10" style="font-size: 0.75rem;">
                                                     Contacted
                                                 </span>
                                             {% elif lead.is_verified %}
-                                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1" style="font-size: 0.7rem;">
+                                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1" style="font-size: 0.75rem;">
                                                     <span class="d-inline-block rounded-circle me-1" style="width: 5px; height: 5px; background: #10b981;"></span>
                                                     MX Verified
                                                 </span>
                                             {% else %}
-                                                <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" style="font-size: 0.7rem;">
+                                                <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" style="font-size: 0.75rem;">
                                                     Unverified
                                                 </span>
                                             {% endif %}
                                         </td>
                                         <td class="text-end">
-                                            <button type="button" class="btn btn-sm btn-glass-subtle py-1 px-2 text-purple small btn-generate-lead-hook"
+                                            <button type="button" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-purple small btn-generate-lead-hook"
                                                     data-company="{{ lead.company|default:'' }}"
                                                     data-role="{{ lead.role|default:'' }}"
                                                     title="Generate custom pitch with Gemini">
@@ -692,8 +720,8 @@
                                         <td colspan="7" class="text-center text-white-50 py-5 small">
                                             <div class="d-flex flex-column align-items-center gap-1">
                                                 <span style="font-size: 1.5rem; opacity: 0.5;">🎯</span>
-                                                <span>No recruiter leads discovered yet.</span>
-                                                <span class="text-white-50" style="font-size: 0.75rem;">Run the feed harvester or paste recruiter posts on the left to collect verified leads!</span>
+                                                <span class="fs-6">No recruiter leads discovered yet.</span>
+                                                <span class="text-white-50" style="font-size: 0.82rem;">Run the feed harvester or paste recruiter posts on the left to collect verified leads!</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -712,33 +740,33 @@
     <!-- AI Pitch Modal -->
     <div class="modal fade" id="aiPitchModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content glass-card border border-white border-opacity-15 p-3" style="background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(25px); border-radius: 16px;">
+            <div class="modal-content glass-card border border-white border-opacity-15 p-3.5" style="background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(25px); border-radius: 16px;">
                 <div class="modal-header border-bottom border-white border-opacity-10 pb-2">
                     <div class="d-flex align-items-center gap-2">
                         <span class="fs-6">✨</span>
                         <h6 class="modal-title text-gradient mb-0 fs-6">Tailored Pitch Hook</h6>
-                        <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-30 small" style="font-size: 0.65rem;">Gemini 2.5 Flash</span>
+                        <span class="badge bg-purple bg-opacity-25 text-purple border border-purple border-opacity-30" style="font-size: 0.75rem;">Gemini 2.5 Flash</span>
                     </div>
                     <button type="button" class="btn-close btn-close-white btn-sm" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body py-3">
                     <div class="mb-2">
-                        <span class="text-white-50 small">Target:</span> 
-                        <strong id="modal-target" class="text-white small"></strong>
+                        <span class="text-white-50" style="font-size: 0.85rem;">Target:</span> 
+                        <strong id="modal-target" class="text-white" style="font-size: 0.85rem;"></strong>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-white-50 small text-uppercase" style="font-size: 0.68rem;">Synthesized 2-Sentence Opening Pitch</label>
+                        <label class="form-label text-white-50 text-uppercase" style="font-size: 0.75rem;">Synthesized 2-Sentence Opening Pitch</label>
                         <div id="modal-loading-spinner" class="d-none text-center py-4">
                             <span class="spinner-border spinner-border-sm text-purple me-2"></span>
-                            <span class="text-white-50 small">Generating tailored pitch with Gemini...</span>
+                            <span class="text-white-50" style="font-size: 0.85rem;">Generating tailored pitch with Gemini...</span>
                         </div>
-                        <textarea id="modal-hook-text" class="form-control font-mono" rows="4" style="background: rgba(0,0,0,0.4); border-color: rgba(99, 102, 241, 0.35); color: #fff; font-size: 0.78rem;"></textarea>
+                        <textarea id="modal-hook-text" class="form-control font-mono" rows="4" style="background: rgba(11, 15, 25, 0.7); border-color: rgba(99, 102, 241, 0.35); color: #fff; font-size: 0.85rem;"></textarea>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <button type="button" id="modal-copy-btn" class="btn btn-sm btn-gradient-primary px-3 py-1">
+                        <button type="button" id="modal-copy-btn" class="btn btn-sm btn-gradient-primary px-3 py-1.5 fw-semibold">
                             📋 Copy Pitch
                         </button>
-                        <span id="modal-status" class="small text-white-50" style="font-size: 0.72rem;"></span>
+                        <span id="modal-status" class="text-white-50" style="font-size: 0.78rem;"></span>
                     </div>
                 </div>
             </div>

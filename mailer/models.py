@@ -207,3 +207,43 @@ class JobApplication(models.Model):
         from django.utils import timezone
         return max(0, (timezone.now() - self.created_at).days)
 
+class InboundReply(models.Model):
+    CLASSIFICATION_CHOICES = [
+        ('INTERVIEW_REQUEST', 'Interview Request'),
+        ('REJECTION', 'Rejection'),
+        ('CLARIFICATION', 'Clarification / Questions'),
+        ('AUTO_REPLY', 'Auto-Reply / Out of Office'),
+        ('UNKNOWN', 'Unknown'),
+    ]
+
+    application = models.ForeignKey(
+        JobApplication,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='inbound_replies',
+        help_text="Matching JobApplication card"
+    )
+    sender_email = models.EmailField()
+    sender_name = models.CharField(max_length=150, blank=True)
+    subject = models.CharField(max_length=255, blank=True)
+    message_id = models.CharField(max_length=255, blank=True, db_index=True)
+    in_reply_to = models.CharField(max_length=255, blank=True)
+    classification = models.CharField(max_length=50, choices=CLASSIFICATION_CHOICES, default='UNKNOWN')
+    summary = models.TextField(blank=True, help_text="Gemini synthesized summary of recruiter message")
+    body_snippet = models.TextField(blank=True, help_text="Clean extracted email body excerpt")
+    interview_time = models.DateTimeField(null=True, blank=True, help_text="Detected interview time if suggested by recruiter")
+    received_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-received_at']
+        indexes = [
+            models.Index(fields=['sender_email'], name='idx_inbound_sender'),
+            models.Index(fields=['classification'], name='idx_inbound_class'),
+            models.Index(fields=['-received_at'], name='idx_inbound_received'),
+        ]
+
+    def __str__(self):
+        return f"{self.sender_email} [{self.classification}] - {self.subject[:40]}"
+
+

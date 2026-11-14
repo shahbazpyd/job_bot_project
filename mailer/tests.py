@@ -23,7 +23,7 @@ from django.template import Template, Context
 from django.utils import timezone
 from django.core.management import call_command
 
-from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead, FollowUpSequence, JobApplication
+from .models import EmailTemplate, ResumeDocument, ApplicationLog, RecruiterLead, FollowUpSequence, JobApplication, InboundReply
 from .forms import ApplicationDispatchForm
 from .services.verifier import verify_email_mx
 from .services.harvester import (
@@ -61,7 +61,15 @@ from .services.tracking import (
 )
 from django_q.tasks import async_task
 from django_q.models import Schedule
-from .services.tasks import dispatch_applications_task, process_followups_scheduled_task, automated_daily_harvester_task
+from .services.tasks import dispatch_applications_task, process_followups_scheduled_task, automated_daily_harvester_task, check_inbound_replies_task
+from .services.inbound import (
+    parse_raw_email_message,
+    correlate_email_to_application,
+    classify_recruiter_reply,
+    apply_reply_side_effects,
+    poll_and_process_inbound_replies,
+    fallback_classify_heuristic
+)
 from .services.scheduler import (
     calculate_next_daily_run,
     get_or_create_daily_harvester_schedule,
@@ -1354,6 +1362,212 @@ class KanbanTrackerTest(TestCase):
         search_resp = self.client.get(reverse('kanban_tracker') + '?q=AlphaCo')
         self.assertEqual(search_resp.status_code, 200)
         self.assertEqual(search_resp.context['total_apps'], 1)
+
+
+class InboundReplyReaderTest(TestCase):
+    """Unit and integration tests for Phase 16 Inbound Email & Recruiter Reply Reader."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='shahbaz_inbound', password='secretpassword123')
+        self.client = Client()
+        self.client.login(username='shahbaz_inbound', password='secretpassword123')
+
+        self.template = EmailTemplate.objects.create(
+            title="Inbound Test Template",
+            subject="Python Developer at {{ company }}",
+            body="Hi {{ name }}, here is my resume."
+        )
+        self.resume = ResumeDocument.objects.create(
+            title="Inbound Test Resume",
+            filename="inbound_resume.pdf",
+            pdf_content=b"%PDF-1.4 mock resume"
+        )
+        self.log = ApplicationLog.objects.create(
+            recipient_email="hiring@techcorp.io",
+            template=self.template,
+            resume=self.resume,
+            status="SUCCESS",
+            message_id="<orig-12345@jobbot.local>"
+        )
+        self.app = JobApplication.objects.create(
+            initial_log=self.log,
+            company_name="TechCorp",
+            role_title="Backend Engineer",
+            recipient_email="hiring@techcorp.io",
+            stage="DISPATCHED",
+            priority="HIGH"
+        )
+        self.sequence = FollowUpSequence.objects.create(
+            initial_log=self.log,
+            recipient_email="hiring@techcorp.io",
+            company_name="TechCorp",
+            role_title="Backend Engineer",
+            scheduled_at=timezone.now() + timezone.timedelta(days=4),
+            status="WAITING"
+        )
+
+    def test_inbound_reply_creation_and_fields(self):
+        """Verify InboundReply model creation and string representation."""
+        reply = InboundReply.objects.create(
+            application=self.app,
+            sender_email="hiring@techcorp.io",
+            subject="Re: Python Developer at TechCorp",
+            classification="INTERVIEW_REQUEST",
+            summary="Recruiter wants to set up a technical interview.",
+            message_id="<reply-789@techcorp.io>"
+        )
+        self.assertEqual(reply.classification, "INTERVIEW_REQUEST")
+        self.assertIn("hiring@techcorp.io", str(reply))
+        self.assertIn("Interview Request", reply.get_classification_display())
+
+    def test_parse_raw_email_message(self):
+        """Verify RFC 2822 email parsing extracts sender, subject, message-id, in-reply-to, and body."""
+        raw_email = (
+            b"From: Sarah Connor <sarah@cyberdyne.com>\r\n"
+            b"To: me@jobbot.local\r\n"
+            b"Subject: Re: Full Stack Python Developer\r\n"
+            b"Message-ID: <msg-abc-999@cyberdyne.com>\r\n"
+            b"In-Reply-To: <orig-12345@jobbot.local>\r\n"
+            b"References: <orig-12345@jobbot.local>\r\n"
+            b"Content-Type: text/plain; charset=utf-8\r\n"
+            b"\r\n"
+            b"Hi Shahbaz,\r\nWe loved your profile and live project ssenterprisesncr.in. Are you available for an interview tomorrow?\r\n"
+        )
+        parsed = parse_raw_email_message(raw_email)
+        self.assertEqual(parsed['sender_email'], "sarah@cyberdyne.com")
+        self.assertEqual(parsed['sender_name'], "Sarah Connor")
+        self.assertEqual(parsed['subject'], "Re: Full Stack Python Developer")
+        self.assertEqual(parsed['in_reply_to'], "<orig-12345@jobbot.local>")
+        self.assertIn("Are you available for an interview", parsed['body_text'])
+
+    def test_correlate_email_to_application_by_message_id(self):
+        """Verify correlation matches initial_log message_id via In-Reply-To."""
+        matched = correlate_email_to_application(
+            in_reply_to="<orig-12345@jobbot.local>",
+            references="",
+            sender_email="unmatched_sender@random.com"
+        )
+        self.assertIsNotNone(matched)
+        self.assertEqual(matched.id, self.app.id)
+
+    def test_correlate_email_to_application_by_sender_email(self):
+        """Verify correlation matches recipient_email when Message-ID is omitted."""
+        matched = correlate_email_to_application(
+            in_reply_to="",
+            references="",
+            sender_email="hiring@techcorp.io"
+        )
+        self.assertIsNotNone(matched)
+        self.assertEqual(matched.id, self.app.id)
+
+    def test_fallback_classify_heuristics(self):
+        """Verify keyword heuristic intent classification across all four categories."""
+        # 1. Interview
+        res_interview = fallback_classify_heuristic("Can we schedule a call for an interview this week?")
+        self.assertEqual(res_interview['intent'], 'INTERVIEW_REQUEST')
+
+        # 2. Rejection
+        res_rejection = fallback_classify_heuristic("Unfortunately, we are not moving forward with other candidates.")
+        self.assertEqual(res_rejection['intent'], 'REJECTION')
+
+        # 3. Clarification
+        res_clarification = fallback_classify_heuristic("Could you please share your notice period and current CTC?")
+        self.assertEqual(res_clarification['intent'], 'CLARIFICATION')
+
+        # 4. Auto-Reply
+        res_auto = fallback_classify_heuristic("I am currently out of the office on annual leave.")
+        self.assertEqual(res_auto['intent'], 'AUTO_REPLY')
+
+    def test_apply_reply_side_effects_interview_request(self):
+        """Verify INTERVIEW_REQUEST advances stage to INTERVIEWING, appends notes, and halts follow-ups."""
+        reply = InboundReply.objects.create(
+            application=self.app,
+            sender_email="hiring@techcorp.io",
+            subject="Interview Invitation",
+            classification="INTERVIEW_REQUEST",
+            summary="Recruiter requested an initial screen.",
+            interview_time=timezone.now() + timezone.timedelta(days=2)
+        )
+        apply_reply_side_effects(reply, self.app)
+
+        self.app.refresh_from_db()
+        self.assertEqual(self.app.stage, "INTERVIEWING")
+        self.assertIsNotNone(self.app.interview_date)
+        self.assertIn("Recruiter requested an initial screen", self.app.notes)
+
+        # Verify FollowUpSequence kill-switch triggered
+        self.sequence.refresh_from_db()
+        self.assertEqual(self.sequence.status, "REPLIED")
+
+    def test_apply_reply_side_effects_rejection(self):
+        """Verify REJECTION advances stage to ARCHIVED, appends notes, and halts follow-ups."""
+        reply = InboundReply.objects.create(
+            application=self.app,
+            sender_email="hiring@techcorp.io",
+            subject="Application Update",
+            classification="REJECTION",
+            summary="Position has been filled."
+        )
+        apply_reply_side_effects(reply, self.app)
+
+        self.app.refresh_from_db()
+        self.assertEqual(self.app.stage, "ARCHIVED")
+        self.assertIn("Position has been filled", self.app.notes)
+
+        self.sequence.refresh_from_db()
+        self.assertEqual(self.sequence.status, "REPLIED")
+
+    @patch('mailer.services.inbound.imaplib.IMAP4_SSL')
+    def test_poll_and_process_inbound_replies_mocked(self, mock_imap_class):
+        """Verify poll_and_process_inbound_replies connects, fetches, correlates, and executes transitions."""
+        mock_client = MagicMock()
+        mock_imap_class.return_value = mock_client
+        mock_client.login.return_value = ('OK', [b'Logged in'])
+        mock_client.select.return_value = ('OK', [b'1'])
+        mock_client.search.return_value = ('OK', [b'101'])
+
+        raw_email = (
+            b"From: hiring@techcorp.io\r\n"
+            b"Subject: Re: Python Developer at TechCorp\r\n"
+            b"In-Reply-To: <orig-12345@jobbot.local>\r\n"
+            b"Message-ID: <reply-101@techcorp.io>\r\n"
+            b"\r\n"
+            b"Hi Shahbaz, we would love to schedule a technical interview with our engineering team.\r\n"
+        )
+        mock_client.fetch.return_value = ('OK', [(b'101 (RFC822 {150})', raw_email)])
+
+        with self.settings(IMAP_USER='test@gmail.com', IMAP_PASSWORD='mockpassword'):
+            results = poll_and_process_inbound_replies(max_emails=5)
+
+        self.assertTrue(results['success'])
+        self.assertEqual(results['checked'], 1)
+        self.assertEqual(results['matched'], 1)
+        self.assertEqual(results['interviews'], 1)
+
+        # Verify DB updated
+        self.app.refresh_from_db()
+        self.assertEqual(self.app.stage, "INTERVIEWING")
+        self.assertTrue(InboundReply.objects.filter(message_id="<reply-101@techcorp.io>").exists())
+
+    @patch('mailer.services.inbound.poll_and_process_inbound_replies')
+    def test_check_inbound_replies_view_ajax(self, mock_poll):
+        """Verify POST /api/inbox/check/ triggers inbox poll and returns JSON metrics."""
+        mock_poll.return_value = {
+            'success': True,
+            'checked': 3,
+            'matched': 1,
+            'interviews': 1,
+            'rejections': 0,
+            'message': 'Processed 3 emails: 1 matched'
+        }
+        url = reverse('check_inbound_replies')
+        response = self.client.post(url, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['matched'], 1)
+        self.assertTrue(mock_poll.called)
+
 
 
 

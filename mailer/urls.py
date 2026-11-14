@@ -10,7 +10,8 @@ from .views import (
     kanban_tracker_view,
     update_application_stage,
     update_application_details,
-    create_application_view
+    create_application_view,
+    check_inbound_replies_view
 )
 
 urlpatterns = [
@@ -23,6 +24,7 @@ urlpatterns = [
     path('api/applications/create/', create_application_view, name='create_application'),
     path('api/applications/<int:app_id>/update-stage/', update_application_stage, name='update_application_stage'),
     path('api/applications/<int:app_id>/update-details/', update_application_details, name='update_application_details'),
+    path('api/inbox/check/', check_inbound_replies_view, name='check_inbound_replies'),
     path('track/open/<uuid:token>/', track_open_view, name='track_open'),
     path('track/click/<uuid:token>/', track_click_view, name='track_click'),
 ]

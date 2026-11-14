@@ -396,3 +396,66 @@ job_bot_project/
                      - Async AJAX Endpoint (POST /api/applications/<id>/update-stage/)
 ```
 
+
+
+---
+
+## 13. Inbound Recruiter Reply Reader & Gemini Intent Engine Architecture
+
+```
+                      [ Recruiter Replies to Outreach ]
+                                     |
+                                     v
+                       [ Direct IMAP4 SSL Poller ]
+                     (imap.gmail.com:993 / SSL TLS)
+                                     |
+                                     v
+                  [ RFC 2822 & Sender Matching Engine ]
+                  - Matches In-Reply-To to initial Message-ID
+                  - Matches From: Recruiter Email
+                                     |
+                                     v
+                   [ Gemini Intent Classifier Service ]
+                   (gemini-2.5-flash via google-genai)
+                                     |
+        +----------------------------+----------------------------+
+        |                            |                            |
+        v                            v                            v
+[ INTERVIEW_REQUEST ]         [ REJECTION ]                 [ AUTO_REPLY ]
+- Halt Follow-Up (REPLIED)    - Halt Follow-Up (REPLIED)    - Preserve Follow-Up
+- Move card to INTERVIEWING   - Move card to ARCHIVED       - Keep current stage
+- Extract Notes & Dates       - Append rejection note       - Log telemetry
+        |                            |                            |
+        +----------------------------+----------------------------+
+                                     |
+                                     v
+                        [ InboundReply Audit Log ]
+                                     |
+                                     v
+                       [ Updated Kanban ATS Board ]
+```
+
+
+---
+
+## 14. Unified Layout Architecture & Refined Slate Design System
+
+```
++---------------------------------------------------------------------------------------------+
+|                          [ Unified Global Navigation Component ]                            |
+|  [⚡ JobBot Pro]  |  [🚀 Dispatcher]  [🎯 Lead Harvester]  [📊 ATS Tracker]  |  [Admin] [Exit] |
++---------------------------------------------------------------------------------------------+
+|                                    [ Refined Color System ]                                 |
+|  Canvas: #0b0f19 (Soft Slate)  |  Cards: #111827 / #1e293b  |  Borders: rgba(255,255,255,0.08)  |
+|  Text Primary: #f1f5f9 (Off-White) | Text Muted: #94a3b8 (Cool Slate) | Badges: Min 12px Font  |
++---------------------------------------------------------------------------------------------+
+                                              |
+        +-------------------------------------+-------------------------------------+
+        |                                     |                                     |
+        v                                     v                                     v
+[ Application Dispatcher (/) ]     [ Lead Harvester (/leads/) ]     [ Visual ATS Tracker (/tracker/) ]
+- Balanced 2-Column Grid (24px)    - Structured Schedule Card       - 6 Responsive Columns (340px)
+- Spacious Form Controls (15px)    - Clean Search & Paste Grids     - High-Legibility Job Cards (14px)
+- Readable Follow-Up Table         - Comfortable Leads Data Grid    - Clear Telemetry & Reply Badges
+- Soft Non-Glare Guidance Box      - Spacious Filter Pill Controls  - Spacious Details & Add Modals
+```

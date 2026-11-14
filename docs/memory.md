@@ -7,8 +7,8 @@
 
 ## 1. Project Status Summary
 - **Project**: `job_bot_project` (Job Application Dispatcher & Lead Harvester)
-- **Active Phase**: **Phase 15 (Kanban Visual Application Tracker & ATS Board) Completed & Verified**
-- **System State**: Multi-Platform Ingestion Active, 08:30 AM IST Morning Harvester Schedule Live, Full Obsidian Dark Glass Kanban ATS Board Operational (/tracker/), Hybrid Telemetry Auto-Progression Connected, 100% Test Coverage (60/60 tests passing)
+- **Active Phase**: **Phase 17 (UI/UX Comfort, Typography & Layout Ergonomics Overhaul) Completed & Verified**
+- **System State**: Ergonomic Slate Palette Active across all pages, Static Low-Glare Ambient Lighting, Unified Global Glass Navigation Header, Clean Spacing & Typography (min 12px badges, 14–15px body), Multi-Platform Harvester, 08:30 AM IST Daily Schedule, ATS Kanban Board (/tracker/), Inbound IMAP Poller & Gemini Recruiter Intent Classifier, 100% Test Coverage (69/69 tests passing)
 - **Primary Database**: Neon Serverless PostgreSQL (`ep-calm-heart...`)
 - **Active Environment**: `.venv` (Python 3.15, Django 6.1, `psycopg` 3.3.8, `google-genai` 3.2.0, `django-q2` 1.11.1)
 
@@ -133,11 +133,33 @@
     - Quick-Edit Modal with HTML5 datetime picker and Quick-Add Modal.
     - Unified navigation linking `🚀 Dispatcher`, `🎯 Leads`, and `📊 ATS Tracker` across all dashboards.
   - Added 9 comprehensive automated tests in `mailer/tests.py` (`KanbanTrackerTest`). Full regression test suite verified: 60/60 passing tests (100% pass rate).
+- **Phase 16 (Inbound Email & Recruiter Reply Reader)**:
+  - Designed `InboundReply` audit model in `mailer/models.py` (`application`, `sender_email`, `sender_name`, `subject`, `message_id`, `in_reply_to`, `classification`, `summary`, `body_snippet`, `interview_time`, `received_at`). Applied migration `0010_inboundreply` to Neon PostgreSQL.
+  - Built `mailer/services/inbound.py`:
+    - `parse_raw_email_message()`: Parses RFC 2822 emails, decodes MIME headers, and extracts plain text bodies.
+    - `correlate_email_to_application()`: Matches incoming replies via `In-Reply-To` / `References` to `ApplicationLog.message_id` and recruiter email addresses.
+    - `classify_recruiter_reply()`: Synthesizes recruiter intent with Google Gemini (`gemini-2.5-flash`), with automated fallback to keyword heuristics.
+    - `apply_reply_side_effects()`: Automatically halts follow-up sequences (`status='REPLIED'`), advances cards to `INTERVIEWING` or `ARCHIVED`, and attaches interview reminders and notes.
+    - `poll_and_process_inbound_replies()`: IMAP4 SSL inbox poller extracting unread messages with idempotency.
+  - Added background worker task `check_inbound_replies_task()` in `mailer/services/tasks.py` and scheduler helpers in `mailer/services/scheduler.py` (30-minute recurring cadence).
+  - Added on-demand AJAX endpoint `POST /api/inbox/check/` in `mailer/views.py` and `mailer/urls.py`.
+  - Upgraded Kanban Board (`mailer/templates/mailer/kanban.html`) with **"📥 Check Replies"** button, live feedback spinner, and colored `💬 Recruiter Replied` pills on application cards.
+  - Added 9 automated tests in `mailer/tests.py` (`InboundReplyReaderTest`). Full regression test suite verified: 69/69 passing tests (100% pass rate).
+- **Phase 17 (UI/UX Comfort, Typography & Layout Ergonomics Overhaul)**:
+  - Refined Color Palette: Replaced harsh void black (`#080b11`) with comfortable Charcoal & Slate Dark Mode (`#0b0f19` canvas, `#111827` surface cards, `#1e293b` elevated surfaces, `#f1f5f9` off-white primary text, `#94a3b8` muted text, `#334155` subtle borders).
+  - Calmed Motion & Glare: Eliminated 500px moving orb animations (`float-orb`); introduced static, low-opacity (0.05) backlighting to remove eye strain and peripheral distraction.
+  - Built Unified Global Glass Navigation Header across all 3 pages (`send_mail.html`, `leads.html`, `kanban.html`) featuring `⚡ JobBot Pro` branding, active route indicator pills (`🚀 Dispatcher`, `🎯 Lead Harvester`, `📊 ATS Tracker`), and consistent Admin/Logout controls.
+  - Upgraded Typography Scale: Eliminated sub-11px text; established 14–15px base body text and minimum 12px (`0.75rem`) badges.
+  - Improved Layout Spacing:
+    - Expanded Kanban columns to 340px with 1rem dropzone padding and 1.1rem card padding.
+    - Re-positioned dispatcher navigation above the two-column grid and softened token instruction banners (`rgba(99, 102, 241, 0.05)`).
+    - Expanded table rows and form fields in Harvester with clean breathing room.
+  - Full Regression Verification: 69/69 tests passing (100% pass rate in 284.5s).
 
 ---
 
 ## 3. Security & License Checklist Status
-- [x] Zero hardcoded secrets in source files (`SECRET_KEY`, DB URL, SMTP in `.env`).
+- [x] Zero hardcoded secrets in source files (`SECRET_KEY`, DB URL, SMTP, IMAP in `.env`).
 - [x] Session-based `@login_required` on all operational views, media downloads, and harvester controls.
 - [x] Media files served by verified PK lookup rather than insecure direct file paths.
 - [x] Database queries use parameterized Django ORM (SQL injection protected).
@@ -148,6 +170,8 @@
 - [x] RFC 5321 DNS MX pre-flight verification protecting sender reputation across all platform sources.
 - [x] Database-backed persistent cron scheduling surviving server and container restarts.
 - [x] Optimistic UI drag-and-drop state transitions with CSRF-protected AJAX validation and rollback.
+- [x] Secure TLS/SSL encryption for inbound IMAP connections (port 993) with zero exposure of personal unread emails outside matched candidate applications.
+- [x] WCAG-compliant slate theme contrast ratios and distraction-free static ambient lighting.
 
 ---
 
@@ -157,12 +181,13 @@
 ---
 
 ## 5. Next Immediate Steps (Operational Recommendations)
-1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and test the Kanban board at `http://127.0.0.1:8000/tracker/`.
-2. **Interactive UI Verification**: Test dragging cards between columns (e.g. from `DISPATCHED` to `INTERVIEWING`), editing interview dates, and creating a new manual application card.
-3. **Queue Worker Execution**: Keep `.\.venv\Scripts\python.exe manage.py qcluster` running in a separate terminal to process background dispatches and morning harvester jobs.
-4. **Select Next Architectural Expansion (Phase 16)**:
-   - **Option A: Inbound Email & Recruiter Response Parser (IMAP/Webhook)**:
-     Automatically detect when a recruiter replies to an outreach email, parse their response sentiment with Gemini, halt follow-up bumps, and automatically advance the card to `INTERVIEWING`.
-   - **Option B: Analytics Dashboard & Conversion Funnel**:
-     Visual charts (via Chart.js or ApexCharts in glass styling) showing conversion funnels, interview rate by location, response rate by platform, and template performance.
+1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and inspect the new comfortable layout across:
+   - `http://127.0.0.1:8000/` (Application Dispatcher)
+   - `http://127.0.0.1:8000/leads/` (Recruiter Lead Harvester)
+   - `http://127.0.0.1:8000/tracker/` (ATS Kanban Board)
+2. **Select Next Architectural Expansion (Phase 18)**:
+   - **Option A: Analytics Dashboard & Conversion Funnel**:
+     Visual charts (via Chart.js in clean slate styling) showing conversion funnels, interview rates by location, platform performance, and template response metrics.
+   - **Option B: Real-Time Web Notifications & Audio Chimes**:
+     Browser Web Push or audio chimes/toasts when a recruiter schedules an interview or responds.
    - **Option C: Custom feature requested by Shahbaz**.

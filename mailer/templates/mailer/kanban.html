@@ -14,19 +14,19 @@
     
     <style>
         :root {
-            --bg-void: #080b11;
-            --surface-glass: rgba(15, 23, 42, 0.7);
-            --surface-glass-elevated: rgba(22, 32, 54, 0.85);
-            --border-glass: rgba(255, 255, 255, 0.08);
-            --border-glass-hover: rgba(99, 102, 241, 0.45);
+            --bg-void: #0b0f19;
+            --surface-glass: rgba(17, 24, 39, 0.75);
+            --surface-glass-elevated: rgba(30, 41, 59, 0.85);
+            --border-glass: rgba(148, 163, 184, 0.12);
+            --border-glass-hover: rgba(99, 102, 241, 0.35);
             --accent-indigo: #6366f1;
-            --accent-purple: #a855f7;
+            --accent-purple: #8b5cf6;
             --accent-emerald: #10b981;
             --accent-amber: #f59e0b;
             --accent-rose: #f43f5e;
             --accent-cyan: #06b6d4;
             --accent-blue: #3b82f6;
-            --text-primary: #f8fafc;
+            --text-primary: #f1f5f9;
             --text-muted: #94a3b8;
             --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
@@ -42,44 +42,35 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Living Ambient Glow Mesh */
+        /* Calm, Eye-Comfort Ambient Backlighting (Zero Glare, No Erratic Drift) */
         .ambient-orb {
             position: fixed;
             border-radius: 50%;
-            filter: blur(100px);
-            opacity: 0.16;
+            filter: blur(120px);
+            opacity: 0.05;
             pointer-events: none;
             z-index: 1;
-            will-change: transform;
         }
         .orb-1 {
-            width: 520px;
-            height: 520px;
+            width: 600px;
+            height: 600px;
             background: radial-gradient(circle, var(--accent-indigo) 0%, transparent 70%);
-            top: -120px;
-            left: -120px;
-            animation: orb-drift 22s ease-in-out infinite alternate;
+            top: -150px;
+            left: -150px;
         }
         .orb-2 {
-            width: 480px;
-            height: 480px;
+            width: 550px;
+            height: 550px;
             background: radial-gradient(circle, var(--accent-purple) 0%, transparent 70%);
-            bottom: -100px;
-            right: -100px;
-            animation: orb-drift 19s ease-in-out infinite alternate-reverse;
+            bottom: -120px;
+            right: -120px;
         }
         .orb-3 {
-            width: 420px;
-            height: 420px;
+            width: 450px;
+            height: 450px;
             background: radial-gradient(circle, var(--accent-cyan) 0%, transparent 70%);
-            top: 40%;
+            top: 35%;
             left: 45%;
-            animation: orb-drift 25s ease-in-out infinite alternate;
-        }
-        @keyframes orb-drift {
-            0% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(40px, -30px) scale(1.08); }
-            100% { transform: translate(-30px, 40px) scale(0.95); }
         }
 
         /* Custom Scrollbars */
@@ -146,54 +137,68 @@
             transform: translateY(-1px);
         }
 
+        .btn-glass-nav {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            border-radius: 8px;
+            font-size: 0.825rem;
+            padding: 0.35rem 0.8rem;
+            transition: all 0.15s ease;
+        }
+        .btn-glass-nav:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #f1f5f9;
+        }
+
         .btn-gradient-primary {
             background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
             border: none;
             color: #ffffff;
             border-radius: 10px;
             font-weight: 600;
-            box-shadow: 0 4px 18px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 4px 18px rgba(99, 102, 241, 0.35);
             transition: all 0.2s ease;
         }
         .btn-gradient-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.6);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.55);
             color: #ffffff;
         }
 
         /* KPI Stat Pill */
         .kpi-card {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.07);
+            background: rgba(22, 30, 49, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.12);
             border-radius: 12px;
-            padding: 0.75rem 1rem;
+            padding: 0.85rem 1.15rem;
             transition: all 0.2s ease;
         }
         .kpi-card:hover {
-            border-color: rgba(255, 255, 255, 0.15);
-            background: rgba(15, 23, 42, 0.85);
+            border-color: rgba(148, 163, 184, 0.25);
+            background: rgba(30, 41, 65, 0.8);
         }
 
         /* Kanban Board Container & Columns */
         .kanban-board-container {
             display: flex;
-            gap: 1.25rem;
+            gap: 1.35rem;
             overflow-x: auto;
-            padding-bottom: 2rem;
-            min-height: calc(100vh - 280px);
+            padding-bottom: 2.5rem;
+            min-height: calc(100vh - 270px);
             scrollbar-width: thin;
         }
 
         .kanban-column {
-            flex: 0 0 320px;
-            width: 320px;
+            flex: 0 0 340px;
+            width: 340px;
             display: flex;
             flex-direction: column;
-            background: rgba(15, 23, 42, 0.55);
+            background: rgba(17, 24, 39, 0.65);
             backdrop-filter: blur(14px);
-            border: 1px solid rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(148, 163, 184, 0.12);
             border-radius: 16px;
-            max-height: calc(100vh - 230px);
+            max-height: calc(100vh - 220px);
             transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
         }
 
@@ -206,17 +211,17 @@
         .kanban-column[data-stage="ARCHIVED"] { border-top: 3px solid #f43f5e; }
 
         .kanban-column-header {
-            padding: 1rem 1.1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 1.1rem 1.25rem;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .stage-badge {
-            font-size: 0.72rem;
+            font-size: 0.8rem;
             font-weight: 700;
-            padding: 0.25rem 0.6rem;
+            padding: 0.25rem 0.65rem;
             border-radius: 9999px;
             font-family: var(--font-mono);
         }
@@ -225,54 +230,54 @@
         .kanban-dropzone {
             flex: 1 1 auto;
             overflow-y: auto;
-            padding: 0.9rem;
+            padding: 1rem;
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
-            min-height: 200px;
+            gap: 0.85rem;
+            min-height: 220px;
             transition: background-color 0.2s ease;
         }
 
         /* Drag Over Visual Feedback */
         .kanban-dropzone.drag-over {
-            background-color: rgba(99, 102, 241, 0.12);
-            outline: 2px dashed rgba(99, 102, 241, 0.6);
+            background-color: rgba(99, 102, 241, 0.1);
+            outline: 2px dashed rgba(99, 102, 241, 0.5);
             outline-offset: -4px;
             border-radius: 12px;
         }
 
         /* Kanban Cards */
         .kanban-card {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            padding: 0.9rem;
+            background: rgba(24, 33, 53, 0.75);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 14px;
+            padding: 1.1rem;
             cursor: grab;
-            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
             position: relative;
             user-select: none;
         }
         .kanban-card:hover {
             transform: translateY(-2px);
-            border-color: rgba(255, 255, 255, 0.22);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-            background: rgba(30, 41, 59, 0.9);
+            border-color: rgba(148, 163, 184, 0.32);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+            background: rgba(30, 41, 65, 0.95);
         }
         .kanban-card:active {
             cursor: grabbing;
         }
         .kanban-card.is-dragging {
-            opacity: 0.4;
+            opacity: 0.35;
             transform: scale(0.97);
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
         }
 
         /* Priority Pills */
         .priority-pill {
-            font-size: 0.65rem;
+            font-size: 0.72rem;
             font-weight: 700;
             text-transform: uppercase;
-            padding: 0.2rem 0.5rem;
+            padding: 0.22rem 0.55rem;
             border-radius: 6px;
             letter-spacing: 0.04em;
         }
@@ -295,15 +300,15 @@
         /* Telemetry Beacon Pill */
         .telemetry-chip {
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.14);
             border-radius: 6px;
-            padding: 0.15rem 0.45rem;
-            font-size: 0.68rem;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
             font-family: var(--font-mono);
             color: #cbd5e1;
             display: inline-flex;
             align-items: center;
-            gap: 0.3rem;
+            gap: 0.35rem;
         }
 
         /* Modal Glass Styling */
@@ -377,60 +382,72 @@
 
     <div class="container-fluid px-3 px-lg-4 position-relative" style="z-index: 2;">
         
-        <!-- Top Navigation Glass Header -->
-        <div class="glass-card p-3 mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <!-- Unified Global Navigation Glass Header -->
+        <div class="glass-card px-3 px-sm-4 py-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="d-flex align-items-center gap-3">
                 <div class="d-flex align-items-center gap-2">
-                    <h4 class="text-gradient mb-0 fs-5">Kanban Application Tracker & ATS Board</h4>
-                    <span class="radar-beacon" title="Live Progression Engine Active"></span>
+                    <span class="fs-4">⚡</span>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-white" style="font-size: 1.15rem; letter-spacing: -0.01em;">JobBot Pro</h5>
+                        <span class="text-white-50 small" style="font-size: 0.75rem;">Enterprise Outreach & ATS</span>
+                    </div>
                 </div>
-                <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10 py-1 px-2" style="font-size: 0.72rem;">
-                    Obsidian ATS 2.0
-                </span>
+                <span class="radar-beacon ms-1" title="Live Engine Active"></span>
             </div>
             
-            <div class="d-flex align-items-center gap-2">
-                <button type="button" class="btn btn-sm btn-gradient-primary px-3 py-1 fw-semibold" data-bs-toggle="modal" data-bs-target="#createAppModal">
-                    <i class="fa-solid fa-plus me-1"></i> New Application
-                </button>
-                <a href="{% url 'send_application' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-2 py-1 small">
+            <!-- Center Navigation Route Pills -->
+            <div class="d-flex align-items-center gap-1 bg-dark bg-opacity-50 p-1 rounded-3 border border-white border-opacity-10">
+                <a href="{% url 'send_application' %}" class="btn btn-sm btn-glass-nav text-white-50 px-3 py-1 fw-semibold">
                     🚀 Dispatcher
                 </a>
-                <a href="{% url 'lead_harvester' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-2 py-1 small">
-                    🎯 Leads
+                <a href="{% url 'lead_harvester' %}" class="btn btn-sm btn-glass-nav text-white-50 px-3 py-1 fw-semibold">
+                    🎯 Lead Harvester
                 </a>
-                <a href="{% url 'admin:index' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-2 py-1 small">
+                <a href="{% url 'kanban_tracker' %}" class="btn btn-sm btn-gradient-primary text-white px-3 py-1 fw-semibold">
+                    📊 ATS Tracker
+                </a>
+            </div>
+
+            <!-- Right Controls -->
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-glass-subtle px-3 py-1 fw-semibold text-info small" id="btnCheckReplies" onclick="triggerInboundCheck()" title="Check recruiter email replies via IMAP">
+                    <i class="fa-solid fa-inbox me-1" id="inboxCheckIcon"></i> <span id="inboxCheckText">Check Replies</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-gradient-primary px-3 py-1 fw-semibold small" data-bs-toggle="modal" data-bs-target="#createAppModal">
+                    <i class="fa-solid fa-plus me-1"></i> New Application
+                </button>
+                <a href="{% url 'admin:index' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-3 py-1 small">
                     Admin
                 </a>
                 <form method="post" action="{% url 'logout' %}" class="m-0">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-sm btn-glass-subtle text-danger-emphasis fw-semibold px-2 py-1 small" title="Logout">
-                        ✕
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
                     </button>
                 </form>
             </div>
         </div>
 
         <!-- KPI Metrics & Filter Bar -->
-        <div class="glass-card p-3 mb-4">
+        <div class="glass-card p-3 p-sm-4 mb-4">
             <div class="row g-3 align-items-center">
                 <!-- Metrics -->
                 <div class="col-12 col-xl-6 d-flex flex-wrap gap-2 align-items-center">
                     <div class="kpi-card flex-grow-1">
-                        <div class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.65rem;">Total Applications</div>
-                        <div class="fs-5 fw-bold text-white">{{ total_apps }}</div>
+                        <div class="text-white-50 text-uppercase fw-semibold mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Total Applications</div>
+                        <div class="fs-4 fw-bold text-white">{{ total_apps }}</div>
                     </div>
                     <div class="kpi-card flex-grow-1">
-                        <div class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.65rem;">Recruiter Response Rate</div>
-                        <div class="fs-5 fw-bold text-info">{{ response_rate }}%</div>
+                        <div class="text-white-50 text-uppercase fw-semibold mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Recruiter Response Rate</div>
+                        <div class="fs-4 fw-bold text-info">{{ response_rate }}%</div>
                     </div>
                     <div class="kpi-card flex-grow-1">
-                        <div class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.65rem;">Active Interviews</div>
-                        <div class="fs-5 fw-bold text-success">{{ interviewing_count }}</div>
+                        <div class="text-white-50 text-uppercase fw-semibold mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Active Interviews</div>
+                        <div class="fs-4 fw-bold text-success">{{ interviewing_count }}</div>
                     </div>
                     <div class="kpi-card flex-grow-1">
-                        <div class="text-white-50 text-uppercase fw-semibold" style="font-size: 0.65rem;">Offers Received</div>
-                        <div class="fs-5 fw-bold text-warning">{{ offers_count }}</div>
+                        <div class="text-white-50 text-uppercase fw-semibold mb-1" style="font-size: 0.72rem; letter-spacing: 0.03em;">Offers Received</div>
+                        <div class="fs-4 fw-bold text-warning">{{ offers_count }}</div>
                     </div>
                 </div>
 
@@ -498,8 +515,8 @@
                                  data-notes="{{ app.notes }}">
                                 
                                 <!-- Top Card Line: Company + Priority -->
-                                <div class="d-flex justify-content-between align-items-start mb-1">
-                                    <div class="fw-bold text-white text-truncate me-2" style="max-width: 190px;" title="{{ app.company_name|default:'Direct Application' }}">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="fw-bold text-white text-truncate me-2" style="font-size: 0.95rem; max-width: 210px;" title="{{ app.company_name|default:'Direct Application' }}">
                                         {{ app.company_name|default:"Direct Application" }}
                                     </div>
                                     <span class="priority-pill priority-{{ app.priority }}">
@@ -508,14 +525,14 @@
                                 </div>
 
                                 <!-- Role Title -->
-                                <div class="small text-white-50 text-truncate mb-2" title="{{ app.role_title|default:'Python Full Stack Developer' }}">
+                                <div class="text-white-50 text-truncate mb-2" style="font-size: 0.85rem;" title="{{ app.role_title|default:'Python Full Stack Developer' }}">
                                     {{ app.role_title|default:"Python Full Stack Developer" }}
                                 </div>
 
                                 <!-- Recruiter Contact Info -->
-                                <div class="d-flex align-items-center gap-1 text-white-50 small mb-2" style="font-size: 0.72rem;">
-                                    <i class="fa-regular fa-envelope"></i>
-                                    <span class="text-truncate" style="max-width: 220px;" title="{{ app.recipient_email }}">
+                                <div class="d-flex align-items-center gap-2 text-white-50 mb-2" style="font-size: 0.8rem;">
+                                    <i class="fa-regular fa-envelope text-white-50"></i>
+                                    <span class="text-truncate" style="max-width: 240px;" title="{{ app.recipient_email }}">
                                         {{ app.recipient_name|default:app.recipient_email }}
                                     </span>
                                 </div>
@@ -523,7 +540,7 @@
                                 <!-- Interview Date Pill (if scheduled) -->
                                 {% if app.interview_date %}
                                     <div class="mb-2">
-                                        <span class="badge bg-emerald-500 bg-opacity-20 text-emerald border border-emerald border-opacity-30 py-1 px-2 small d-inline-flex align-items-center gap-1" style="font-size: 0.68rem; color: #10b981;">
+                                        <span class="badge bg-emerald-500 bg-opacity-20 text-emerald border border-emerald border-opacity-30 py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem; color: #10b981;">
                                             <i class="fa-regular fa-calendar-check"></i>
                                             {{ app.interview_date|date:"M d, h:i A" }}
                                         </span>
@@ -533,15 +550,27 @@
                                 <!-- Salary Target (if set) -->
                                 {% if app.salary_notes %}
                                     <div class="mb-2">
-                                        <span class="badge bg-cyan-500 bg-opacity-20 text-info border border-info border-opacity-30 py-1 px-2 small d-inline-flex align-items-center gap-1" style="font-size: 0.68rem;">
+                                        <span class="badge bg-cyan-500 bg-opacity-20 text-info border border-info border-opacity-30 py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
                                             <i class="fa-solid fa-coins"></i>
                                             {{ app.salary_notes }}
                                         </span>
                                     </div>
                                 {% endif %}
 
+                                <!-- Inbound Reply Notification Pill (if recruiter responded) -->
+                                {% with latest_reply=app.inbound_replies.all|first %}
+                                    {% if latest_reply %}
+                                        <div class="mb-2">
+                                            <span class="badge {% if latest_reply.classification == 'INTERVIEW_REQUEST' %}bg-success text-success-emphasis border-success{% elif latest_reply.classification == 'REJECTION' %}bg-danger text-danger-emphasis border-danger{% elif latest_reply.classification == 'CLARIFICATION' %}bg-warning text-warning-emphasis border-warning{% else %}bg-info text-info border-info{% endif %} bg-opacity-20 border border-opacity-30 py-1 px-2 d-inline-flex align-items-center gap-1 w-100 text-truncate" style="font-size: 0.75rem;" title="{{ latest_reply.summary }}">
+                                                <i class="fa-solid fa-reply"></i>
+                                                <strong>{{ latest_reply.get_classification_display }}:</strong> {{ latest_reply.summary|truncatechars:28 }}
+                                            </span>
+                                        </div>
+                                    {% endif %}
+                                {% endwith %}
+
                                 <!-- Bottom Card Footer: Telemetry + Dispatch Age + Edit Button -->
-                                <div class="d-flex justify-content-between align-items-center pt-2 mt-1 border-top border-white border-opacity-10" style="font-size: 0.7rem;">
+                                <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top border-white border-opacity-10" style="font-size: 0.75rem;">
                                     <div class="d-flex align-items-center gap-1">
                                         {% if app.initial_log %}
                                             <span class="telemetry-chip" title="Opens: {{ app.initial_log.open_count }}">
@@ -996,6 +1025,48 @@
             })
             .catch(err => {
                 showToast('Network error while creating card', true);
+            });
+        }
+
+        // -------------------------------------------------------------
+        // On-Demand Inbound Inbox Polling
+        // -------------------------------------------------------------
+        function triggerInboundCheck() {
+            const btn = document.getElementById('btnCheckReplies');
+            const icon = document.getElementById('inboxCheckIcon');
+            const text = document.getElementById('inboxCheckText');
+
+            btn.disabled = true;
+            icon.className = 'fa-solid fa-spinner fa-spin me-1';
+            text.textContent = 'Checking...';
+
+            fetch('/api/inbox/check/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                icon.className = 'fa-solid fa-inbox me-1';
+                text.textContent = 'Check Replies';
+
+                if (data.success) {
+                    showToast(data.message || `Checked ${data.checked} emails (${data.matched} matched)`);
+                    if (data.matched > 0) {
+                        setTimeout(() => window.location.reload(), 1200);
+                    }
+                } else {
+                    showToast(data.error || 'Failed to check inbox', true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                icon.className = 'fa-solid fa-inbox me-1';
+                text.textContent = 'Check Replies';
+                showToast('Network error while checking inbox', true);
             });
         }
     </script>
