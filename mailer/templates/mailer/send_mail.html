@@ -24,7 +24,7 @@
             --accent-amber: #f59e0b;
             --accent-rose: #f43f5e;
             --text-primary: #f1f5f9;
-            --text-muted: #ffffff;
+            --text-muted: #94a3b8;
             --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
         }
@@ -352,78 +352,57 @@
     <div class="ambient-orb orb-2"></div>
     <div class="ambient-orb orb-3"></div>
 
-    <div class="container-fluid px-3 px-lg-4 position-relative" style="max-width: 1560px; z-index: 2;">
-        
-        <!-- Unified Global Navigation Glass Header -->
-        <div class="glass-card px-3 px-sm-4 py-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="fs-4">⚡</span>
-                    <div>
-                        <h5 class="fw-bold mb-0 text-white" style="font-size: 1.15rem; letter-spacing: -0.01em;">JobBot Pro</h5>
-                        <span class="text-white-50 small" style="font-size: 0.75rem;">Enterprise Outreach & ATS</span>
-                    </div>
-                </div>
-                <span class="radar-beacon ms-1" title="Live Engine Active"></span>
-            </div>
-            
-            <!-- Center Navigation Route Pills -->
-            <div class="d-flex align-items-center gap-1 bg-dark bg-opacity-50 p-1 rounded-3 border border-white border-opacity-10">
-                <a href="{% url 'send_application' %}" class="btn btn-sm btn-gradient-primary text-white px-3 py-1 fw-semibold">
-                    🚀 Dispatcher
-                </a>
-                <a href="{% url 'lead_harvester' %}" class="btn btn-sm btn-glass-nav text-white-50 px-3 py-1 fw-semibold">
-                    🎯 Lead Harvester
-                </a>
-                <a href="{% url 'kanban_tracker' %}" class="btn btn-sm btn-glass-nav text-white-50 px-3 py-1 fw-semibold">
-                    📊 ATS Tracker
-                </a>
-            </div>
-
-            <!-- Right Controls -->
-            <div class="d-flex align-items-center gap-2">
-                <a href="{% url 'admin:index' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-3 py-1 small">
-                    Admin
-                </a>
-                <form method="post" action="{% url 'logout' %}" class="m-0">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-glass-subtle text-danger-emphasis fw-semibold px-2 py-1 small" title="Logout">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                    </button>
-                </form>
-            </div>
-        </div>
-
+    <div class="container-fluid px-2 px-sm-3 px-lg-4 position-relative" style="max-width: 1560px; z-index: 2;">
         <div class="row g-4 align-items-start">
             
             <!-- Left Column: Application Dispatcher Form -->
             <div class="col-12 col-xl-5 col-lg-6 mb-3 mb-lg-0">
                 <div class="glass-card p-3 p-sm-4">
                     
-                    <!-- Clean Compose Card Header -->
+                    <!-- Header Bar -->
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white border-opacity-10">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="fa-solid fa-paper-plane text-primary"></i>
-                            <h5 class="fw-bold mb-0 text-white fs-6">Compose Dispatch</h5>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge rounded-pill bg-white bg-opacity-10 text-light border border-white border-opacity-10 py-1 px-2" style="font-size: 0.75rem;">
-                                Today: <strong class="text-white">{{ sent_today }}</strong> / {{ daily_limit }} sent
-                            </span>
-                            <div class="progress-shimmer" style="width: 85px; height: 6px;" title="{{ quota_percent }}% of daily quota">
-                                <div class="progress-bar {% if quota_percent > 85 %}bg-danger{% elif quota_percent > 60 %}bg-warning{% else %}bg-success{% endif %}" 
-                                     role="progressbar" 
-                                     style="width: {{ quota_percent }}%;" 
-                                     aria-valuenow="{{ quota_percent }}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100"></div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <h4 class="text-gradient mb-0 fs-5">Application Dispatcher</h4>
+                                <span class="radar-beacon" title="Live SMTP Engine Active"></span>
                             </div>
+                            <div class="d-flex align-items-center gap-2 mt-2">
+                                <span class="badge rounded-pill bg-white bg-opacity-10 text-light border border-white border-opacity-10 py-1 px-2 small">
+                                    Today: <strong class="text-white">{{ sent_today }}</strong> / {{ daily_limit }} sent
+                                </span>
+                                <div class="progress-shimmer" style="width: 85px; height: 6px;" title="{{ quota_percent }}% of daily quota">
+                                    <div class="progress-bar {% if quota_percent > 85 %}bg-danger{% elif quota_percent > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ quota_percent }}%;" 
+                                         aria-valuenow="{{ quota_percent }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2 align-items-center">
+                            <a href="{% url 'kanban_tracker' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-2 py-1 small" title="Kanban ATS Tracker">
+                                📊 ATS Tracker
+                            </a>
+                            <a href="{% url 'lead_harvester' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-2 py-1 small">
+                                🎯 Leads
+                            </a>
+                            <a href="{% url 'admin:index' %}" class="btn btn-sm btn-glass-subtle fw-semibold px-2 py-1 small">
+                                Admin
+                            </a>
+                            <form method="post" action="{% url 'logout' %}" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-glass-subtle text-danger-emphasis fw-semibold px-2 py-1 small" title="Logout">
+                                    ✕
+                                </button>
+                            </form>
                         </div>
                     </div>
 
                     <!-- Dynamic Instructions Banner -->
-                    <div class="p-2 mb-3 rounded-3" style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.15);">
-                        <p class="small text-white-50 mb-0" style="font-size: 0.825rem;">
+                    <div class="p-2 mb-3 rounded-3" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2);">
+                        <p class="small text-white-50 mb-0">
                             <span class="text-white fw-semibold">Personalization Tokens:</span> 
                             Use <span class="token-pill">&#123;&#123; name &#125;&#125;</span>, 
                             <span class="token-pill">&#123;&#123; company &#125;&#125;</span>, 
@@ -453,7 +432,7 @@
                             {% endif %}
 
                             <div class="mb-3">
-                                <label class="form-label text-muted small fw-semibold text-uppercase tracking-wide" style="font-size: 0.72rem;">{{ form.recipient_emails.label }}</label>
+                                <label class="form-label small fw-semibold text-uppercase tracking-wide" style="font-size: 0.72rem;">{{ form.recipient_emails.label }}</label>
                                 {{ form.recipient_emails }}
                                 {% if form.recipient_emails.errors %}
                                     <div class="text-danger small mt-1">{{ form.recipient_emails.errors }}</div>
@@ -461,7 +440,7 @@
                             </div>
                             
                             <div class="mb-3">
-                                <label class="form-label text-muted small fw-semibold text-uppercase tracking-wide" style="font-size: 0.72rem;">{{ form.csv_file.label }}</label>
+                                <label class="form-label small fw-semibold text-uppercase tracking-wide" style="font-size: 0.72rem;">{{ form.csv_file.label }}</label>
                                 {{ form.csv_file }}
                                 {% if form.csv_file.errors %}
                                     <div class="text-danger small mt-1">{{ form.csv_file.errors }}</div>
@@ -470,11 +449,11 @@
 
                             <div class="row g-2 mb-3">
                                 <div class="col-12 col-sm-6">
-                                    <label class="form-label text-muted small fw-semibold text-uppercase tracking-wide" style="font-size: 0.72rem;">{{ form.template.label }}</label>
+                                    <label class="form-label small fw-semibold text-uppercase tracking-wide" style="font-size: 0.72rem;">{{ form.template.label }}</label>
                                     {{ form.template }}
                                 </div>
                                 <div class="col-12 col-sm-6">
-                                    <label class="form-label text-muted small fw-semibold text-uppercase tracking-wide" style="font-size: 0.72rem;">{{ form.resume.label }}</label>
+                                    <label class="form-label small fw-semibold text-uppercase tracking-wide" style="font-size: 0.72rem;">{{ form.resume.label }}</label>
                                     {{ form.resume }}
                                 </div>
                             </div>
