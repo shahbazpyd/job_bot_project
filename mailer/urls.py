@@ -11,7 +11,9 @@ from .views import (
     update_application_stage,
     update_application_details,
     create_application_view,
-    check_inbound_replies_view
+    check_inbound_replies_view,
+    analyze_jd_view,
+    prep_dossier_view
 )
 
 urlpatterns = [
@@ -21,9 +23,11 @@ urlpatterns = [
     path('recent-logs/', recent_logs_partial, name='recent_logs_partial'),
     path('followups/action/', followup_action_view, name='followup_action'),
     path('api/generate-hook/', generate_ai_hook_view, name='generate_ai_hook'),
+    path('api/analyze-jd/', analyze_jd_view, name='analyze_jd'),
     path('api/applications/create/', create_application_view, name='create_application'),
     path('api/applications/<int:app_id>/update-stage/', update_application_stage, name='update_application_stage'),
     path('api/applications/<int:app_id>/update-details/', update_application_details, name='update_application_details'),
+    path('api/applications/<int:app_id>/prep-dossier/', prep_dossier_view, name='prep_dossier'),
     path('api/inbox/check/', check_inbound_replies_view, name='check_inbound_replies'),
     path('track/open/<uuid:token>/', track_open_view, name='track_open'),
     path('track/click/<uuid:token>/', track_click_view, name='track_click'),

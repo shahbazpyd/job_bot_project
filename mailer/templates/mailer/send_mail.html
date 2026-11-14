@@ -458,6 +458,91 @@
                                 </div>
                             </div>
 
+                            <!-- 📋 Job Description (JD) Analyzer & ATS Optimizer (Gemini Pro) -->
+                            <div class="glass-card p-3 mb-3" style="background: rgba(17, 24, 39, 0.75); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fs-6">📋</span>
+                                        <div>
+                                            <span class="fw-semibold text-white small d-block">JD Analyzer & ATS Optimizer</span>
+                                            <span class="text-white-50" style="font-size: 0.72rem;">Semantic resume match & tailored talking points</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1.5">
+                                        <span class="badge rounded-pill bg-purple bg-opacity-25 text-purple border border-purple border-opacity-35 px-2 py-0.5" style="font-size: 0.68rem;">Gemini Pro</span>
+                                        <button type="button" id="toggle-jd-analyzer" class="btn btn-sm btn-glass-subtle py-0 px-2 small text-white-50" style="font-size: 0.7rem;">
+                                            ✨ Expand Analyzer
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="jd-analyzer-body" class="d-none mt-2 pt-2 border-top border-white border-opacity-10">
+                                    <p class="text-white-50 small mb-2" style="font-size: 0.72rem;">
+                                        Paste any Job Description or recruiter tech requirements below. Gemini Pro will calculate your ATS match score, extract missing keywords, and generate 3 tailored talking points.
+                                    </p>
+
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-6">
+                                            <label class="form-label text-white-50 small text-uppercase mb-1" style="font-size: 0.68rem;">Target Company</label>
+                                            <input type="text" id="jd-company-input" class="form-control" placeholder="e.g. Swiggy, Zepto, Razorpay" style="font-size: 0.75rem;">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label text-white-50 small text-uppercase mb-1" style="font-size: 0.68rem;">Target Role</label>
+                                            <input type="text" id="jd-role-input" class="form-control" placeholder="e.g. Python Backend Developer" style="font-size: 0.75rem;">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label class="form-label text-white-50 small text-uppercase mb-1" style="font-size: 0.68rem;">Paste Full Job Description / Requirements</label>
+                                        <textarea id="raw-jd-textarea" class="form-control font-mono" rows="3" placeholder="Paste full JD text, responsibilities, or technical requirements here..." style="font-size: 0.75rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1);"></textarea>
+                                    </div>
+
+                                    <div class="d-flex gap-2 align-items-center mb-2">
+                                        <button type="button" id="btn-run-jd-analysis" class="btn btn-sm btn-gradient-primary px-3 py-1.5 fw-semibold small flex-grow-1">
+                                            <span id="jd-btn-text">⚡ Analyze JD with Gemini Pro</span>
+                                        </button>
+                                        <button type="button" id="btn-clear-jd" class="btn btn-sm btn-glass-subtle py-1 px-2 text-white-50 small" title="Clear inputs">
+                                            ✕ Clear
+                                        </button>
+                                    </div>
+
+                                    <!-- Loading Spinner -->
+                                    <div id="jd-loading-container" class="d-none text-center py-3">
+                                        <div class="spinner-border spinner-border-sm text-purple mb-1" role="status"></div>
+                                        <div class="text-white-50 small" style="font-size: 0.75rem;">Running deep semantic ATS analysis with Gemini Pro...</div>
+                                    </div>
+
+                                    <!-- ATS Result Card -->
+                                    <div id="ats-results-card" class="d-none p-2.5 rounded-3 mt-2" style="background: rgba(11, 15, 25, 0.7); border: 1px solid rgba(99, 102, 241, 0.25);">
+                                        <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                            <span class="text-white-50 fw-semibold text-uppercase" style="font-size: 0.7rem;">ATS Semantic Match Score</span>
+                                            <span id="ats-score-badge" class="badge rounded-pill fw-bold px-2 py-0.5" style="font-size: 0.75rem;">0% Match</span>
+                                        </div>
+                                        <div class="progress mb-2" style="height: 6px; background: rgba(255,255,255,0.08);">
+                                            <div id="ats-score-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%;"></div>
+                                        </div>
+                                        <div id="ats-summary-text" class="text-white-50 small fst-italic mb-2" style="font-size: 0.75rem;"></div>
+
+                                        <div class="mb-2">
+                                            <div class="text-white-50 fw-semibold text-uppercase mb-1" style="font-size: 0.68rem;">Matched Core Skills:</div>
+                                            <div id="ats-matched-skills" class="d-flex flex-wrap gap-1 mb-2"></div>
+                                            
+                                            <div class="text-white-50 fw-semibold text-uppercase mb-1" style="font-size: 0.68rem;">Missing / Secondary Keywords:</div>
+                                            <div id="ats-missing-skills" class="d-flex flex-wrap gap-1"></div>
+                                        </div>
+
+                                        <div class="pt-2 border-top border-white border-opacity-10 mb-2">
+                                            <div class="text-white-50 fw-semibold text-uppercase mb-1" style="font-size: 0.68rem;">3 Tailored Talking Points:</div>
+                                            <ul id="ats-tailored-points-list" class="list-unstyled mb-0 d-flex flex-column gap-1 text-white-50" style="font-size: 0.75rem;"></ul>
+                                        </div>
+
+                                        <button type="button" id="btn-inject-points" class="btn btn-sm btn-gradient-success w-100 py-1.5 fw-semibold small">
+                                            <span>✨ Inject Tailored Points into Email Body</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- AI Tailored Pitch Assistant (Gemini) -->
                             <div class="glass-card p-3 mb-3" style="background: rgba(99, 102, 241, 0.06); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px;">
                                 <div class="d-flex justify-content-between align-items-center">
@@ -940,6 +1025,218 @@
                 templateSelect.addEventListener('change', updatePreview);
                 resumeSelect.addEventListener('change', updatePreview);
                 updatePreview();
+            }
+
+            // -------------------------------------------------------------
+            // 📋 Job Description (JD) Analyzer & ATS Optimizer (Gemini Pro)
+            // -------------------------------------------------------------
+            const toggleJdAnalyzer = document.getElementById('toggle-jd-analyzer');
+            const jdAnalyzerBody = document.getElementById('jd-analyzer-body');
+            const rawJdTextarea = document.getElementById('raw-jd-textarea');
+            const jdCompanyInput = document.getElementById('jd-company-input');
+            const jdRoleInput = document.getElementById('jd-role-input');
+            const btnRunJdAnalysis = document.getElementById('btn-run-jd-analysis');
+            const jdBtnText = document.getElementById('jd-btn-text');
+            const btnClearJd = document.getElementById('btn-clear-jd');
+            const jdLoadingContainer = document.getElementById('jd-loading-container');
+            const atsResultsCard = document.getElementById('ats-results-card');
+            const atsScoreBadge = document.getElementById('ats-score-badge');
+            const atsScoreBar = document.getElementById('ats-score-bar');
+            const atsSummaryText = document.getElementById('ats-summary-text');
+            const atsMatchedSkills = document.getElementById('ats-matched-skills');
+            const atsMissingSkills = document.getElementById('ats-missing-skills');
+            const atsTailoredPointsList = document.getElementById('ats-tailored-points-list');
+            const btnInjectPoints = document.getElementById('btn-inject-points');
+
+            let lastTailoredPoints = [];
+
+            if (toggleJdAnalyzer && jdAnalyzerBody) {
+                toggleJdAnalyzer.addEventListener('click', function() {
+                    if (jdAnalyzerBody.classList.contains('d-none')) {
+                        jdAnalyzerBody.classList.remove('d-none');
+                        toggleJdAnalyzer.textContent = 'Minimize';
+                    } else {
+                        jdAnalyzerBody.classList.add('d-none');
+                        toggleJdAnalyzer.textContent = '✨ Expand Analyzer';
+                    }
+                });
+            }
+
+            if (btnClearJd && rawJdTextarea) {
+                btnClearJd.addEventListener('click', function() {
+                    rawJdTextarea.value = '';
+                    if (jdCompanyInput) jdCompanyInput.value = '';
+                    if (jdRoleInput) jdRoleInput.value = '';
+                    if (atsResultsCard) atsResultsCard.classList.add('d-none');
+                    lastTailoredPoints = [];
+                });
+            }
+
+            if (btnRunJdAnalysis && rawJdTextarea) {
+                btnRunJdAnalysis.addEventListener('click', function() {
+                    const rawJd = rawJdTextarea.value.trim();
+                    if (!rawJd) {
+                        alert('Please paste the job description text before running ATS analysis.');
+                        rawJdTextarea.focus();
+                        return;
+                    }
+
+                    const company = jdCompanyInput ? jdCompanyInput.value.trim() : '';
+                    const role = jdRoleInput ? jdRoleInput.value.trim() : '';
+
+                    btnRunJdAnalysis.disabled = true;
+                    if (jdLoadingContainer) jdLoadingContainer.classList.remove('d-none');
+                    if (atsResultsCard) atsResultsCard.classList.add('d-none');
+                    if (jdBtnText) {
+                        jdBtnText.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> Analyzing with Gemini Pro...`;
+                    }
+
+                    fetch("{% url 'analyze_jd' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            raw_jd: rawJd,
+                            company: company,
+                            role: role
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            lastTailoredPoints = data.tailored_points || [];
+
+                            // Render Score & Bar
+                            const score = Math.round(data.match_score || 0);
+                            if (atsScoreBadge) {
+                                atsScoreBadge.textContent = `${score}% Match`;
+                                if (score >= 80) {
+                                    atsScoreBadge.className = 'badge rounded-pill bg-success bg-opacity-25 text-success border border-success border-opacity-30 px-2 py-0.5 fw-bold';
+                                } else if (score >= 60) {
+                                    atsScoreBadge.className = 'badge rounded-pill bg-warning bg-opacity-25 text-warning border border-warning border-opacity-30 px-2 py-0.5 fw-bold';
+                                } else {
+                                    atsScoreBadge.className = 'badge rounded-pill bg-danger bg-opacity-25 text-danger border border-danger border-opacity-30 px-2 py-0.5 fw-bold';
+                                }
+                            }
+
+                            if (atsScoreBar) {
+                                atsScoreBar.style.width = `${score}%`;
+                                if (score >= 80) atsScoreBar.className = 'progress-bar bg-success';
+                                else if (score >= 60) atsScoreBar.className = 'progress-bar bg-warning';
+                                else atsScoreBar.className = 'progress-bar bg-danger';
+                            }
+
+                            // Summary Text
+                            if (atsSummaryText) {
+                                atsSummaryText.textContent = data.summary || '';
+                            }
+
+                            // Matched Skills Pills
+                            if (atsMatchedSkills) {
+                                atsMatchedSkills.innerHTML = '';
+                                const matched = data.matched_skills || [];
+                                if (matched.length > 0) {
+                                    matched.forEach(skill => {
+                                        const pill = document.createElement('span');
+                                        pill.className = 'badge rounded-pill bg-success bg-opacity-15 text-success border border-success border-opacity-30 py-0 px-2';
+                                        pill.style.fontSize = '0.72rem';
+                                        pill.textContent = `✓ ${skill}`;
+                                        atsMatchedSkills.appendChild(pill);
+                                    });
+                                } else {
+                                    atsMatchedSkills.innerHTML = '<span class="text-white-50 small" style="font-size: 0.72rem;">No core keywords detected</span>';
+                                }
+                            }
+
+                            // Missing Skills Pills
+                            if (atsMissingSkills) {
+                                atsMissingSkills.innerHTML = '';
+                                const missing = data.missing_skills || [];
+                                if (missing.length > 0) {
+                                    missing.forEach(skill => {
+                                        const pill = document.createElement('span');
+                                        pill.className = 'badge rounded-pill bg-warning bg-opacity-15 text-warning border border-warning border-opacity-30 py-0 px-2';
+                                        pill.style.fontSize = '0.72rem';
+                                        pill.textContent = `+ ${skill}`;
+                                        atsMissingSkills.appendChild(pill);
+                                    });
+                                } else {
+                                    atsMissingSkills.innerHTML = '<span class="text-white-50 small" style="font-size: 0.72rem;">None detected</span>';
+                                }
+                            }
+
+                            // Tailored Talking Points
+                            if (atsTailoredPointsList) {
+                                atsTailoredPointsList.innerHTML = '';
+                                lastTailoredPoints.forEach(point => {
+                                    const li = document.createElement('li');
+                                    li.className = 'd-flex align-items-start gap-1.5';
+                                    li.innerHTML = `<span class="text-info fw-bold" style="font-size: 0.75rem;">•</span><span>${point}</span>`;
+                                    atsTailoredPointsList.appendChild(li);
+                                });
+                            }
+
+                            if (atsResultsCard) {
+                                atsResultsCard.classList.remove('d-none');
+                            }
+                        } else {
+                            alert('Analysis error: ' + (data.error || 'Failed to analyze job description.'));
+                        }
+                    })
+                    .catch(err => {
+                        console.error('JD analysis error:', err);
+                        alert('Network error communicating with ATS analysis endpoint.');
+                    })
+                    .finally(() => {
+                        btnRunJdAnalysis.disabled = false;
+                        if (jdLoadingContainer) jdLoadingContainer.classList.add('d-none');
+                        if (jdBtnText) {
+                            jdBtnText.textContent = '⚡ Re-Analyze with Gemini Pro';
+                        }
+                    });
+                });
+            }
+
+            // 1-Click Inject Tailored Points into Custom Hook
+            if (btnInjectPoints) {
+                btnInjectPoints.addEventListener('click', function() {
+                    if (!lastTailoredPoints || lastTailoredPoints.length === 0) {
+                        alert('No tailored points available to inject. Please analyze a Job Description first.');
+                        return;
+                    }
+
+                    const formattedBullets = "A few quick highlights directly aligned with your requirements:\n" +
+                        lastTailoredPoints.map(p => `• ${p}`).join('\n');
+
+                    if (customHookInput) {
+                        customHookInput.value = formattedBullets;
+                        if (hookBadge) {
+                            hookBadge.className = 'badge rounded-pill bg-success bg-opacity-25 text-success border border-success border-opacity-40 py-0 px-2';
+                            hookBadge.textContent = '✨ ATS Tailored Points Active';
+                        }
+                    }
+
+                    // Expand AI Assistant card if collapsed so user sees the active injection
+                    if (aiAssistantBody && aiAssistantBody.classList.contains('d-none')) {
+                        aiAssistantBody.classList.remove('d-none');
+                        if (toggleAiAssistant) toggleAiAssistant.textContent = 'Minimize';
+                    }
+
+                    updatePreview();
+
+                    const origHtml = btnInjectPoints.innerHTML;
+                    btnInjectPoints.innerHTML = `<span>✓ Tailored Points Injected into Email!</span>`;
+                    btnInjectPoints.classList.remove('btn-gradient-success');
+                    btnInjectPoints.classList.add('btn-success');
+
+                    setTimeout(() => {
+                        btnInjectPoints.innerHTML = origHtml;
+                        btnInjectPoints.classList.remove('btn-success');
+                        btnInjectPoints.classList.add('btn-gradient-success');
+                    }, 2200);
+                });
             }
 
             // 4. Loading Effect: Button Morphing on Dispatch

@@ -459,3 +459,105 @@ job_bot_project/
 - Readable Follow-Up Table         - Comfortable Leads Data Grid    - Clear Telemetry & Reply Badges
 - Soft Non-Glare Guidance Box      - Spacious Filter Pill Controls  - Spacious Details & Add Modals
 ```
+
+---
+
+## 15. Gemini Pro ATS Matcher & Tailored Pitch Pipeline
+
+```
++-------------------------------------------------------------------------------------------------+
+|                                 Application Dispatcher UI (/)                                   |
+|   [ 📋 Job Description (JD) Analyzer Box ] -> User pastes raw JD & selects target Resume       |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                     (POST /api/analyze-jd/)
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                                 Django View Layer (mailer/views.py)                             |
+|   - Authenticates session (@login_required)                                                     |
+|   - Parses incoming request JSON payload: { raw_jd, resume_id, company, role }                  |
+|   - Loads Grounded Candidate Profile & Resume context                                           |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                           Gemini Pro Service Layer (mailer/services/jd_matcher.py)              |
+|   - Reads GEMINI_API_KEY and GEMINI_PRO_MODEL from settings.py                                  |
+|   - Constructs Structured Semantic Comparison Prompt with JSON Schema Enforcement               |
+|   - Invokes Google GenAI Client: client.models.generate_content(...)                            |
+|   - Fallback: Graceful deterministic calculation if network or API key fails                    |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                                Structured JSON Response Data                                    |
+|   {                                                                                             |
+|     "match_score": 88,                                                                          |
+|     "matched_skills": ["Python", "FastAPI", "PostgreSQL", "REST APIs"],                         |
+|     "missing_skills": ["Docker", "Celery", "Redis"],                                            |
+|     "tailored_points": [                                                                        |
+|       "Engineered production FastAPI B2B platform with 15 hrs/wk workflow savings.",            |
+|       "Optimized PostgreSQL queries by 35% with robust database index tuning.",                 |
+|       "Developed responsive React/Tailwind interfaces integrated with cloud APIs."              |
+|     ],                                                                                          |
+|     "summary": "Strong core backend match; highlight PostgreSQL tuning and API architecture."   |
+|   }                                                                                             |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                               Interactive ATS Match Card in Dispatcher                          |
+|   - Real-time animated Score Progress Bar (Green >= 80%, Amber 60-79%, Red < 60%)               |
+|   - Visual Badges: Matched Skills (Emerald) vs Missing Keywords (Amber)                         |
+|   - 3 Highlighted Tailored Points with 1-Click Action: [ ✨ Inject into Email Body ]            |
++-------------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 16. Gemini Pro Automated Interview Prep Dossier Architecture
+
+```
++-------------------------------------------------------------------------------------------------+
+|                             ATS Visual Kanban Board (/tracker/)                                 |
+|   [ Application Card in INTERVIEWING Stage ] -> User clicks [ ✨ Prep Dossier ]                 |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                             (GET/POST /api/applications/<id>/prep-dossier/)
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                             Django View Layer (mailer/views.py)                                 |
+|   - Checks authentication (@login_required) and queries JobApplication                          |
+|   - Cache Check: If app.interview_prep_data exists and not 'force_refresh':                     |
+|         Return cached JSON directly (Instant 0ms response, zero API cost)                       |
++-------------------------------------------------------------------------------------------------+
+                                               | (Cache miss or force refresh)
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                     Gemini Pro Service Layer (mailer/services/interview_prep.py)                |
+|   - Retrieves company name, role, notes, and grounded profile achievements                      |
+|   - Constructs structured Q&A prompt targeting Python/Django/FastAPI/Postgres and role          |
+|   - Invokes Google GenAI Client: client.models.generate_content(...)                            |
+|   - Extracts: role_focus, 5 technical_questions, project_talking_points, reverse_questions      |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                                  PostgreSQL Persistence Layer                                   |
+|   - Stores structured JSON into JobApplication.interview_prep_data                              |
+|   - Updates JobApplication.updated_at                                                           |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                              Interactive Interview Prep Modal                                   |
+|   - Tabbed/Sectioned Layout:                                                                    |
+|     1. Role & Engineering Focus Angle                                                           |
+|     2. Top 5 Expected Technical Questions (with key talking concepts)                           |
+|     3. Project Proof Points (ssenterprisesncr.in, GISFY 35% speedup)                            |
+|     4. 3 High-Impact Reverse-Interview Questions                                                |
+|   - Action Buttons: [ 📋 Copy Cheat Sheet ] [ ↺ Refresh Dossier ]                               |
++-------------------------------------------------------------------------------------------------+
+```

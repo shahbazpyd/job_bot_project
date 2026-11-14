@@ -114,6 +114,17 @@ A unified, private Django platform that:
     - *ATS Kanban Board (`/tracker/`)*: Expands column widths to 340px with generous padding, improved card spacing, distinct priority borders, and readable recruiter message badges.
     - *Application Dispatcher (`/`)*: Streamlines form inputs, increases field touch targets, softens variable guidance banners, and structures Activity Feed / Follow-Up tables with comfortable row heights.
     - *Lead Harvester (`/leads/`)*: Cleans up the Automated Schedule card with structured metric cards, spacious filter pills, and a readable Verified Leads data grid.
+- **Phase 18: Job Description vs. Resume Match Scorer & ATS Optimizer (Gemini Pro)**:
+  - **Configurable Gemini Pro Service (`mailer/services/jd_matcher.py`)**: Harnesses Google Gemini Pro (configured via `GEMINI_PRO_MODEL` in `.env`, e.g. `gemini-1.5-pro` or subscriber-specific tier) with grounded candidate profile and selected resume data.
+  - **ATS Semantic Match Scoring**: Compares full recruiter Job Descriptions against candidate technical strengths, outputting an overall ATS Match Score (0–100%), matched skills, missing critical keywords, and a strategic application verdict.
+  - **Tailored Talking Points Generation**: Synthesizes 3 high-impact, concrete talking points bridging verified achievements (`ssenterprisesncr.in`, GIS spatial indexing, FastAPI, PostgreSQL) directly to the company's stated technical requirements.
+  - **Collapsible Dispatcher UI Component (`mailer/templates/mailer/send_mail.html`)**: Interactive "📋 Job Description (JD) Analyzer" accordion box with real-time analysis spinner, dynamic progress score bar, matched/missing skill chips, and a 1-click **"✨ Inject into Email Body"** action.
+  - **Secure RESTful AJAX Endpoint (`/api/analyze-jd/`)**: Session-authenticated endpoint returning structured JSON analysis with resilient error handling and zero-downtime fallback.
+- **Phase 19: Automated Interview Prep Dossier (Gemini Pro on ATS Kanban)**:
+  - **Database Persistence (`mailer/models.py`)**: Adds `interview_prep_data` (`JSONField`) to `JobApplication` to store structured interview dossiers permanently, enabling instant retrieval without re-calling the API.
+  - **Gemini Pro Interview Intelligence Service (`mailer/services/interview_prep.py`)**: Synthesizes company business context, role requirements, and Shahbaz's real-world engineering metrics (`ssenterprisesncr.in`, GISFY 35% query speedup) to generate tailored technical Q&A, project talking points, and smart reverse-interview questions.
+  - **RESTful AJAX API Endpoint (`/api/applications/<id>/prep-dossier/`)**: Authenticated endpoint returning cached or newly generated prep sheets with on-demand regeneration support.
+  - **Interactive Kanban Modal (`mailer/templates/mailer/kanban.html`)**: Clean glass modal featuring tabbed/sectioned interview prep (Technical Q&A, Project Talking Points, Reverse Questions), with 1-click clipboard copy and refresh actions.
 
 ### Post-MVP Scope (Future Phases)
 - Headless browser automation (Playwright) for interactive portal submissions.

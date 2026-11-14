@@ -185,6 +185,7 @@ class JobApplication(models.Model):
     interview_date = models.DateTimeField(null=True, blank=True, help_text="Scheduled interview date and time")
     salary_notes = models.CharField(max_length=255, blank=True, help_text="Target or offered compensation notes")
     notes = models.TextField(blank=True, help_text="Recruiter feedback, interview notes, or next steps")
+    interview_prep_data = models.JSONField(null=True, blank=True, help_text="Structured Gemini Pro interview prep dossier")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -121,8 +121,9 @@ LOGIN_URL = '/accounts/login/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
-# Google Gemini API Configuration for AI Dynamic Hook Generation
+# Google Gemini API Configuration for AI Dynamic Hook & ATS Matching
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '').strip()
+GEMINI_PRO_MODEL = os.getenv('GEMINI_PRO_MODEL', 'gemini-1.5-pro').strip()
 
 # Base URL for email open tracking beacons and link redirects (default fallback: http://127.0.0.1:8000)
 TRACKING_BASE_URL = os.getenv('TRACKING_BASE_URL', '').strip()

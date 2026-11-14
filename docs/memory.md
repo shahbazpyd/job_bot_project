@@ -7,8 +7,8 @@
 
 ## 1. Project Status Summary
 - **Project**: `job_bot_project` (Job Application Dispatcher & Lead Harvester)
-- **Active Phase**: **Phase 17 (UI/UX Comfort, Typography & Layout Ergonomics Overhaul) Completed & Verified**
-- **System State**: Ergonomic Slate Palette Active across all pages, Static Low-Glare Ambient Lighting, Unified Global Glass Navigation Header, Clean Spacing & Typography (min 12px badges, 14–15px body), Multi-Platform Harvester, 08:30 AM IST Daily Schedule, ATS Kanban Board (/tracker/), Inbound IMAP Poller & Gemini Recruiter Intent Classifier, 100% Test Coverage (69/69 tests passing)
+- **Active Phase**: **Phase 19 (Automated Interview Prep Dossier - Gemini Pro) Completed & Verified**
+- **System State**: Gemini Pro Interview Prep Dossier Active on ATS Kanban Board (`/tracker/`), PostgreSQL JSONField Storage with Zero-Latency Database Caching, Collapsible JD Analyzer & ATS Optimizer in Dispatcher (`/`), Ergonomic Slate Palette Active, Static Low-Glare Ambient Lighting, Unified Global Glass Navigation Header, Clean Spacing & Typography (min 12px badges, 14–15px body), Multi-Platform Harvester, 08:30 AM IST Daily Schedule, Inbound IMAP Poller & Gemini Recruiter Intent Classifier, 100% Test Coverage (86/86 tests passing)
 - **Primary Database**: Neon Serverless PostgreSQL (`ep-calm-heart...`)
 - **Active Environment**: `.venv` (Python 3.15, Django 6.1, `psycopg` 3.3.8, `google-genai` 3.2.0, `django-q2` 1.11.1)
 
@@ -155,6 +155,36 @@
     - Re-positioned dispatcher navigation above the two-column grid and softened token instruction banners (`rgba(99, 102, 241, 0.05)`).
     - Expanded table rows and form fields in Harvester with clean breathing room.
   - Full Regression Verification: 69/69 tests passing (100% pass rate in 284.5s).
+- **Phase 18 (Job Description vs. Resume Match Scorer & ATS Optimizer - Gemini Pro)**:
+  - Configuration & Model Flexibility: Added `GEMINI_PRO_MODEL` setting in `job_bot_project/settings.py` and `.env`, allowing instant customization of Pro models.
+  - Core Service Layer (`mailer/services/jd_matcher.py`):
+    - Grounded analysis against Shahbaz Alam's verified profile (1.5+ YOE, FastAPI, Django, React, Tailwind, PostgreSQL, `ssenterprisesncr.in`, GIS spatial optimization 35% speedup).
+    - Instructs Gemini Pro to return structured JSON: `match_score` (0–100), `matched_skills`, `missing_skills`, 3 `tailored_points`, and `summary`.
+    - Implemented resilient heuristic fallback for zero downtime on missing API keys or quota exhaustion.
+  - RESTful AJAX Controller: Registered `POST /api/analyze-jd/` in `mailer/views.py` and `mailer/urls.py` with `@login_required` session security.
+  - Collapsible UI Component (`mailer/templates/mailer/send_mail.html`):
+    - Added "📋 Job Description (JD) Analyzer" accordion card with real-time loading spinner.
+    - Rendered interactive ATS Match Card with dynamic score progress bar, emerald matched skill pills, amber missing skill pills, and 3 tailored talking points.
+    - Added 1-click **"✨ Inject Tailored Points into Email Body"** action button that automatically formats and injects points into the active `custom_hook` for outreach.
+  - Automated Regression Test Suite Expansion:
+    - Added 8 unit and integration tests in `mailer/tests.py` (`JdMatcherTest`) covering prompt construction, JSON parsing, markdown code fence stripping, fallback handling, view authentication, and AJAX endpoint validation.
+    - Verified full regression test suite: 77/77 tests passing (100% pass rate in 487.2s).
+- **Phase 19 (Automated Interview Prep Dossier - Gemini Pro on ATS Kanban)**:
+  - Database Persistence: Added `interview_prep_data = models.JSONField(null=True, blank=True)` to `JobApplication` and applied migration `0011_jobapplication_interview_prep_data` to Neon PostgreSQL.
+  - Intelligence Service Layer (`mailer/services/interview_prep.py`):
+    - Grounded against Shahbaz Alam's verified background (FastAPI, Django, PostgreSQL, React, ssenterprisesncr.in, GISFY 35% query speedup).
+    - Enforces structured JSON output: `role_focus`, 5 `technical_questions` with answer concepts, 3 `talking_points`, and 3 `reverse_questions`.
+    - Resilient deterministic heuristic fallback protecting against API timeouts or missing keys.
+  - RESTful AJAX Controller (`mailer/views.py`, `mailer/urls.py`):
+    - Registered `POST /api/applications/<id>/prep-dossier/` with `@login_required` session security.
+    - Zero-latency database caching: returns saved JSON on cache-hits (0ms, 0 API quota), with on-demand `force_refresh` support.
+  - Interactive Glass Modal (`mailer/templates/mailer/kanban.html`):
+    - Added **"✨ Prep"** action button to cards on the Kanban board.
+    - Added `#interviewPrepModal` displaying company banner, role focus, 5 expandable technical Q&A cards, project proof points, and reverse questions.
+    - Integrated 1-click **"📋 Copy Cheat Sheet"** clipboard export and **"↺ Regenerate"** controls.
+  - Automated Regression Test Suite Expansion:
+    - Authored 9 unit and integration tests in `mailer/tests.py` (`InterviewPrepDossierTest`) covering model storage, prompt building, fallback generator, mocked Gemini Pro parsing, code fence unwrap, cache-hit verification, force-refresh updates, and authentication redirection.
+    - Verified complete regression test suite: 86/86 tests passing (100% pass rate in 501.2s).
 
 ---
 
@@ -172,6 +202,8 @@
 - [x] Optimistic UI drag-and-drop state transitions with CSRF-protected AJAX validation and rollback.
 - [x] Secure TLS/SSL encryption for inbound IMAP connections (port 993) with zero exposure of personal unread emails outside matched candidate applications.
 - [x] WCAG-compliant slate theme contrast ratios and distraction-free static ambient lighting.
+- [x] Structured JSON schema validation and safe markdown code fence unwrap for external AI responses.
+- [x] High-performance PostgreSQL JSONField caching for AI intelligence dossiers eliminating redundant external API consumption.
 
 ---
 
@@ -181,13 +213,14 @@
 ---
 
 ## 5. Next Immediate Steps (Operational Recommendations)
-1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and inspect the new comfortable layout across:
-   - `http://127.0.0.1:8000/` (Application Dispatcher)
-   - `http://127.0.0.1:8000/leads/` (Recruiter Lead Harvester)
-   - `http://127.0.0.1:8000/tracker/` (ATS Kanban Board)
-2. **Select Next Architectural Expansion (Phase 18)**:
-   - **Option A: Analytics Dashboard & Conversion Funnel**:
-     Visual charts (via Chart.js in clean slate styling) showing conversion funnels, interview rates by location, platform performance, and template response metrics.
-   - **Option B: Real-Time Web Notifications & Audio Chimes**:
-     Browser Web Push or audio chimes/toasts when a recruiter schedules an interview or responds.
-   - **Option C: Custom feature requested by Shahbaz**.
+1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and inspect the Kanban board at `http://127.0.0.1:8000/tracker/`:
+   - Click the **"✨ Prep"** button on any application card.
+   - Review your custom **Technical Interview Prep Dossier** (5 technical Q&A, project proof points, reverse questions).
+   - Test **"📋 Copy Cheat Sheet"** to export to clipboard.
+   - Close and re-open to verify **Instant Zero-Latency Database Caching**.
+2. **Execute Pillar 3 of Gemini Pro Suite (Phase 20)**:
+   - **Lead Context: Company Intelligence & Tech Stack Dossier (Lead Harvester `/leads/`)**:
+     Enrich discovered leads by having Gemini Pro research or deduce the company's tech stack, business model, and engineering pain points before reaching out.
+3. **Execute Pillar 4 of Gemini Pro Suite (Phase 21)**:
+   - **Outreach Quality: End-to-End Bespoke Cold Pitch Generator (Dispatcher `/`)**:
+     Generate 100% tailored, human-sounding cold emails from scratch based on company intelligence and candidate projects.

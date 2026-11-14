@@ -379,3 +379,59 @@
   - Enhanced Verified Leads Queue table with comfortable row padding, readable badges (min 12px), and aligned action buttons.
 - [x] **Automated Regression Verification**:
   - Executed full Django test suite (`python manage.py test mailer --keepdb`): 100% pass rate (69/69 tests passing in 284.5s).
+
+---
+
+## Phase 18: Job Description vs. Resume Match Scorer & ATS Optimizer (Completed)
+- [x] **Configurable Environment & Model Support (`job_bot_project/settings.py`, `.env`)**:
+  - Added `GEMINI_PRO_MODEL` setting, defaulting to `gemini-1.5-pro` (or the specific Pro model active on user's Google account/subscription) while allowing instant customization in `.env`.
+- [x] **Core Service Layer (`mailer/services/jd_matcher.py`)**:
+  - Defined `analyze_job_description(raw_jd, company, role)` to run semantic comparison against Shahbaz's grounded full-stack profile.
+  - Instructed Gemini Pro to return structured JSON containing:
+    - `match_score`: Integer (0–100) representing semantic and keyword relevance.
+    - `matched_skills`: List of technical skills present in both the JD and the candidate's profile.
+    - `missing_skills`: List of JD requirements not prominently featured in candidate profile.
+    - `tailored_points`: 3 concise, bullet-ready impact statements linking verified work (`ssenterprisesncr.in`, GIS optimization) to the JD.
+    - `summary`: 1-sentence strategic guidance for the applicant.
+  - Implemented resilient heuristic fallback for zero downtime if the API key is missing or quota is exhausted.
+- [x] **RESTful AJAX API Controller (`mailer/views.py`, `mailer/urls.py`)**:
+  - Registered authenticated endpoint `POST /api/analyze-jd/`.
+  - Validated JSON payload, processed through `jd_matcher.py`, and returned standardized JSON response.
+- [x] **Collapsible Dispatcher UI Component (`mailer/templates/mailer/send_mail.html`)**:
+  - Added a collapsible **"📋 Job Description (JD) Analyzer"** card in the left column above the message body.
+  - Included a clean textarea for raw JD text with an **"⚡ Analyze JD with Gemini Pro"** action button and loading spinner.
+  - Rendered an interactive **ATS Match Card** with:
+    - Dynamic score gauge / progress bar with color thresholds (Green $\ge 80\%$, Amber $60-79\%$, Red $< 60\%$).
+    - Matched skill chips (Emerald) and missing keyword chips (Amber).
+    - 3 Tailored Talking Points with a 1-click **"✨ Inject into Email Body"** button that pastes the points directly into the message compose area or replaces `{{ custom_hook }}`.
+- [x] **Automated Regression Test Suite Expansion**:
+  - Authored 8 unit and integration tests in `mailer/tests.py` (`JdMatcherTest`) covering prompt construction, JSON parsing, fallback handling, markdown code fence stripping, view authentication, and AJAX endpoint validation.
+  - Verified 100% test pass rate with `--keepdb` (77/77 tests passing in 487.2s).
+
+---
+
+## Phase 19: Automated Interview Prep Dossier (Completed)
+- [x] **Data Model & Schema Migration (`mailer/models.py`)**:
+  - Added `interview_prep_data = models.JSONField(null=True, blank=True, help_text="Structured Gemini Pro interview prep dossier")` to `JobApplication`.
+  - Generated and applied Django migration `0011_jobapplication_interview_prep_data` to Neon PostgreSQL.
+- [x] **Gemini Pro Interview Intelligence Service (`mailer/services/interview_prep.py`)**:
+  - Implemented `generate_interview_prep_dossier(company, role, recruiter_notes)` targeting candidate's real stack (Python, FastAPI, Django, PostgreSQL, React).
+  - Enforced structured JSON output:
+    - `role_focus`: High-level summary of what the company values for this role.
+    - `technical_questions`: List of 5 technical questions with concise sample answers or key concepts to highlight.
+    - `talking_points`: 3 concrete metric-driven statements from candidate's real work (`ssenterprisesncr.in`, GISFY 35% query speedup).
+    - `reverse_questions`: 3 senior-level questions for the candidate to ask the interviewer.
+  - Included resilient heuristic fallback for offline or zero-quota execution.
+- [x] **RESTful Controller & Routing (`mailer/views.py`, `mailer/urls.py`)**:
+  - Registered `POST /api/applications/<int:app_id>/prep-dossier/`.
+  - Checked database cache: if `interview_prep_data` already exists and `force_refresh` is False, returns cached data immediately (0ms, 0 API quota).
+  - Otherwise, generates with Gemini Pro, persists to `JobApplication.interview_prep_data`, and returns JSON.
+- [x] **Interactive Kanban UI Modal (`mailer/templates/mailer/kanban.html`)**:
+  - Added **"✨ Prep"** action button to cards on the Kanban board.
+  - Implemented a dedicated glass modal (`#interviewPrepModal`) displaying:
+    - Company, role, and interview date banner.
+    - Interactive sections for Technical Q&A, Project Talking Points, and Reverse Questions.
+    - Action buttons: **"📋 Copy Cheat Sheet"** and **"↺ Regenerate"**.
+- [x] **Automated Regression Test Suite Expansion**:
+  - Authored 9 unit and integration tests in `mailer/tests.py` (`InterviewPrepDossierTest`) covering prompt construction, JSON parsing, database caching, forced refresh, view authentication, and AJAX endpoint response.
+  - Verified 100% test pass rate with `--keepdb` (86/86 tests passing in 501.2s).

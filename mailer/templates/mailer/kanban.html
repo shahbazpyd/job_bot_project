@@ -585,11 +585,18 @@
                                         </span>
                                     </div>
 
-                                    <button type="button" class="btn btn-sm p-0 text-white-50 hover-text-white btn-edit-app" 
-                                            onclick="openEditModal({{ app.id }})" 
-                                            title="Edit notes, interview date, or details">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </button>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button type="button" class="btn btn-sm btn-glass-subtle py-0.5 px-2 text-purple small d-inline-flex align-items-center gap-1 btn-prep-dossier" 
+                                                onclick="openPrepModal({{ app.id }})" 
+                                                title="Interview Prep Dossier (Gemini Pro)">
+                                            <span style="font-size: 0.72rem;">✨ Prep</span>
+                                        </button>
+                                        <button type="button" class="btn btn-sm p-0 text-white-50 hover-text-white btn-edit-app" 
+                                                onclick="openEditModal({{ app.id }})" 
+                                                title="Edit notes, interview date, or details">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                             </div>
@@ -743,6 +750,100 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎯 Technical Interview Prep Dossier Modal (Gemini Pro) -->
+    <div class="modal fade" id="interviewPrepModal" tabindex="-1" aria-labelledby="interviewPrepModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content glass-modal border border-white border-opacity-15" style="background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(28px); border-radius: 20px;">
+                <div class="modal-header border-bottom border-white border-opacity-10 pb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-5">🎯</span>
+                        <div>
+                            <h5 class="modal-title fs-6 fw-bold text-white mb-0" id="interviewPrepModalLabel">
+                                Technical Interview Prep Dossier
+                            </h5>
+                            <span id="prep-header-subtitle" class="text-white-50" style="font-size: 0.78rem;">Company & Role</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="prep-badge-cache" class="badge rounded-pill bg-purple bg-opacity-25 text-purple border border-purple border-opacity-35 px-2.5 py-1" style="font-size: 0.72rem;">
+                            Gemini Pro
+                        </span>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                </div>
+
+                <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
+                    <!-- Loading Spinner -->
+                    <div id="prep-loading-spinner" class="d-none text-center py-5">
+                        <div class="spinner-border text-purple mb-3" style="width: 2.2rem; height: 2.2rem;" role="status"></div>
+                        <div class="text-white fw-semibold mb-1">Synthesizing Technical Interview Dossier...</div>
+                        <div class="text-white-50 small">Gemini Pro is evaluating company architecture, technical questions, and proof points.</div>
+                    </div>
+
+                    <!-- Dossier Content Container -->
+                    <div id="prep-dossier-content" class="d-none">
+                        <!-- Role Focus Banner -->
+                        <div class="p-3 rounded-3 mb-4" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25);">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="fs-6">💡</span>
+                                <h6 class="fw-bold text-white mb-0 fs-6">Target Role & Engineering Focus</h6>
+                            </div>
+                            <p id="prep-role-focus" class="text-white-50 small mb-0" style="font-size: 0.82rem; line-height: 1.5;"></p>
+                        </div>
+
+                        <!-- Top 5 Expected Technical Questions -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fs-6">⚡</span>
+                                    <h6 class="fw-bold text-white mb-0 fs-6">Top 5 Expected Technical Questions</h6>
+                                </div>
+                                <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50" style="font-size: 0.7rem;">Grounded Concepts</span>
+                            </div>
+                            <div id="prep-questions-container" class="d-flex flex-column gap-2.5"></div>
+                        </div>
+
+                        <!-- Concrete Project Talking Points -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="fs-6">🏆</span>
+                                <h6 class="fw-bold text-white mb-0 fs-6">Your Concrete Project Proof Points</h6>
+                            </div>
+                            <div id="prep-talking-points" class="p-3 rounded-3" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25);">
+                                <ul id="prep-talking-list" class="list-unstyled mb-0 d-flex flex-column gap-2 text-white-50" style="font-size: 0.82rem;"></ul>
+                            </div>
+                        </div>
+
+                        <!-- Smart Reverse-Interview Questions -->
+                        <div class="mb-2">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="fs-6">❓</span>
+                                <h6 class="fw-bold text-white mb-0 fs-6">High-Impact Reverse Questions (Ask Interviewer)</h6>
+                            </div>
+                            <div id="prep-reverse-questions" class="p-3 rounded-3" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25);">
+                                <ul id="prep-reverse-list" class="list-unstyled mb-0 d-flex flex-column gap-2 text-white-50" style="font-size: 0.82rem;"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-white border-opacity-10 d-flex justify-content-between align-items-center">
+                    <button type="button" id="btn-refresh-prep" class="btn btn-sm btn-glass-subtle py-1.5 px-3 d-flex align-items-center gap-1.5">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Regenerate Dossier</span>
+                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-glass-subtle py-1.5 px-3" data-bs-dismiss="modal">Close</button>
+                        <button type="button" id="btn-copy-prep" class="btn btn-sm btn-gradient-primary py-1.5 px-3 fw-semibold d-flex align-items-center gap-1.5">
+                            <i class="fa-regular fa-clipboard"></i>
+                            <span>Copy Cheat Sheet</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1069,6 +1170,172 @@
                 showToast('Network error while checking inbox', true);
             });
         }
+
+        // -------------------------------------------------------------
+        // 🎯 Technical Interview Prep Dossier (Gemini Pro)
+        // -------------------------------------------------------------
+        let currentPrepAppId = null;
+        let currentPrepData = null;
+
+        function openPrepModal(appId) {
+            currentPrepAppId = appId;
+            const prepModalEl = document.getElementById('interviewPrepModal');
+            const prepModal = bootstrap.Modal.getOrCreateInstance(prepModalEl);
+            
+            // Get card metadata
+            const card = document.getElementById(`card-${appId}`);
+            const company = card ? card.dataset.company || 'Company' : 'Company';
+            const role = card ? card.dataset.role || 'Full Stack Developer' : 'Full Stack Developer';
+            const interviewDisplay = card ? card.dataset.interviewDisplay : '';
+            
+            const subtitleEl = document.getElementById('prep-header-subtitle');
+            if (subtitleEl) {
+                subtitleEl.textContent = `${company} — ${role}${interviewDisplay ? ' • Scheduled: ' + interviewDisplay : ''}`;
+            }
+
+            prepModal.show();
+            fetchPrepDossier(appId, false);
+        }
+
+        function fetchPrepDossier(appId, forceRefresh) {
+            const spinner = document.getElementById('prep-loading-spinner');
+            const content = document.getElementById('prep-dossier-content');
+            const badgeCache = document.getElementById('prep-badge-cache');
+            const btnRefresh = document.getElementById('btn-refresh-prep');
+
+            if (spinner) spinner.classList.remove('d-none');
+            if (content) content.classList.add('d-none');
+            if (btnRefresh) btnRefresh.disabled = true;
+
+            fetch(`/api/applications/${appId}/prep-dossier/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({ force_refresh: forceRefresh })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.dossier) {
+                    currentPrepData = data.dossier;
+                    renderPrepDossier(data.dossier, data.is_cached);
+                } else {
+                    alert('Error generating interview dossier: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                console.error('Interview prep fetch error:', err);
+                alert('Network error loading interview prep dossier.');
+            })
+            .finally(() => {
+                if (spinner) spinner.classList.add('d-none');
+                if (content) content.classList.remove('d-none');
+                if (btnRefresh) btnRefresh.disabled = false;
+            });
+        }
+
+        function renderPrepDossier(dossier, isCached) {
+            const badgeCache = document.getElementById('prep-badge-cache');
+            if (badgeCache) {
+                if (isCached) {
+                    badgeCache.className = 'badge rounded-pill bg-success bg-opacity-25 text-success border border-success border-opacity-35 px-2.5 py-1';
+                    badgeCache.textContent = '✓ Saved Dossier (Instant)';
+                } else {
+                    badgeCache.className = 'badge rounded-pill bg-purple bg-opacity-25 text-purple border border-purple border-opacity-35 px-2.5 py-1';
+                    badgeCache.textContent = '✨ Gemini Pro Synthesized';
+                }
+            }
+
+            // Role Focus
+            const roleFocusEl = document.getElementById('prep-role-focus');
+            if (roleFocusEl) {
+                roleFocusEl.textContent = dossier.role_focus || 'Focus on high-performance backend architecture and clean frontend integration.';
+            }
+
+            // 5 Technical Questions
+            const qContainer = document.getElementById('prep-questions-container');
+            if (qContainer) {
+                qContainer.innerHTML = '';
+                const questions = dossier.technical_questions || [];
+                questions.forEach((item, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'p-3 rounded-3';
+                    card.style.background = 'rgba(11, 15, 25, 0.6)';
+                    card.style.border = '1px solid rgba(148, 163, 184, 0.14)';
+                    card.innerHTML = `
+                        <div class="fw-semibold text-white mb-1.5" style="font-size: 0.85rem;">
+                            <span class="text-purple fw-bold me-1">Q${idx + 1}:</span> ${item.question}
+                        </div>
+                        <div class="text-white-50" style="font-size: 0.8rem; line-height: 1.5;">
+                            <strong class="text-light">Key Concept:</strong> ${item.answer_concept}
+                        </div>
+                    `;
+                    qContainer.appendChild(card);
+                });
+            }
+
+            // Talking Points
+            const talkingList = document.getElementById('prep-talking-list');
+            if (talkingList) {
+                talkingList.innerHTML = '';
+                const points = dossier.talking_points || [];
+                points.forEach(point => {
+                    const li = document.createElement('li');
+                    li.className = 'd-flex align-items-start gap-2';
+                    li.innerHTML = `<span class="text-success fw-bold">•</span><span>${point}</span>`;
+                    talkingList.appendChild(li);
+                });
+            }
+
+            // Reverse Questions
+            const reverseList = document.getElementById('prep-reverse-list');
+            if (reverseList) {
+                reverseList.innerHTML = '';
+                const rQuestions = dossier.reverse_questions || [];
+                rQuestions.forEach(q => {
+                    const li = document.createElement('li');
+                    li.className = 'd-flex align-items-start gap-2';
+                    li.innerHTML = `<span class="text-warning fw-bold">?</span><span>${q}</span>`;
+                    reverseList.appendChild(li);
+                });
+            }
+        }
+
+        // Copy Cheat Sheet to Clipboard
+        document.getElementById('btn-copy-prep')?.addEventListener('click', function() {
+            if (!currentPrepData) return;
+
+            let text = `TECHNICAL INTERVIEW PREPARATION DOSSIER\n`;
+            text += `=======================================\n\n`;
+            text += `ROLE FOCUS:\n${currentPrepData.role_focus || ''}\n\n`;
+            text += `TOP 5 TECHNICAL QUESTIONS:\n`;
+            (currentPrepData.technical_questions || []).forEach((q, i) => {
+                text += `${i + 1}. ${q.question}\n   -> Key Concept: ${q.answer_concept}\n\n`;
+            });
+            text += `CONCRETE PROJECT PROOF POINTS:\n`;
+            (currentPrepData.talking_points || []).forEach(p => {
+                text += `• ${p}\n`;
+            });
+            text += `\nSMART REVERSE QUESTIONS TO ASK:\n`;
+            (currentPrepData.reverse_questions || []).forEach(r => {
+                text += `? ${r}\n`;
+            });
+
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('btn-copy-prep');
+                const orig = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-check me-1"></i> Copied to Clipboard!`;
+                setTimeout(() => { btn.innerHTML = orig; }, 2000);
+            });
+        });
+
+        // Regenerate Button Click Handler
+        document.getElementById('btn-refresh-prep')?.addEventListener('click', function() {
+            if (currentPrepAppId) {
+                fetchPrepDossier(currentPrepAppId, true);
+            }
+        });
     </script>
 </body>
 </html>

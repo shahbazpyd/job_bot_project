@@ -206,6 +206,49 @@ def generate_ai_hook_view(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @login_required
+@require_POST
+def analyze_jd_view(request):
+    """
+    RESTful AJAX endpoint for Job Description vs. Resume ATS Match Scoring.
+    Accepts JSON payload:
+      - raw_jd: str (required)
+      - company: str (optional)
+      - role: str (optional)
+    Calls Gemini Pro service layer in mailer.services.jd_matcher.
+    Returns JSON:
+      {
+        "success": bool,
+        "match_score": int,
+        "matched_skills": list[str],
+        "missing_skills": list[str],
+        "tailored_points": list[str],
+        "summary": str,
+        "is_fallback": bool,
+        "model_used": str,
+        "error": Optional[str]
+      }
+    """
+    try:
+        if request.content_type == 'application/json':
+            data = json.loads(request.body.decode('utf-8'))
+        else:
+            data = request.POST
+
+        raw_jd = data.get('raw_jd', '').strip()
+        company = data.get('company', '').strip()
+        role = data.get('role', '').strip()
+
+        from .services.jd_matcher import analyze_job_description
+        result = analyze_job_description(
+            raw_jd=raw_jd,
+            company=company,
+            role=role
+        )
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+@login_required
 def lead_harvester_view(request):
     """
     Dashboard for discovering, validating, and managing recruiter leads.
@@ -619,6 +662,63 @@ def check_inbound_replies_view(request):
     from .services.inbound import poll_and_process_inbound_replies
     result = poll_and_process_inbound_replies(max_emails=25)
     return JsonResponse(result)
+
+
+@login_required
+@require_POST
+def prep_dossier_view(request, app_id):
+    """
+    RESTful AJAX endpoint for retrieving or generating an Interview Prep Dossier (Gemini Pro).
+    Checks JobApplication.interview_prep_data for cached results.
+    Accepts JSON body: {"force_refresh": bool}.
+    If cached and not force_refresh, returns saved data immediately (0ms, 0 API quota).
+    Otherwise, invokes Gemini Pro, saves to database, and returns structured JSON.
+    """
+    application = get_object_or_404(JobApplication, id=app_id)
+
+    force_refresh = False
+    if request.content_type == 'application/json' and request.body:
+        try:
+            body = json.loads(request.body.decode('utf-8'))
+            force_refresh = bool(body.get('force_refresh', False))
+        except json.JSONDecodeError:
+            pass
+    elif request.POST.get('force_refresh'):
+        force_refresh = request.POST.get('force_refresh').lower() in ('true', '1', 'yes')
+
+    # Return cached data if available and not forced
+    if application.interview_prep_data and not force_refresh:
+        return JsonResponse({
+            'success': True,
+            'is_cached': True,
+            'app_id': application.id,
+            'company': application.company_name,
+            'role': application.role_title,
+            'dossier': application.interview_prep_data
+        })
+
+    # Generate new dossier via Gemini Pro service
+    from .services.interview_prep import generate_interview_prep_dossier
+    result = generate_interview_prep_dossier(
+        company=application.company_name,
+        role=application.role_title,
+        notes=application.notes
+    )
+
+    if result.get('success'):
+        # Persist structured prep dossier to database
+        application.interview_prep_data = result
+        application.save(update_fields=['interview_prep_data', 'updated_at'])
+
+    return JsonResponse({
+        'success': result.get('success', False),
+        'is_cached': False,
+        'app_id': application.id,
+        'company': application.company_name,
+        'role': application.role_title,
+        'dossier': result,
+        'error': result.get('error')
+    })
 
 
 

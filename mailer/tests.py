@@ -1569,6 +1569,367 @@ class InboundReplyReaderTest(TestCase):
         self.assertTrue(mock_poll.called)
 
 
+class JdMatcherTest(TestCase):
+    """
+    Test suite for Phase 18: Job Description vs. Resume ATS Matcher & Optimizer (Gemini Pro).
+    Covers prompt generation, heuristic fallback parsing, mocked Gemini Pro responses,
+    markdown code fence stripping, and authenticated AJAX endpoint behavior.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='testrecruiter', password='password123')
+        self.client.login(username='testrecruiter', password='password123')
+        self.sample_jd = (
+            "We are seeking a Backend Engineer with strong Python and FastAPI experience. "
+            "You will optimize PostgreSQL databases, design RESTful APIs, and deploy cloud services with Docker."
+        )
+
+    def test_build_ats_analysis_prompt(self):
+        """Verify prompt embeds candidate verified achievements and target job requirements."""
+        from mailer.services.jd_matcher import build_ats_analysis_prompt
+        prompt = build_ats_analysis_prompt(
+            raw_jd=self.sample_jd,
+            company="Zepto Labs",
+            role="Backend Engineer"
+        )
+        self.assertIn("Zepto Labs", prompt)
+        self.assertIn("Backend Engineer", prompt)
+        self.assertIn("ssenterprisesncr.in", prompt)
+        self.assertIn("FastAPI", prompt)
+        self.assertIn("match_score", prompt)
+
+    def test_heuristic_fallback_analysis(self):
+        """Verify heuristic fallback calculates match score and identifies matched and missing skills."""
+        from mailer.services.jd_matcher import _heuristic_fallback_analysis
+        res = _heuristic_fallback_analysis(self.sample_jd, company="Swiggy", role="Python Dev")
+        self.assertTrue(res['success'])
+        self.assertTrue(res['is_fallback'])
+        self.assertGreaterEqual(res['match_score'], 60)
+        self.assertIn("Python", res['matched_skills'])
+        self.assertIn("FastAPI", res['matched_skills'])
+        self.assertIn("PostgreSQL", res['matched_skills'])
+        self.assertEqual(len(res['tailored_points']), 3)
+
+    def test_analyze_job_description_empty_input(self):
+        """Verify empty job description returns error immediately without external API call."""
+        from mailer.services.jd_matcher import analyze_job_description
+        res = analyze_job_description("")
+        self.assertFalse(res['success'])
+        self.assertEqual(res['match_score'], 0)
+        self.assertIn("empty", res['error'].lower())
+
+    @patch('mailer.services.jd_matcher.settings')
+    def test_analyze_job_description_missing_api_key_runs_fallback(self, mock_settings):
+        """Verify absence of GEMINI_API_KEY triggers graceful heuristic fallback."""
+        mock_settings.GEMINI_API_KEY = ""
+        mock_settings.GEMINI_PRO_MODEL = "gemini-1.5-pro"
+        from mailer.services.jd_matcher import analyze_job_description
+        res = analyze_job_description(self.sample_jd, company="Razorpay", role="Backend Dev")
+        self.assertTrue(res['success'])
+        self.assertTrue(res['is_fallback'])
+        self.assertGreaterEqual(res['match_score'], 50)
+
+    @patch('mailer.services.jd_matcher.settings')
+    def test_analyze_job_description_mocked_gemini_pro_success(self, mock_settings):
+        """Verify successful Gemini Pro response parses structured ATS JSON correctly."""
+        mock_settings.GEMINI_API_KEY = "dummy-api-key"
+        mock_settings.GEMINI_PRO_MODEL = "gemini-1.5-pro"
+
+        mock_payload = {
+            "match_score": 88,
+            "matched_skills": ["Python", "FastAPI", "PostgreSQL", "REST APIs"],
+            "missing_skills": ["Docker", "Kubernetes"],
+            "tailored_points": [
+                "Built and scaled live FastAPI platform ssenterprisesncr.in saving 15 hours/week.",
+                "Optimized PostgreSQL queries by 35% at GISFY with query profiling and indexing.",
+                "Designed decoupled backend APIs integrated with React and Tailwind frontends."
+            ],
+            "summary": "High alignment with backend and database requirements."
+        }
+
+        class MockResponse:
+            text = json.dumps(mock_payload)
+
+        class MockModels:
+            def generate_content(self, model, contents):
+                return MockResponse()
+
+        class MockClient:
+            def __init__(self, api_key):
+                self.models = MockModels()
+
+        with patch('google.genai.Client', MockClient):
+            from mailer.services.jd_matcher import analyze_job_description
+            res = analyze_job_description(self.sample_jd, company="Acme", role="Python Dev")
+
+            self.assertTrue(res['success'])
+            self.assertFalse(res['is_fallback'])
+            self.assertEqual(res['match_score'], 88)
+            self.assertEqual(res['matched_skills'], ["Python", "FastAPI", "PostgreSQL", "REST APIs"])
+            self.assertEqual(len(res['tailored_points']), 3)
+
+    @patch('mailer.services.jd_matcher.settings')
+    def test_analyze_job_description_strips_markdown_code_fences(self, mock_settings):
+        """Verify model responses wrapped in ```json ... ``` are cleanly unwrapped."""
+        mock_settings.GEMINI_API_KEY = "dummy-api-key"
+        mock_settings.GEMINI_PRO_MODEL = "gemini-1.5-pro"
+
+        raw_json_str = """```json
+{
+  "match_score": 92,
+  "matched_skills": ["Python", "Django", "PostgreSQL"],
+  "missing_skills": ["AWS"],
+  "tailored_points": ["Point 1", "Point 2", "Point 3"],
+  "summary": "Exceptional fit."
+}
+```"""
+
+        class MockResponse:
+            text = raw_json_str
+
+        class MockModels:
+            def generate_content(self, model, contents):
+                return MockResponse()
+
+        class MockClient:
+            def __init__(self, api_key):
+                self.models = MockModels()
+
+        with patch('google.genai.Client', MockClient):
+            from mailer.services.jd_matcher import analyze_job_description
+            res = analyze_job_description(self.sample_jd)
+            self.assertTrue(res['success'])
+            self.assertEqual(res['match_score'], 92)
+            self.assertEqual(res['summary'], "Exceptional fit.")
+
+    def test_analyze_jd_view_authenticated_ajax(self):
+        """Verify POST /api/analyze-jd/ returns HTTP 200 with JSON matching analysis."""
+        url = reverse('analyze_jd')
+        payload = {
+            'raw_jd': self.sample_jd,
+            'company': 'Cred',
+            'role': 'Full Stack Developer'
+        }
+        response = self.client.post(url, data=json.dumps(payload), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertIn('match_score', data)
+        self.assertIn('tailored_points', data)
+
+    def test_analyze_jd_view_unauthenticated_redirect(self):
+        """Verify unauthenticated user cannot access /api/analyze-jd/."""
+        self.client.logout()
+        url = reverse('analyze_jd')
+        response = self.client.post(url, data=json.dumps({'raw_jd': 'test'}), content_type='application/json')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response.url)
+
+
+class InterviewPrepDossierTest(TestCase):
+    """
+    Test suite for Phase 19: Automated Interview Prep Dossier (Gemini Pro).
+    Covers model field persistence, prompt construction, heuristic fallback generation,
+    mocked Gemini Pro response parsing, code fence unwrap, database caching,
+    force refresh behavior, and view authorization.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='prepuser', password='password123')
+        self.client.login(username='prepuser', password='password123')
+        self.app = JobApplication.objects.create(
+            company_name="Zomato Engineering",
+            role_title="Senior Python Backend Engineer",
+            recipient_email="talent@zomato.com",
+            recipient_name="Deepinder",
+            stage="INTERVIEWING",
+            priority="HIGH",
+            notes="Focusing on real-time API latency and high-throughput order processing."
+        )
+
+    def test_job_application_interview_prep_field(self):
+        """Verify interview_prep_data field can be saved and retrieved as structured JSON."""
+        data = {
+            "role_focus": "High throughput order ingestion.",
+            "technical_questions": [{"question": "Q1", "answer_concept": "A1"}],
+            "talking_points": ["Point 1"],
+            "reverse_questions": ["Rev Q1"]
+        }
+        self.app.interview_prep_data = data
+        self.app.save(update_fields=['interview_prep_data'])
+
+        self.app.refresh_from_db()
+        self.assertEqual(self.app.interview_prep_data['role_focus'], "High throughput order ingestion.")
+        self.assertEqual(len(self.app.interview_prep_data['technical_questions']), 1)
+
+    def test_build_interview_prep_prompt(self):
+        """Verify prompt embeds candidate verified achievements and recruiter context."""
+        from mailer.services.interview_prep import build_interview_prep_prompt
+        prompt = build_interview_prep_prompt(
+            company="Zomato Engineering",
+            role="Senior Python Backend Engineer",
+            notes="API scaling"
+        )
+        self.assertIn("Zomato Engineering", prompt)
+        self.assertIn("Senior Python Backend Engineer", prompt)
+        self.assertIn("ssenterprisesncr.in", prompt)
+        self.assertIn("GISFY", prompt)
+        self.assertIn("technical_questions", prompt)
+
+    def test_heuristic_interview_prep_fallback(self):
+        """Verify fallback returns 5 technical questions, 3 talking points, and 3 reverse questions."""
+        from mailer.services.interview_prep import _heuristic_interview_prep_fallback
+        res = _heuristic_interview_prep_fallback("Razorpay", "Python Developer", "Payments API")
+        self.assertTrue(res['success'])
+        self.assertTrue(res['is_fallback'])
+        self.assertEqual(len(res['technical_questions']), 5)
+        self.assertEqual(len(res['talking_points']), 3)
+        self.assertEqual(len(res['reverse_questions']), 3)
+        self.assertIn("EXPLAIN ANALYZE", str(res['technical_questions']))
+
+    @patch('mailer.services.interview_prep.settings')
+    def test_generate_interview_prep_dossier_mocked_gemini_success(self, mock_settings):
+        """Verify Gemini Pro structured response parses into complete interview dossier."""
+        mock_settings.GEMINI_API_KEY = "dummy-api-key"
+        mock_settings.GEMINI_PRO_MODEL = "gemini-1.5-pro"
+
+        mock_payload = {
+            "role_focus": "Core backend API development with FastAPI and PostgreSQL.",
+            "technical_questions": [
+                {"question": "How do you manage database connections in FastAPI?", "answer_concept": "Connection pooling with asyncpg."},
+                {"question": "How did you optimize queries by 35%?", "answer_concept": "Profiling with EXPLAIN and composite B-Trees."}
+            ],
+            "talking_points": [
+                "Built and deployed ssenterprisesncr.in with FastAPI and PostgreSQL.",
+                "Optimized database indexing at GISFY cutting response time by 35%."
+            ],
+            "reverse_questions": [
+                "What is your current strategy for API latency under load?"
+            ]
+        }
+
+        class MockResponse:
+            text = json.dumps(mock_payload)
+
+        class MockModels:
+            def generate_content(self, model, contents):
+                return MockResponse()
+
+        class MockClient:
+            def __init__(self, api_key):
+                self.models = MockModels()
+
+        with patch('google.genai.Client', MockClient):
+            from mailer.services.interview_prep import generate_interview_prep_dossier
+            res = generate_interview_prep_dossier("Zomato", "Backend Dev", "FastAPI")
+
+            self.assertTrue(res['success'])
+            self.assertFalse(res['is_fallback'])
+            self.assertEqual(len(res['technical_questions']), 2)
+            self.assertIn("FastAPI", res['role_focus'])
+
+    @patch('mailer.services.interview_prep.settings')
+    def test_generate_interview_prep_dossier_code_fence_stripping(self, mock_settings):
+        """Verify response enclosed in markdown ```json ... ``` is cleanly stripped."""
+        mock_settings.GEMINI_API_KEY = "dummy-api-key"
+        mock_settings.GEMINI_PRO_MODEL = "gemini-1.5-pro"
+
+        raw_json_str = """```json
+{
+  "role_focus": "Scale PostgreSQL architecture.",
+  "technical_questions": [{"question": "Q1", "answer_concept": "A1"}],
+  "talking_points": ["Point 1"],
+  "reverse_questions": ["Rev Q1"]
+}
+```"""
+
+        class MockResponse:
+            text = raw_json_str
+
+        class MockModels:
+            def generate_content(self, model, contents):
+                return MockResponse()
+
+        class MockClient:
+            def __init__(self, api_key):
+                self.models = MockModels()
+
+        with patch('google.genai.Client', MockClient):
+            from mailer.services.interview_prep import generate_interview_prep_dossier
+            res = generate_interview_prep_dossier("Swiggy", "DBA", "")
+            self.assertTrue(res['success'])
+            self.assertEqual(res['role_focus'], "Scale PostgreSQL architecture.")
+
+    def test_prep_dossier_view_first_call_persists_to_db(self):
+        """Verify first call to /prep-dossier/ generates and saves data into JobApplication."""
+        url = reverse('prep_dossier', kwargs={'app_id': self.app.id})
+        self.assertIsNone(self.app.interview_prep_data)
+
+        response = self.client.post(url, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertFalse(data['is_cached'])
+
+        self.app.refresh_from_db()
+        self.assertIsNotNone(self.app.interview_prep_data)
+        self.assertIn('technical_questions', self.app.interview_prep_data)
+
+    def test_prep_dossier_view_subsequent_call_uses_cached_data(self):
+        """Verify subsequent call returns cached data immediately with is_cached=True."""
+        cached_dossier = {
+            "role_focus": "Cached test focus.",
+            "technical_questions": [{"question": "Cached Q", "answer_concept": "Cached A"}],
+            "talking_points": ["Cached point"],
+            "reverse_questions": ["Cached reverse"]
+        }
+        self.app.interview_prep_data = cached_dossier
+        self.app.save(update_fields=['interview_prep_data'])
+
+        url = reverse('prep_dossier', kwargs={'app_id': self.app.id})
+        response = self.client.post(url, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['is_cached'])
+        self.assertEqual(data['dossier']['role_focus'], "Cached test focus.")
+
+    def test_prep_dossier_view_force_refresh(self):
+        """Verify force_refresh=True bypasses cache and updates database with fresh dossier."""
+        cached_dossier = {
+            "role_focus": "Old cached focus.",
+            "technical_questions": [],
+            "talking_points": [],
+            "reverse_questions": []
+        }
+        self.app.interview_prep_data = cached_dossier
+        self.app.save(update_fields=['interview_prep_data'])
+
+        url = reverse('prep_dossier', kwargs={'app_id': self.app.id})
+        response = self.client.post(
+            url, 
+            data=json.dumps({'force_refresh': True}), 
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertFalse(data['is_cached'])
+
+        self.app.refresh_from_db()
+        self.assertNotEqual(self.app.interview_prep_data['role_focus'], "Old cached focus.")
+
+    def test_prep_dossier_view_unauthenticated_redirect(self):
+        """Verify unauthenticated user cannot access /prep-dossier/."""
+        self.client.logout()
+        url = reverse('prep_dossier', kwargs={'app_id': self.app.id})
+        response = self.client.post(url, content_type='application/json')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response.url)
+
+
+
+
 
 
 
