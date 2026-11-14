@@ -84,6 +84,11 @@ class RecruiterLead(models.Model):
     source_url = models.URLField(max_length=500, blank=True)
     is_verified = models.BooleanField(default=False, help_text="True if domain has active MX records")
     is_contacted = models.BooleanField(default=False, help_text="True if email dispatched successfully")
+    company_intel_data = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Cached Gemini Pro company intelligence dossier (domain, business model, tech stack, challenges, value angle)"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

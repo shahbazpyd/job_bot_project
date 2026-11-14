@@ -1928,6 +1928,331 @@ class InterviewPrepDossierTest(TestCase):
         self.assertIn('/accounts/login/', response.url)
 
 
+class CompanyIntelTest(TestCase):
+    """Unit and integration tests for Phase 20 Lead Context & Company Intelligence Dossier."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='shahbaz_intel', password='secretpassword123')
+        self.client = Client()
+        self.client.login(username='shahbaz_intel', password='secretpassword123')
+
+        self.lead = RecruiterLead.objects.create(
+            email="techlead@razorpay.com",
+            name="Rohit Sharma",
+            company="Razorpay",
+            role="Backend Engineer (Python)",
+            location="Bengaluru",
+            source_platform="Hacker News",
+            source_url="https://news.ycombinator.com/item?id=12345",
+            is_verified=True
+        )
+
+    def test_build_company_intel_prompt(self):
+        """Verify prompt construction includes company, role, location, and JSON schema requirements."""
+        from mailer.services.company_intel import build_company_intel_prompt
+        prompt = build_company_intel_prompt(
+            company="Razorpay",
+            role="Backend Engineer",
+            snippet="High scale payment gateway",
+            location="Bengaluru"
+        )
+        self.assertIn("Razorpay", prompt)
+        self.assertIn("Backend Engineer", prompt)
+        self.assertIn("Bengaluru", prompt)
+        self.assertIn("industry_domain", prompt)
+        self.assertIn("business_model", prompt)
+        self.assertIn("tech_stack", prompt)
+        self.assertIn("core_challenges", prompt)
+        self.assertIn("shahbaz_value_angle", prompt)
+
+    def test_company_intel_heuristic_fallback(self):
+        """Verify deterministic heuristic fallback returns valid schema and industry inference."""
+        from mailer.services.company_intel import _heuristic_company_intel_fallback
+        fallback = _heuristic_company_intel_fallback(
+            company="Paytm",
+            role="Python Developer",
+            snippet="Payment processing systems",
+            location="Noida"
+        )
+        self.assertTrue(fallback['success'])
+        self.assertTrue(fallback['is_fallback'])
+        self.assertIn("Fintech", fallback['industry_domain'])
+        self.assertIn("backend", fallback['tech_stack'])
+        self.assertEqual(len(fallback['core_challenges']), 3)
+        self.assertIn("Shahbaz", fallback['shahbaz_value_angle'])
+
+    def test_company_intel_generate_with_mocked_gemini(self):
+        """Verify generate_company_intel_dossier parses structured JSON correctly from Gemini Pro."""
+        mock_json = json.dumps({
+            "industry_domain": "Fintech & Payments Infrastructure",
+            "business_model": "Transactional API Gateway",
+            "tech_stack": {
+                "backend": ["Python", "FastAPI", "Go"],
+                "databases": ["PostgreSQL", "Redis"],
+                "cloud": ["AWS", "Kubernetes"],
+                "frontend": ["React", "TypeScript"]
+            },
+            "core_challenges": [
+                "Sub-100ms API latency under spike transactions",
+                "High-volume PostgreSQL partition scaling",
+                "Idempotent webhook delivery pipelines"
+            ],
+            "shahbaz_value_angle": "Shahbaz's 35% query speedup and FastAPI microservices experience solves transaction bottlenecks."
+        })
+
+        class MockResponse:
+            text = f"```json\n{mock_json}\n```"
+
+        class MockModels:
+            def generate_content(self, model, contents):
+                return MockResponse()
+
+        class MockClient:
+            def __init__(self, api_key):
+                self.models = MockModels()
+
+        with patch('google.genai.Client', MockClient):
+            from mailer.services.company_intel import generate_company_intel_dossier
+            res = generate_company_intel_dossier("Razorpay", "Backend Engineer", "", "Bengaluru")
+            self.assertTrue(res['success'])
+            self.assertFalse(res['is_fallback'])
+            self.assertEqual(res['industry_domain'], "Fintech & Payments Infrastructure")
+            self.assertEqual(len(res['core_challenges']), 3)
+
+    def test_company_intel_view_first_call_persists_to_db(self):
+        """Verify first call to /api/leads/<id>/company-intel/ generates and saves data into RecruiterLead."""
+        url = reverse('lead_company_intel', kwargs={'lead_id': self.lead.id})
+        self.assertIsNone(self.lead.company_intel_data)
+
+        response = self.client.post(url, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertFalse(data['is_cached'])
+
+        self.lead.refresh_from_db()
+        self.assertIsNotNone(self.lead.company_intel_data)
+        self.assertIn('tech_stack', self.lead.company_intel_data)
+
+    def test_company_intel_view_subsequent_call_uses_cached_data(self):
+        """Verify subsequent call returns cached data immediately with is_cached=True."""
+        cached_dossier = {
+            "industry_domain": "Cached Fintech",
+            "business_model": "Cached SaaS",
+            "tech_stack": {"backend": ["Python"]},
+            "core_challenges": ["Cached Challenge 1"],
+            "shahbaz_value_angle": "Cached value pitch"
+        }
+        self.lead.company_intel_data = cached_dossier
+        self.lead.save(update_fields=['company_intel_data'])
+
+        url = reverse('lead_company_intel', kwargs={'lead_id': self.lead.id})
+        response = self.client.post(url, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['is_cached'])
+        self.assertEqual(data['dossier']['industry_domain'], "Cached Fintech")
+
+    def test_company_intel_view_force_refresh(self):
+        """Verify force_refresh=True bypasses cache and updates database with fresh dossier."""
+        cached_dossier = {
+            "industry_domain": "Old Domain",
+            "business_model": "Old Model",
+            "tech_stack": {},
+            "core_challenges": [],
+            "shahbaz_value_angle": "Old pitch"
+        }
+        self.lead.company_intel_data = cached_dossier
+        self.lead.save(update_fields=['company_intel_data'])
+
+        url = reverse('lead_company_intel', kwargs={'lead_id': self.lead.id})
+        response = self.client.post(
+            url,
+            data=json.dumps({'force_refresh': True}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertFalse(data['is_cached'])
+
+        self.lead.refresh_from_db()
+        self.assertNotEqual(self.lead.company_intel_data['industry_domain'], "Old Domain")
+
+    def test_company_intel_view_unauthenticated_redirect(self):
+        """Verify unauthenticated user cannot access /api/leads/<id>/company-intel/."""
+        self.client.logout()
+        url = reverse('lead_company_intel', kwargs={'lead_id': self.lead.id})
+        response = self.client.post(url, content_type='application/json')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response.url)
+
+    def test_transfer_selected_preserves_company_intel_in_session(self):
+        """Verify transferring selected leads bundles cached company intel into the session."""
+        cached_dossier = {
+            "industry_domain": "Fintech SaaS",
+            "business_model": "API Platform",
+            "tech_stack": {"backend": ["Python", "FastAPI"]},
+            "core_challenges": ["Scaling"],
+            "shahbaz_value_angle": "FastAPI expert"
+        }
+        self.lead.company_intel_data = cached_dossier
+        self.lead.save(update_fields=['company_intel_data'])
+
+        post_url = reverse('lead_harvester')
+        response = self.client.post(post_url, {
+            'action': 'transfer_selected',
+            'selected_leads': [self.lead.id]
+        })
+        self.assertEqual(response.status_code, 302)
+
+        session = self.client.session
+        self.assertIn('prefill_company_intel', session)
+        self.assertIn(self.lead.email.lower(), session['prefill_company_intel'])
+        self.assertEqual(
+            session['prefill_company_intel'][self.lead.email.lower()]['company'],
+            "Razorpay"
+        )
+
+
+class BespokePitchTest(TestCase):
+    """Unit and integration tests for Phase 21 Bespoke Cold Pitch Generator (Gemini Pro)."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='shahbaz_pitch', password='secretpassword123')
+        self.client = Client()
+        self.client.login(username='shahbaz_pitch', password='secretpassword123')
+
+    def test_build_bespoke_pitch_prompt(self):
+        """Verify prompt construction incorporates candidate profile, company, role, tone, and templates."""
+        from mailer.services.bespoke_pitch import build_bespoke_pitch_prompt
+        prompt = build_bespoke_pitch_prompt(
+            company="Swiggy",
+            role="Python Backend Engineer",
+            tone="engineering_impact",
+            jd_text="High scale microservices with FastAPI and Postgres",
+            company_intel={"industry_domain": "Foodtech", "tech_stack": {"backend": ["Python"]}}
+        )
+        self.assertIn("Swiggy", prompt)
+        self.assertIn("Python Backend Engineer", prompt)
+        self.assertIn("ssenterprisesncr.in", prompt)
+        self.assertIn("FastAPI", prompt)
+        self.assertIn("GISFY", prompt)
+        self.assertIn("{{ name }}", prompt)
+        self.assertIn("{{ company }}", prompt)
+
+    def test_bespoke_pitch_heuristic_fallback_tones(self):
+        """Verify heuristic fallback generates valid drafts for all 3 tone presets."""
+        from mailer.services.bespoke_pitch import _heuristic_bespoke_pitch_fallback
+        tones = ["engineering_impact", "startup_founder", "enterprise_arch"]
+        for tone in tones:
+            res = _heuristic_bespoke_pitch_fallback(
+                company="Zepto",
+                role="Python Developer",
+                tone=tone
+            )
+            self.assertTrue(res['success'])
+            self.assertTrue(res['is_fallback'])
+            self.assertEqual(res['tone'], tone)
+            self.assertIn("{{ name }}", res['body'])
+            self.assertIn("{{ company }}", res['body'])
+            self.assertIn("Shahbaz", res['body'])
+            self.assertTrue(len(res['subject']) > 10)
+
+    def test_bespoke_pitch_mocked_gemini(self):
+        """Verify generate_bespoke_pitch parses structured JSON from Gemini Pro."""
+        mock_json = json.dumps({
+            "subject": "Python/FastAPI Developer — High-Throughput APIs for Swiggy",
+            "body": "Hi {{ name }},\n\nI noticed {{ company }} is scaling its backend systems.\n\nAt GISFY, I reduced query latency by 35% with PostgreSQL indexing and built ssenterprisesncr.in with FastAPI.\n\nI have attached my resume. Best regards,\nShahbaz Alam",
+            "tone": "engineering_impact",
+            "key_angle": "Focuses on latency reduction and FastAPI scaling."
+        })
+
+        class MockResponse:
+            text = f"```json\n{mock_json}\n```"
+
+        class MockModels:
+            def generate_content(self, model, contents):
+                return MockResponse()
+
+        class MockClient:
+            def __init__(self, api_key):
+                self.models = MockModels()
+
+        with patch('google.genai.Client', MockClient):
+            from mailer.services.bespoke_pitch import generate_bespoke_pitch
+            res = generate_bespoke_pitch("Swiggy", "Backend Developer", "engineering_impact")
+            self.assertTrue(res['success'])
+            self.assertFalse(res['is_fallback'])
+            self.assertIn("Swiggy", res['subject'])
+            self.assertIn("{{ name }}", res['body'])
+
+    def test_generate_bespoke_pitch_view_unauthenticated(self):
+        """Verify unauthenticated user cannot access /api/generate-bespoke-pitch/."""
+        self.client.logout()
+        url = reverse('generate_bespoke_pitch')
+        response = self.client.post(url, json.dumps({'company': 'Swiggy'}), content_type='application/json')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response.url)
+
+    def test_generate_bespoke_pitch_view_success(self):
+        """Verify authenticated AJAX request returns generated subject and body."""
+        url = reverse('generate_bespoke_pitch')
+        payload = {
+            'company': 'Razorpay',
+            'role': 'Backend Engineer',
+            'tone': 'engineering_impact',
+            'jd_text': 'Build fast Python APIs'
+        }
+        response = self.client.post(url, json.dumps(payload), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertIn('subject', data)
+        self.assertIn('body', data)
+        self.assertIn('{{ name }}', data['body'])
+
+    def test_save_bespoke_template_view_unauthenticated(self):
+        """Verify unauthenticated user cannot access /api/save-bespoke-template/."""
+        self.client.logout()
+        url = reverse('save_bespoke_template')
+        response = self.client.post(url, json.dumps({'title': 'Test'}), content_type='application/json')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/login/', response.url)
+
+    def test_save_bespoke_template_view_success(self):
+        """Verify saving template persists new EmailTemplate to database."""
+        url = reverse('save_bespoke_template')
+        payload = {
+            'title': 'Bespoke — Razorpay (Impact)',
+            'subject': 'Python Backend Developer — Razorpay API Scaling',
+            'body': 'Hi {{ name }},\n\nI noticed {{ company }} is scaling...\n\nBest regards,\nShahbaz'
+        }
+        response = self.client.post(url, json.dumps(payload), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertIn('template_id', data)
+
+        # Verify template exists in PostgreSQL
+        template = EmailTemplate.objects.get(id=data['template_id'])
+        self.assertEqual(template.title, 'Bespoke — Razorpay (Impact)')
+        self.assertEqual(template.subject, 'Python Backend Developer — Razorpay API Scaling')
+        self.assertIn('{{ name }}', template.body)
+
+    def test_save_bespoke_template_view_validation(self):
+        """Verify saving with missing fields returns 400 bad request."""
+        url = reverse('save_bespoke_template')
+        payload = {'title': '', 'subject': '', 'body': ''}
+        response = self.client.post(url, json.dumps(payload), content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data['success'])
+
+
+
+
 
 
 

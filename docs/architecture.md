@@ -561,3 +561,102 @@ job_bot_project/
 |   - Action Buttons: [ 📋 Copy Cheat Sheet ] [ ↺ Refresh Dossier ]                               |
 +-------------------------------------------------------------------------------------------------+
 ```
+
+---
+
+## 17. Gemini Pro Lead Context & Company Intelligence Pipeline
+
+```
++-------------------------------------------------------------------------------------------------+
+|                                 Lead Harvester Interface (/leads/)                              |
+|   [ Harvested Lead Row ] -> User clicks [ 🏢 Intel ] button                                     |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                               (POST /api/leads/<id>/company-intel/)
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                               Django View Layer (mailer/views.py)                               |
+|   - Authenticates user session (@login_required) and queries RecruiterLead                      |
+|   - Cache Inspection: If lead.company_intel_data exists and not 'force_refresh':                |
+|         Return cached JSON directly (Instant 0ms response, zero API cost)                       |
++-------------------------------------------------------------------------------------------------+
+                                               | (Cache miss or force refresh)
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                    Gemini Pro Service Layer (mailer/services/company_intel.py)                  |
+|   - Reads company name, job role, source URL/snippet, and candidate profile                     |
+|   - Builds prompt requesting structured company intelligence:                                   |
+|       * industry_domain: e.g. "Fintech / B2B SaaS"                                              |
+|       * business_model: e.g. "Enterprise Subscription API"                                      |
+|       * tech_stack: { "backend": [...], "databases": [...], "cloud": [...], "frontend": [...] } |
+|       * core_challenges: 3 realistic engineering scaling bottlenecks                            |
+|       * shahbaz_value_angle: 1-sentence customized pitch linking candidate to their challenges  |
+|   - Fallback: Deterministic industry heuristic if Gemini API key missing or quota exhausted    |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                                 PostgreSQL Persistence Layer                                    |
+|   - Stores synthesized dossier into RecruiterLead.company_intel_data (JSONField)                |
+|   - Enables instant subsequent viewing without re-calling the LLM                               |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                                 Interactive Company Intel Modal                                 |
+|   - Clean Glass Modal (#companyIntelModal) displaying:                                          |
+|       1. Domain & Business Model badges                                                         |
+|       2. Estimated Tech Stack Pill Matrix (Backend, DB, Cloud, Frontend)                        |
+|       3. Core Engineering Challenges & Bottlenecks                                              |
+|       4. Shahbaz's Value Proposition Angle                                                      |
+|   - Quick Actions: [ 📋 Copy Intel Brief ] [ ↺ Regenerate ]                                     |
+|   - Dispatcher Integration: Carries forward intelligence context during batch lead transfer     |
++-------------------------------------------------------------------------------------------------+
+```
+
+---
+
+## 18. Gemini Pro Bespoke Cold Pitch Architecture
+
+```
++-------------------------------------------------------------------------------------------------+
+|                                 Application Dispatcher UI (/)                                   |
+|   [ ✨ Bespoke Email Architect ]                                                                |
+|   - Inputs: Company, Role, Tone (Engineering / Startup / Enterprise), JD Snippet                |
+|   - Auto-fused Context: Company Intelligence (from Session) & Verified Portfolio Achievements   |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                (POST /api/generate-bespoke-pitch/)
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                               Django View Layer (mailer/views.py)                               |
+|   - Authenticates session (@login_required)                                                     |
+|   - Extracts payload: { company, role, tone, jd_text, company_intel }                           |
+|   - Calls Bespoke Pitch Service                                                                 |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                  Gemini Pro Pitch Service (mailer/services/bespoke_pitch.py)                     |
+|   - Reads GEMINI_PRO_MODEL & GEMINI_API_KEY from settings.py                                    |
+|   - Fuses multi-source context with Shahbaz's grounded achievements                             |
+|   - Applies Tone Style rules:                                                                   |
+|       * engineering_impact: Metric-dense, speaks dev-to-dev (FastAPI, EXPLAIN ANALYZE)          |
+|       * startup_founder: High-energy, shipping velocity, workflow automation (15 hrs/wk)        |
+|       * enterprise_arch: Formal, stability, RBAC, 35% latency optimization, high-throughput     |
+|   - Generates structured JSON: { subject, body, tone, key_angle }                               |
+|   - Fallback: High-grade deterministic template builder if API unavailable                      |
++-------------------------------------------------------------------------------------------------+
+                                               |
+                                               v
++-------------------------------------------------------------------------------------------------+
+|                               Interactive UI Actions & Database Sync                            |
+|   1. [ ✨ Apply Subject & Inject Body ]: Populates template subject & email compose area        |
+|   2. [ 💾 Save as New Template ]: POST /api/save-bespoke-template/ creates new EmailTemplate    |
+|   3. [ 📄 Live Preview Sync ]: Instantly renders packet in Packet Live Preview box              |
++-------------------------------------------------------------------------------------------------+
+```
+
+

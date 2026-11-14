@@ -7,8 +7,8 @@
 
 ## 1. Project Status Summary
 - **Project**: `job_bot_project` (Job Application Dispatcher & Lead Harvester)
-- **Active Phase**: **Phase 19 (Automated Interview Prep Dossier - Gemini Pro) Completed & Verified**
-- **System State**: Gemini Pro Interview Prep Dossier Active on ATS Kanban Board (`/tracker/`), PostgreSQL JSONField Storage with Zero-Latency Database Caching, Collapsible JD Analyzer & ATS Optimizer in Dispatcher (`/`), Ergonomic Slate Palette Active, Static Low-Glare Ambient Lighting, Unified Global Glass Navigation Header, Clean Spacing & Typography (min 12px badges, 14–15px body), Multi-Platform Harvester, 08:30 AM IST Daily Schedule, Inbound IMAP Poller & Gemini Recruiter Intent Classifier, 100% Test Coverage (86/86 tests passing)
+- **Active Phase**: **Phase 21 (Bespoke Cold Pitch Generator - Gemini Pro) Completed & Verified**
+- **System State**: 4/4 Gemini Pro Enterprise Capabilities Active (ATS Matcher & Tailored Pitch, Interview Prep Dossier, Company Intelligence & Tech Stack Dossier, Bespoke Cold Pitch Generator), 1-Click PostgreSQL Template Persistence, Seamless Harvester-to-Dispatcher Context Fusion, Persistent PostgreSQL `JSONField` Caching, Ergonomic Slate Palette, Static Low-Glare Ambient Lighting, Unified Global Glass Navigation Header, Clean Spacing & Typography (min 12px badges, 14–15px body), Multi-Platform Harvester, 08:30 AM IST Daily Schedule, Inbound IMAP Poller & Gemini Recruiter Intent Classifier, 100% Test Coverage (102/102 tests passing)
 - **Primary Database**: Neon Serverless PostgreSQL (`ep-calm-heart...`)
 - **Active Environment**: `.venv` (Python 3.15, Django 6.1, `psycopg` 3.3.8, `google-genai` 3.2.0, `django-q2` 1.11.1)
 
@@ -185,6 +185,44 @@
   - Automated Regression Test Suite Expansion:
     - Authored 9 unit and integration tests in `mailer/tests.py` (`InterviewPrepDossierTest`) covering model storage, prompt building, fallback generator, mocked Gemini Pro parsing, code fence unwrap, cache-hit verification, force-refresh updates, and authentication redirection.
     - Verified complete regression test suite: 86/86 tests passing (100% pass rate in 501.2s).
+- **Phase 20 (Lead Context / Company Intelligence & Tech Stack Dossier - Gemini Pro)**:
+  - Database Schema & Neon PostgreSQL Migration:
+    - Added `company_intel_data = models.JSONField(null=True, blank=True)` to `RecruiterLead` in `mailer/models.py`.
+    - Created and applied migration `0012_recruiterlead_company_intel_data` on Neon PostgreSQL.
+  - Intelligence Service Layer (`mailer/services/company_intel.py`):
+    - Synthesizes industry domain, business model, estimated tech stack (backend, databases, cloud, frontend), 3 core engineering challenges, and Shahbaz's tailored value angle.
+    - Implemented resilient deterministic heuristic fallback for offline or zero-quota execution.
+  - RESTful Controller & Routing (`mailer/views.py`, `mailer/urls.py`):
+    - Registered authenticated endpoint `POST /api/leads/<int:lead_id>/company-intel/`.
+    - Zero-latency database caching: returns saved JSON on cache hits (0ms, 0 API quota), with on-demand `force_refresh` support.
+  - Session Dispatcher Integration:
+    - Enhanced `transfer_selected` action in `lead_harvester_view` to bundle `company_intel_data` into `request.session['prefill_company_intel']` so the email composer can leverage company context.
+    - Prefilled company intelligence loaded into Dispatcher template context in `send_application_view`.
+  - Interactive Glass Modal (`mailer/templates/mailer/leads.html`):
+    - Added **"🏢 Intel"** button to table rows.
+    - Added `#companyIntelModal` displaying domain & business model badges, tech stack pill matrix, core engineering bottlenecks, and Shahbaz's value angle.
+    - Integrated 1-click **"📋 Copy Intel Brief"** and **"↺ Regenerate"** controls with micro-interaction feedback.
+  - Automated Regression Test Suite Expansion:
+    - Authored 8 unit and integration tests in `mailer/tests.py` (`CompanyIntelTest`) covering prompt construction, heuristic fallback, mocked Gemini Pro responses, database caching, forced refresh, view authentication, and session transfer preservation.
+    - Verified complete regression test suite: 94/94 tests passing (100% pass rate in 1510.7s).
+- **Phase 21 (Bespoke Cold Pitch Generator - Gemini Pro)**:
+  - Intelligence Service Layer (`mailer/services/bespoke_pitch.py`):
+    - Synthesizes multi-source context (company, role, tone preset, company intelligence from Phase 20, raw JD from Phase 18, and candidate verified achievements).
+    - Supports 3 tone presets: `Engineering Impact`, `Startup / Founder Direct`, and `Enterprise / Architecture`.
+    - Produces high-open-rate subject lines and 3-paragraph structured body preserving `{{ name }}` and `{{ company }}` tokens.
+    - Resilient heuristic fallback for offline or quota-exhausted execution.
+  - RESTful Controllers & Routing (`mailer/views.py`, `mailer/urls.py`):
+    - Registered `POST /api/generate-bespoke-pitch/` returning `{ success, subject, body, tone, key_angle }`.
+    - Registered `POST /api/save-bespoke-template/` creating permanent `EmailTemplate` records in Neon PostgreSQL.
+  - Interactive Dispatcher UI (`mailer/templates/mailer/send_mail.html`):
+    - Added collapsible **"✨ Gemini Pro Bespoke Email Architect"** card with tone presets.
+    - 1-click **"Apply Subject"** (copies subject and updates packet preview).
+    - 1-click **"✨ Inject into Email Body"** (populates body and live preview).
+    - 1-click **"💾 Save as New Template"** (saves to database, dynamically adds to template dropdown and selects it with zero page refresh).
+    - Auto-populates company and role from transferred Harvester session context.
+  - Automated Regression Test Suite Expansion:
+    - Authored 8 unit and integration tests in `mailer/tests.py` (`BespokePitchTest`) covering prompt construction, tone presets, fallback generation, mocked Gemini Pro responses, template persistence, and view authentication.
+    - Verified complete regression test suite: 102/102 tests passing (100% pass rate in 381.8s).
 
 ---
 
@@ -213,14 +251,17 @@
 ---
 
 ## 5. Next Immediate Steps (Operational Recommendations)
-1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and inspect the Kanban board at `http://127.0.0.1:8000/tracker/`:
-   - Click the **"✨ Prep"** button on any application card.
-   - Review your custom **Technical Interview Prep Dossier** (5 technical Q&A, project proof points, reverse questions).
-   - Test **"📋 Copy Cheat Sheet"** to export to clipboard.
-   - Close and re-open to verify **Instant Zero-Latency Database Caching**.
-2. **Execute Pillar 3 of Gemini Pro Suite (Phase 20)**:
-   - **Lead Context: Company Intelligence & Tech Stack Dossier (Lead Harvester `/leads/`)**:
-     Enrich discovered leads by having Gemini Pro research or deduce the company's tech stack, business model, and engineering pain points before reaching out.
-3. **Execute Pillar 4 of Gemini Pro Suite (Phase 21)**:
-   - **Outreach Quality: End-to-End Bespoke Cold Pitch Generator (Dispatcher `/`)**:
-     Generate 100% tailored, human-sounding cold emails from scratch based on company intelligence and candidate projects.
+1. **User Operational Verification**: Launch development server (`.\.venv\Scripts\python.exe manage.py runserver`) and inspect the Application Dispatcher at `http://127.0.0.1:8000/`:
+   - Expand the **"✨ Gemini Pro Bespoke Email Architect"** card.
+   - Enter a target company (e.g. `Swiggy` or `Razorpay`) and role (e.g. `Python Backend Developer`).
+   - Select an outreach tone (`⚡ Engineering Impact`, `🚀 Startup / Founder`, or `🏛️ Enterprise`).
+   - Click **"⚡ Generate Bespoke Cold Pitch"**.
+   - Review the generated subject line and 3-paragraph email body.
+   - Test **"📋 Apply Subject"** and **"✨ Inject into Email Body"** to view live rendering in the Packet Live Preview box.
+   - Click **"💾 Save as New Template"** to verify that the template is saved to Neon PostgreSQL and dynamically appended to the template selector dropdown.
+2. **End-to-End Enterprise Workflow Verification**:
+   - Start at `/leads/`, discover/filter leads, view **"🏢 Intel"** dossiers.
+   - Select leads and click **"🚀 Dispatch Selected"** to transfer to `/`.
+   - Observe auto-filled company, role, and intelligence context in the Bespoke Architect and JD Analyzer.
+   - Generate bespoke pitches or ATS talking points, preview packet, and enqueue batch dispatches.
+   - Track live stage transitions on the Kanban board at `/tracker/`, inspect telemetry, and generate **"✨ Prep"** cheat sheets for interviewing rounds.

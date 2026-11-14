@@ -125,6 +125,17 @@ A unified, private Django platform that:
   - **Gemini Pro Interview Intelligence Service (`mailer/services/interview_prep.py`)**: Synthesizes company business context, role requirements, and Shahbaz's real-world engineering metrics (`ssenterprisesncr.in`, GISFY 35% query speedup) to generate tailored technical Q&A, project talking points, and smart reverse-interview questions.
   - **RESTful AJAX API Endpoint (`/api/applications/<id>/prep-dossier/`)**: Authenticated endpoint returning cached or newly generated prep sheets with on-demand regeneration support.
   - **Interactive Kanban Modal (`mailer/templates/mailer/kanban.html`)**: Clean glass modal featuring tabbed/sectioned interview prep (Technical Q&A, Project Talking Points, Reverse Questions), with 1-click clipboard copy and refresh actions.
+- **Phase 20: Lead Context / Company Intelligence & Tech Stack Dossier (Gemini Pro)**:
+  - **Database Persistence (`mailer/models.py`)**: Adds `company_intel_data` (`JSONField`) to `RecruiterLead` to permanently cache synthesized company dossiers in Neon PostgreSQL for 0ms reloads.
+  - **Gemini Pro Company Intelligence Service (`mailer/services/company_intel.py`)**: Researches and infers target company industry domain, business model, estimated tech stack (backend, databases, cloud, frontend), core technical challenges, and Shahbaz's tailored value proposition.
+  - **RESTful AJAX API Endpoint (`/api/leads/<id>/company-intel/`)**: Authenticated endpoint returning cached or newly generated company dossiers with on-demand regeneration.
+  - **Interactive Harvester Modal (`mailer/templates/mailer/leads.html`)**: Glass modal on the Lead Harvester page showcasing structured company insights with quick-copy actions and seamless carry-over into the Dispatcher transfer pipeline.
+- **Phase 21: Bespoke Cold Pitch Generator (Gemini Pro)**:
+  - **Gemini Pro Cold Pitch Service (`mailer/services/bespoke_pitch.py`)**: End-to-end bespoke cold email generator fusing target company context, role requirements, company intelligence (Phase 20), job description insights (Phase 18), and Shahbaz's verified portfolio metrics.
+  - **Tone Presets Engine**: Generates tailored emails matching 3 engineering tones: `Engineering Impact` (concise developer-to-developer), `Startup / Founder Direct` (high-energy, shipping speed, workflow savings), and `Enterprise / Architecture` (formal, query optimization, scalability, security).
+  - **RESTful AJAX Endpoints (`/api/generate-bespoke-pitch/` & `/api/save-bespoke-template/`)**: Session-authenticated endpoints to generate full subject + body packets, and a 1-click database persistence action to save the generated pitch as a reusable `EmailTemplate` in Neon PostgreSQL.
+  - **Dispatcher UI Component (`mailer/templates/mailer/send_mail.html`)**: Collapsible **"✨ Gemini Pro Bespoke Email Architect"** accordion featuring tone selection, 1-click subject adoption, body injection, live preview synchronization, and template saving.
+
 
 ### Post-MVP Scope (Future Phases)
 - Headless browser automation (Playwright) for interactive portal submissions.

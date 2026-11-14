@@ -543,6 +543,99 @@
                                 </div>
                             </div>
 
+                            <!-- ⚡ Gemini Pro Bespoke Email Architect (Phase 21) -->
+                            <div class="glass-card p-3 mb-3" style="background: rgba(17, 24, 39, 0.85); border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 12px;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fs-6">⚡</span>
+                                        <div>
+                                            <span class="fw-semibold text-white small d-block">Bespoke Email Architect</span>
+                                            <span class="text-white-50" style="font-size: 0.72rem;">Write 100% custom cold emails from scratch</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1.5">
+                                        <span class="badge rounded-pill bg-purple bg-opacity-25 text-purple border border-purple border-opacity-35 px-2 py-0.5" style="font-size: 0.68rem;">Gemini Pro</span>
+                                        <button type="button" id="toggle-bespoke-architect" class="btn btn-sm btn-glass-subtle py-0 px-2 small text-white-50" style="font-size: 0.7rem;">
+                                            ✨ Expand Architect
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="bespoke-architect-body" class="d-none mt-2 pt-2 border-top border-white border-opacity-10">
+                                    <p class="text-white-50 small mb-2" style="font-size: 0.72rem;">
+                                        Gemini Pro synthesizes target company intelligence, role requirements, and your verified engineering metrics into a high-conversion, complete cold email draft.
+                                    </p>
+
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-sm-4">
+                                            <label class="form-label text-white-50 small text-uppercase mb-1" style="font-size: 0.68rem;">Target Company</label>
+                                            <input type="text" id="bespoke-company" class="form-control" placeholder="e.g. Swiggy, Zepto, Stripe" style="font-size: 0.75rem;">
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <label class="form-label text-white-50 small text-uppercase mb-1" style="font-size: 0.68rem;">Target Role</label>
+                                            <input type="text" id="bespoke-role" class="form-control" placeholder="e.g. Python Backend Developer" style="font-size: 0.75rem;">
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <label class="form-label text-white-50 small text-uppercase mb-1" style="font-size: 0.68rem;">Outreach Tone</label>
+                                            <select id="bespoke-tone" class="form-select" style="font-size: 0.75rem;">
+                                                <option value="engineering_impact" selected>⚡ Engineering Impact (Dev-to-Dev)</option>
+                                                <option value="startup_founder">🚀 Startup / Founder (High Speed)</option>
+                                                <option value="enterprise_arch">🏛️ Enterprise (Scale & Reliability)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2 align-items-center mb-2">
+                                        <button type="button" id="btn-generate-bespoke-pitch" class="btn btn-sm btn-gradient-primary px-3 py-1.5 fw-semibold small flex-grow-1">
+                                            <span id="bespoke-btn-text">⚡ Generate Bespoke Cold Pitch</span>
+                                        </button>
+                                        <button type="button" id="btn-clear-bespoke" class="btn btn-sm btn-glass-subtle py-1 px-2 text-white-50 small" title="Clear inputs">
+                                            ✕ Clear
+                                        </button>
+                                    </div>
+
+                                    <!-- Loading Spinner -->
+                                    <div id="bespoke-loading-container" class="d-none text-center py-3">
+                                        <div class="spinner-border spinner-border-sm text-purple mb-1" role="status"></div>
+                                        <div class="text-white-50 small" style="font-size: 0.75rem;">Crafting bespoke cold pitch with Gemini Pro...</div>
+                                    </div>
+
+                                    <!-- Generated Bespoke Pitch Results Card -->
+                                    <div id="bespoke-results-card" class="d-none p-2.5 rounded-3 mt-2" style="background: rgba(11, 15, 25, 0.75); border: 1px solid rgba(168, 85, 247, 0.35);">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="text-white-50 fw-semibold text-uppercase" style="font-size: 0.68rem;">Generated Subject Line:</span>
+                                            <span id="bespoke-tone-badge" class="badge rounded-pill bg-purple bg-opacity-20 text-purple border border-purple border-opacity-30" style="font-size: 0.68rem;">Engineering Impact</span>
+                                        </div>
+                                        <div class="input-group input-group-sm mb-2">
+                                            <input type="text" id="bespoke-result-subject" class="form-control" style="font-size: 0.78rem; font-weight: 600;">
+                                            <button type="button" id="btn-apply-subject" class="btn btn-sm btn-outline-info" title="Copy / apply to template">
+                                                📋 Apply Subject
+                                            </button>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="text-white-50 fw-semibold text-uppercase" style="font-size: 0.68rem;">Generated Bespoke Body (3-Paragraph):</span>
+                                            <span id="bespoke-cache-badge" class="badge rounded-pill bg-white bg-opacity-10 text-white-50" style="font-size: 0.65rem;">Gemini Pro Synthesized</span>
+                                        </div>
+                                        <textarea id="bespoke-result-body" class="form-control mb-2 font-mono" rows="6" style="font-size: 0.76rem; background: rgba(0,0,0,0.35); color: #f8fafc; line-height: 1.5;"></textarea>
+
+                                        <div class="row g-2">
+                                            <div class="col-sm-6">
+                                                <button type="button" id="btn-inject-bespoke-body" class="btn btn-sm btn-gradient-success w-100 py-1.5 fw-semibold small">
+                                                    <span>✨ Inject into Email Body</span>
+                                                </button>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <button type="button" id="btn-save-bespoke-template" class="btn btn-sm btn-glass-subtle w-100 py-1.5 fw-semibold small text-info border border-info border-opacity-30">
+                                                    <span id="save-template-btn-text">💾 Save as New Template</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div id="bespoke-status-feedback" class="text-white-50 small mt-1.5 text-center" style="font-size: 0.72rem;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- AI Tailored Pitch Assistant (Gemini) -->
                             <div class="glass-card p-3 mb-3" style="background: rgba(99, 102, 241, 0.06); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px;">
                                 <div class="d-flex justify-content-between align-items-center">
@@ -1238,6 +1331,289 @@
                     }, 2200);
                 });
             }
+
+            // ========================================================
+            // ⚡ Gemini Pro Bespoke Email Architect (Phase 21)
+            // ========================================================
+            const toggleBespokeArchitect = document.getElementById('toggle-bespoke-architect');
+            const bespokeArchitectBody = document.getElementById('bespoke-architect-body');
+            const bespokeCompanyInput = document.getElementById('bespoke-company');
+            const bespokeRoleInput = document.getElementById('bespoke-role');
+            const bespokeToneSelect = document.getElementById('bespoke-tone');
+            const btnGenerateBespoke = document.getElementById('btn-generate-bespoke-pitch');
+            const bespokeBtnText = document.getElementById('bespoke-btn-text');
+            const btnClearBespoke = document.getElementById('btn-clear-bespoke');
+            const bespokeLoading = document.getElementById('bespoke-loading-container');
+            const bespokeResultsCard = document.getElementById('bespoke-results-card');
+            const bespokeToneBadge = document.getElementById('bespoke-tone-badge');
+            const bespokeCacheBadge = document.getElementById('bespoke-cache-badge');
+            const bespokeResultSubject = document.getElementById('bespoke-result-subject');
+            const btnApplySubject = document.getElementById('btn-apply-subject');
+            const bespokeResultBody = document.getElementById('bespoke-result-body');
+            const btnInjectBespokeBody = document.getElementById('btn-inject-bespoke-body');
+            const btnSaveBespokeTemplate = document.getElementById('btn-save-bespoke-template');
+            const saveTemplateBtnText = document.getElementById('save-template-btn-text');
+            const bespokeStatusFeedback = document.getElementById('bespoke-status-feedback');
+
+            // Prefilled Company Intel from Session Transfer (Phase 20 -> Phase 21)
+            let transferredIntel = null;
+            try {
+                transferredIntel = {{ prefill_company_intel|default:'null'|safe }};
+            } catch (e) {
+                transferredIntel = null;
+            }
+
+            if (transferredIntel && typeof transferredIntel === 'object') {
+                const keys = Object.keys(transferredIntel);
+                if (keys.length > 0) {
+                    const firstLead = transferredIntel[keys[0]];
+                    if (firstLead) {
+                        if (bespokeCompanyInput && firstLead.company) bespokeCompanyInput.value = firstLead.company;
+                        if (bespokeRoleInput && firstLead.role) bespokeRoleInput.value = firstLead.role;
+                        if (jdCompanyInput && firstLead.company && !jdCompanyInput.value) jdCompanyInput.value = firstLead.company;
+                        if (jdRoleInput && firstLead.role && !jdRoleInput.value) jdRoleInput.value = firstLead.role;
+                    }
+                }
+            }
+
+            if (toggleBespokeArchitect && bespokeArchitectBody) {
+                toggleBespokeArchitect.addEventListener('click', function() {
+                    const isHidden = bespokeArchitectBody.classList.contains('d-none');
+                    if (isHidden) {
+                        bespokeArchitectBody.classList.remove('d-none');
+                        toggleBespokeArchitect.textContent = '✕ Collapse';
+                    } else {
+                        bespokeArchitectBody.classList.add('d-none');
+                        toggleBespokeArchitect.textContent = '✨ Expand Architect';
+                    }
+                });
+            }
+
+            if (btnClearBespoke) {
+                btnClearBespoke.addEventListener('click', function() {
+                    if (bespokeCompanyInput) bespokeCompanyInput.value = '';
+                    if (bespokeRoleInput) bespokeRoleInput.value = '';
+                    if (bespokeResultsCard) bespokeResultsCard.classList.add('d-none');
+                    if (bespokeStatusFeedback) bespokeStatusFeedback.textContent = '';
+                });
+            }
+
+            if (btnGenerateBespoke) {
+                btnGenerateBespoke.addEventListener('click', function() {
+                    const company = (bespokeCompanyInput ? bespokeCompanyInput.value.trim() : '') || (jdCompanyInput ? jdCompanyInput.value.trim() : '');
+                    const role = (bespokeRoleInput ? bespokeRoleInput.value.trim() : '') || (jdRoleInput ? jdRoleInput.value.trim() : '');
+                    const tone = bespokeToneSelect ? bespokeToneSelect.value : 'engineering_impact';
+                    const jdText = rawJdTextarea ? rawJdTextarea.value.trim() : '';
+
+                    // Lookup matching company intelligence from transferred session
+                    let matchedIntel = null;
+                    if (transferredIntel && typeof transferredIntel === 'object') {
+                        for (const emailKey in transferredIntel) {
+                            const entry = transferredIntel[emailKey];
+                            if (entry && (entry.company === company || !company)) {
+                                matchedIntel = entry.intel;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (bespokeLoading) bespokeLoading.classList.remove('d-none');
+                    if (bespokeResultsCard) bespokeResultsCard.classList.add('d-none');
+                    if (bespokeStatusFeedback) bespokeStatusFeedback.textContent = '';
+                    btnGenerateBespoke.disabled = true;
+                    if (bespokeBtnText) bespokeBtnText.textContent = '⚡ Synthesizing Bespoke Pitch...';
+
+                    fetch("{% url 'generate_bespoke_pitch' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            company: company,
+                            role: role,
+                            tone: tone,
+                            jd_text: jdText,
+                            company_intel: matchedIntel
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (bespokeLoading) bespokeLoading.classList.add('d-none');
+                        btnGenerateBespoke.disabled = false;
+                        if (bespokeBtnText) bespokeBtnText.textContent = '⚡ Generate Bespoke Cold Pitch';
+
+                        if (!data.success) {
+                            alert(data.error || 'Failed to generate bespoke cold pitch.');
+                            return;
+                        }
+
+                        if (bespokeResultSubject) bespokeResultSubject.value = data.subject || '';
+                        if (bespokeResultBody) bespokeResultBody.value = data.body || '';
+
+                        if (bespokeToneBadge) {
+                            const toneLabels = {
+                                'engineering_impact': '⚡ Engineering Impact',
+                                'startup_founder': '🚀 Startup / Founder',
+                                'enterprise_arch': '🏛️ Enterprise'
+                            };
+                            bespokeToneBadge.textContent = toneLabels[data.tone] || data.tone;
+                        }
+
+                        if (bespokeCacheBadge) {
+                            bespokeCacheBadge.textContent = data.is_fallback ? '⚡ Standard Fallback' : '✨ Gemini Pro Synthesized';
+                            bespokeCacheBadge.className = data.is_fallback ?
+                                'badge rounded-pill bg-white bg-opacity-10 text-white-50' :
+                                'badge rounded-pill bg-purple bg-opacity-25 text-purple border border-purple border-opacity-35';
+                        }
+
+                        if (bespokeResultsCard) bespokeResultsCard.classList.remove('d-none');
+                    })
+                    .catch(err => {
+                        console.error('Bespoke pitch generation error:', err);
+                        if (bespokeLoading) bespokeLoading.classList.add('d-none');
+                        btnGenerateBespoke.disabled = false;
+                        if (bespokeBtnText) bespokeBtnText.textContent = '⚡ Generate Bespoke Cold Pitch';
+                        alert('Network or server error while generating bespoke pitch.');
+                    });
+                });
+            }
+
+            // 1-Click Apply Subject
+            if (btnApplySubject && bespokeResultSubject) {
+                btnApplySubject.addEventListener('click', async function() {
+                    const subj = bespokeResultSubject.value.trim();
+                    if (!subj) return;
+
+                    try {
+                        await navigator.clipboard.writeText(subj);
+                    } catch (e) {
+                        console.warn('Clipboard write error', e);
+                    }
+
+                    if (previewSubject) {
+                        previewSubject.textContent = subj;
+                    }
+                    if (previewBox) previewBox.classList.remove('d-none');
+
+                    const origText = btnApplySubject.textContent;
+                    btnApplySubject.textContent = '✓ Copied & Applied!';
+                    btnApplySubject.className = 'btn btn-sm btn-info text-dark fw-semibold';
+                    setTimeout(() => {
+                        btnApplySubject.textContent = origText;
+                        btnApplySubject.className = 'btn btn-sm btn-outline-info';
+                    }, 2000);
+                });
+            }
+
+            // 1-Click Inject Bespoke Body
+            if (btnInjectBespokeBody && bespokeResultBody) {
+                btnInjectBespokeBody.addEventListener('click', function() {
+                    const bodyText = bespokeResultBody.value.trim();
+                    if (!bodyText) return;
+
+                    if (customHookInput) {
+                        customHookInput.value = bodyText;
+                        if (hookBadge) {
+                            hookBadge.className = 'badge rounded-pill bg-purple bg-opacity-25 text-purple border border-purple border-opacity-40 py-0 px-2';
+                            hookBadge.textContent = '✨ Bespoke Pitch Active';
+                        }
+                    }
+
+                    if (previewBody) {
+                        previewBody.textContent = bodyText;
+                    }
+                    if (previewBox) previewBox.classList.remove('d-none');
+
+                    // If custom hook assistant is open, show feedback
+                    if (aiAssistantBody && aiAssistantBody.classList.contains('d-none')) {
+                        aiAssistantBody.classList.remove('d-none');
+                        if (toggleAiAssistant) toggleAiAssistant.textContent = 'Minimize';
+                    }
+
+                    const origHtml = btnInjectBespokeBody.innerHTML;
+                    btnInjectBespokeBody.innerHTML = '<span>✓ Injected into Email Body!</span>';
+                    btnInjectBespokeBody.classList.remove('btn-gradient-success');
+                    btnInjectBespokeBody.classList.add('btn-success');
+                    setTimeout(() => {
+                        btnInjectBespokeBody.innerHTML = origHtml;
+                        btnInjectBespokeBody.classList.remove('btn-success');
+                        btnInjectBespokeBody.classList.add('btn-gradient-success');
+                    }, 2200);
+                });
+            }
+
+            // 1-Click Save as Permanent Template
+            if (btnSaveBespokeTemplate && bespokeResultSubject && bespokeResultBody) {
+                btnSaveBespokeTemplate.addEventListener('click', function() {
+                    const subject = bespokeResultSubject.value.trim();
+                    const body = bespokeResultBody.value.trim();
+                    const company = (bespokeCompanyInput ? bespokeCompanyInput.value.trim() : '') || 'Target Company';
+                    const tone = bespokeToneSelect ? bespokeToneSelect.value : 'engineering_impact';
+
+                    if (!subject || !body) {
+                        alert('Please generate a subject and body before saving as a template.');
+                        return;
+                    }
+
+                    const toneShort = tone === 'startup_founder' ? 'Startup' : (tone === 'enterprise_arch' ? 'Enterprise' : 'Impact');
+                    const title = `Bespoke — ${company} (${toneShort})`;
+
+                    btnSaveBespokeTemplate.disabled = true;
+                    if (saveTemplateBtnText) saveTemplateBtnText.textContent = 'Saving...';
+
+                    fetch("{% url 'save_bespoke_template' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({
+                            title: title,
+                            subject: subject,
+                            body: body
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        btnSaveBespokeTemplate.disabled = false;
+                        if (saveTemplateBtnText) saveTemplateBtnText.textContent = '💾 Save as New Template';
+
+                        if (!data.success) {
+                            alert(data.error || 'Failed to save template.');
+                            return;
+                        }
+
+                        // Add to client-side templateData map
+                        templateData[data.template_id] = {
+                            subject: data.template_subject,
+                            body: data.template_body
+                        };
+
+                        // Append new option to templateSelect and select it
+                        if (templateSelect) {
+                            const newOption = document.createElement('option');
+                            newOption.value = String(data.template_id);
+                            newOption.textContent = `★ ${data.template_title}`;
+                            templateSelect.appendChild(newOption);
+                            templateSelect.value = String(data.template_id);
+                            updatePreview();
+                        }
+
+                        if (bespokeStatusFeedback) {
+                            bespokeStatusFeedback.innerHTML = `<span class="text-success fw-semibold">✓ Template saved to Neon PostgreSQL and set as active selection!</span>`;
+                            setTimeout(() => { bespokeStatusFeedback.textContent = ''; }, 4000);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Save template error:', err);
+                        btnSaveBespokeTemplate.disabled = false;
+                        if (saveTemplateBtnText) saveTemplateBtnText.textContent = '💾 Save as New Template';
+                        alert('Network or server error while saving template.');
+                    });
+                });
+            }
+
 
             // 4. Loading Effect: Button Morphing on Dispatch
             if (dispatchForm && submitBtn) {

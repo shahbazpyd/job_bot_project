@@ -13,7 +13,10 @@ from .views import (
     create_application_view,
     check_inbound_replies_view,
     analyze_jd_view,
-    prep_dossier_view
+    prep_dossier_view,
+    lead_company_intel_view,
+    generate_bespoke_pitch_view,
+    save_bespoke_template_view
 )
 
 urlpatterns = [
@@ -28,6 +31,9 @@ urlpatterns = [
     path('api/applications/<int:app_id>/update-stage/', update_application_stage, name='update_application_stage'),
     path('api/applications/<int:app_id>/update-details/', update_application_details, name='update_application_details'),
     path('api/applications/<int:app_id>/prep-dossier/', prep_dossier_view, name='prep_dossier'),
+    path('api/leads/<int:lead_id>/company-intel/', lead_company_intel_view, name='lead_company_intel'),
+    path('api/generate-bespoke-pitch/', generate_bespoke_pitch_view, name='generate_bespoke_pitch'),
+    path('api/save-bespoke-template/', save_bespoke_template_view, name='save_bespoke_template'),
     path('api/inbox/check/', check_inbound_replies_view, name='check_inbound_replies'),
     path('track/open/<uuid:token>/', track_open_view, name='track_open'),
     path('track/click/<uuid:token>/', track_click_view, name='track_click'),

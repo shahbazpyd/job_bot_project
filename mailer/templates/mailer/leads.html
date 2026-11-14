@@ -644,7 +644,7 @@
                                         <th style="min-width: 120px;">Target & YOE</th>
                                         <th style="min-width: 110px;">Platform</th>
                                         <th style="min-width: 110px;">Deliverability</th>
-                                        <th class="text-end" style="min-width: 90px;">AI Hook</th>
+                                        <th class="text-end" style="min-width: 140px;">Intelligence</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -707,12 +707,22 @@
                                             {% endif %}
                                         </td>
                                         <td class="text-end">
-                                            <button type="button" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-purple small btn-generate-lead-hook"
-                                                    data-company="{{ lead.company|default:'' }}"
-                                                    data-role="{{ lead.role|default:'' }}"
-                                                    title="Generate custom pitch with Gemini">
-                                                ✨ Hook
-                                            </button>
+                                            <div class="d-flex justify-content-end gap-1">
+                                                <button type="button" class="btn btn-sm btn-glass-subtle py-1 px-2 text-info small btn-company-intel"
+                                                        data-lead-id="{{ lead.id }}"
+                                                        data-company="{{ lead.company|default:'' }}"
+                                                        data-role="{{ lead.role|default:'' }}"
+                                                        data-location="{{ lead.location|default:'' }}"
+                                                        title="Company Intelligence & Tech Stack Dossier (Gemini Pro)">
+                                                    🏢 Intel
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-glass-subtle py-1 px-2 text-purple small btn-generate-lead-hook"
+                                                        data-company="{{ lead.company|default:'' }}"
+                                                        data-role="{{ lead.role|default:'' }}"
+                                                        title="Generate custom pitch with Gemini">
+                                                    ✨ Hook
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                     {% empty %}
@@ -767,6 +777,123 @@
                             📋 Copy Pitch
                         </button>
                         <span id="modal-status" class="text-white-50" style="font-size: 0.78rem;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🏢 Company Intelligence & Tech Stack Dossier Modal (Gemini Pro) -->
+    <div class="modal fade" id="companyIntelModal" tabindex="-1" aria-labelledby="companyIntelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content glass-card border border-white border-opacity-15" style="background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(28px); border-radius: 20px;">
+                <div class="modal-header border-bottom border-white border-opacity-10 pb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-5">🏢</span>
+                        <div>
+                            <h5 class="modal-title fs-6 fw-bold text-white mb-0" id="companyIntelModalLabel">
+                                Company Intelligence & Tech Stack Dossier
+                            </h5>
+                            <span id="intel-header-subtitle" class="text-white-50" style="font-size: 0.78rem;">Company & Role</span>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="intel-badge-cache" class="badge rounded-pill bg-info bg-opacity-25 text-info border border-info border-opacity-35 px-2.5 py-1" style="font-size: 0.72rem;">
+                            Gemini Pro
+                        </span>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                </div>
+
+                <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
+                    <!-- Loading Spinner -->
+                    <div id="intel-loading-spinner" class="d-none text-center py-5">
+                        <div class="spinner-border text-info mb-3" style="width: 2.2rem; height: 2.2rem;" role="status"></div>
+                        <div class="text-white fw-semibold mb-1">Synthesizing Company Intelligence & Tech Stack...</div>
+                        <div class="text-white-50 small">Gemini Pro is analyzing business model, technology stack, and engineering bottlenecks.</div>
+                    </div>
+
+                    <!-- Dossier Content Container -->
+                    <div id="intel-dossier-content" class="d-none">
+                        <!-- Domain & Business Model Banner -->
+                        <div class="p-3 rounded-3 mb-4" style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25);">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-sm-6">
+                                    <div class="text-white-50 small mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Industry Domain</div>
+                                    <div id="intel-domain" class="fw-bold text-white" style="font-size: 0.92rem;">Fintech / SaaS</div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="text-white-50 small mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Business Model</div>
+                                    <div id="intel-business-model" class="fw-bold text-info" style="font-size: 0.92rem;">B2B Subscription</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estimated Tech Stack Matrix -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="fs-6">🛠️</span>
+                                <h6 class="fw-bold text-white mb-0 fs-6">Estimated Engineering Tech Stack</h6>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-sm-6">
+                                    <div class="p-2.5 rounded-2" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <span class="text-white-50 d-block mb-1 fw-semibold" style="font-size: 0.72rem;">BACKEND</span>
+                                        <div id="intel-stack-backend" class="d-flex flex-wrap gap-1"></div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="p-2.5 rounded-2" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <span class="text-white-50 d-block mb-1 fw-semibold" style="font-size: 0.72rem;">DATABASES & CACHING</span>
+                                        <div id="intel-stack-databases" class="d-flex flex-wrap gap-1"></div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="p-2.5 rounded-2" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <span class="text-white-50 d-block mb-1 fw-semibold" style="font-size: 0.72rem;">CLOUD & DEVOPS</span>
+                                        <div id="intel-stack-cloud" class="d-flex flex-wrap gap-1"></div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="p-2.5 rounded-2" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <span class="text-white-50 d-block mb-1 fw-semibold" style="font-size: 0.72rem;">FRONTEND</span>
+                                        <div id="intel-stack-frontend" class="d-flex flex-wrap gap-1"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Core Engineering Challenges -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="fs-6">⚡</span>
+                                <h6 class="fw-bold text-white mb-0 fs-6">Core Engineering Bottlenecks & Challenges</h6>
+                            </div>
+                            <div id="intel-challenges-list" class="d-flex flex-column gap-2"></div>
+                        </div>
+
+                        <!-- Shahbaz Value Angle Box -->
+                        <div class="p-3 rounded-3" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3);">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="fs-6">🎯</span>
+                                <h6 class="fw-bold text-emerald mb-0 fs-6" style="color: #34d399;">Shahbaz's Tailored Value Angle</h6>
+                            </div>
+                            <p id="intel-value-angle" class="text-white-50 small mb-0" style="font-size: 0.84rem; line-height: 1.5;"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-white border-opacity-10 d-flex justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="intel-footer-status" class="text-white-50" style="font-size: 0.75rem;"></span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" id="intel-refresh-btn" class="btn btn-sm btn-glass-subtle text-white-50 d-inline-flex align-items-center gap-1">
+                            <span class="btn-text">↺ Regenerate</span>
+                        </button>
+                        <button type="button" id="intel-copy-btn" class="btn btn-sm btn-gradient-primary fw-semibold d-inline-flex align-items-center gap-1">
+                            <span>📋 Copy Intel Brief</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -852,6 +979,203 @@
                         const origText = modalCopyBtn.textContent;
                         modalCopyBtn.textContent = '✓ Copied!';
                         setTimeout(() => { modalCopyBtn.textContent = origText; }, 1500);
+                    }
+                });
+            }
+
+            // ========================================================
+            // 🏢 Company Intelligence & Tech Stack Modal (Gemini Pro)
+            // ========================================================
+            const intelModalEl = document.getElementById('companyIntelModal');
+            const intelModal = intelModalEl ? new bootstrap.Modal(intelModalEl) : null;
+            const intelHeaderSubtitle = document.getElementById('intel-header-subtitle');
+            const intelBadgeCache = document.getElementById('intel-badge-cache');
+            const intelLoading = document.getElementById('intel-loading-spinner');
+            const intelContent = document.getElementById('intel-dossier-content');
+            const intelDomain = document.getElementById('intel-domain');
+            const intelBusinessModel = document.getElementById('intel-business-model');
+            const intelStackBackend = document.getElementById('intel-stack-backend');
+            const intelStackDatabases = document.getElementById('intel-stack-databases');
+            const intelStackCloud = document.getElementById('intel-stack-cloud');
+            const intelStackFrontend = document.getElementById('intel-stack-frontend');
+            const intelChallengesList = document.getElementById('intel-challenges-list');
+            const intelValueAngle = document.getElementById('intel-value-angle');
+            const intelFooterStatus = document.getElementById('intel-footer-status');
+            const intelRefreshBtn = document.getElementById('intel-refresh-btn');
+            const intelCopyBtn = document.getElementById('intel-copy-btn');
+
+            let currentLeadIntelData = null;
+            let currentLeadInfo = null;
+
+            function renderPills(container, items, badgeClass) {
+                if (!container) return;
+                container.innerHTML = '';
+                if (!items || !items.length) {
+                    container.innerHTML = '<span class="text-white-50" style="font-size: 0.72rem;">Not specified</span>';
+                    return;
+                }
+                items.forEach(item => {
+                    const pill = document.createElement('span');
+                    pill.className = `badge rounded-pill ${badgeClass} px-2 py-1`;
+                    pill.style.fontSize = '0.74rem';
+                    pill.textContent = item;
+                    container.appendChild(pill);
+                });
+            }
+
+            function loadCompanyIntel(leadId, company, role, location, forceRefresh) {
+                currentLeadInfo = { leadId, company, role, location };
+                if (intelHeaderSubtitle) {
+                    intelHeaderSubtitle.textContent = `${company || 'Company'} — ${role || 'Role'} (${location || 'Remote'})`;
+                }
+                if (intelLoading) intelLoading.classList.remove('d-none');
+                if (intelContent) intelContent.classList.add('d-none');
+                if (intelFooterStatus) intelFooterStatus.textContent = '';
+                if (intelRefreshBtn) {
+                    intelRefreshBtn.disabled = true;
+                    intelRefreshBtn.querySelector('.btn-text').textContent = forceRefresh ? 'Refreshing...' : '↺ Regenerate';
+                }
+                if (intelModal) intelModal.show();
+
+                fetch(`/api/leads/${leadId}/company-intel/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ force_refresh: Boolean(forceRefresh) })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if (intelLoading) intelLoading.classList.add('d-none');
+                    if (intelRefreshBtn) {
+                        intelRefreshBtn.disabled = false;
+                        intelRefreshBtn.querySelector('.btn-text').textContent = '↺ Regenerate';
+                    }
+
+                    if (!res.success) {
+                        if (intelFooterStatus) intelFooterStatus.textContent = 'Failed to load intelligence dossier.';
+                        return;
+                    }
+
+                    const dossier = res.dossier || {};
+                    currentLeadIntelData = dossier;
+
+                    // Domain & Business Model
+                    if (intelDomain) intelDomain.textContent = dossier.industry_domain || 'Technology & Software';
+                    if (intelBusinessModel) intelBusinessModel.textContent = dossier.business_model || 'Enterprise Solutions';
+
+                    // Tech Stack Matrix
+                    const stack = dossier.tech_stack || {};
+                    renderPills(intelStackBackend, stack.backend || [], 'bg-primary bg-opacity-20 text-primary-emphasis border border-primary border-opacity-30');
+                    renderPills(intelStackDatabases, stack.databases || [], 'bg-info bg-opacity-20 text-info border border-info border-opacity-30');
+                    renderPills(intelStackCloud, stack.cloud || [], 'bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30');
+                    renderPills(intelStackFrontend, stack.frontend || [], 'bg-success bg-opacity-20 text-success border border-success border-opacity-30');
+
+                    // Core Challenges
+                    if (intelChallengesList) {
+                        intelChallengesList.innerHTML = '';
+                        const challenges = dossier.core_challenges || [];
+                        challenges.forEach(ch => {
+                            const item = document.createElement('div');
+                            item.className = 'd-flex align-items-start gap-2 p-2 rounded-2';
+                            item.style.background = 'rgba(15, 23, 42, 0.4)';
+                            item.style.border = '1px solid rgba(148, 163, 184, 0.08)';
+                            item.innerHTML = `
+                                <span class="text-warning" style="font-size: 0.85rem; line-height: 1.4;">▸</span>
+                                <span class="text-white-50 small" style="font-size: 0.82rem; line-height: 1.4;">${ch}</span>
+                            `;
+                            intelChallengesList.appendChild(item);
+                        });
+                    }
+
+                    // Shahbaz Value Angle
+                    if (intelValueAngle) {
+                        intelValueAngle.textContent = dossier.shahbaz_value_angle || 'Proven Python and PostgreSQL developer ready to accelerate core engineering goals.';
+                    }
+
+                    // Cache badge & footer telemetry
+                    if (res.is_cached) {
+                        if (intelBadgeCache) {
+                            intelBadgeCache.className = 'badge rounded-pill bg-success bg-opacity-25 text-success border border-success border-opacity-35 px-2.5 py-1';
+                            intelBadgeCache.textContent = '⚡ Cached (0ms)';
+                        }
+                        if (intelFooterStatus) intelFooterStatus.textContent = 'Loaded from database cache (0ms, 0 API quota used)';
+                    } else {
+                        if (intelBadgeCache) {
+                            intelBadgeCache.className = 'badge rounded-pill bg-info bg-opacity-25 text-info border border-info border-opacity-35 px-2.5 py-1';
+                            intelBadgeCache.textContent = dossier.is_fallback ? '⚡ Standard Fallback' : '✨ Gemini Pro Synthesized';
+                        }
+                        if (intelFooterStatus) intelFooterStatus.textContent = dossier.is_fallback ? 'Generated via resilient fallback rules' : 'Generated live with Gemini Pro';
+                    }
+
+                    if (intelContent) intelContent.classList.remove('d-none');
+                })
+                .catch(err => {
+                    console.error('Company intel error:', err);
+                    if (intelLoading) intelLoading.classList.add('d-none');
+                    if (intelRefreshBtn) {
+                        intelRefreshBtn.disabled = false;
+                        intelRefreshBtn.querySelector('.btn-text').textContent = '↺ Regenerate';
+                    }
+                    if (intelFooterStatus) intelFooterStatus.textContent = 'Error connecting to intelligence service.';
+                });
+            }
+
+            document.querySelectorAll('.btn-company-intel').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const leadId = this.getAttribute('data-lead-id');
+                    const company = this.getAttribute('data-company') || '';
+                    const role = this.getAttribute('data-role') || '';
+                    const location = this.getAttribute('data-location') || '';
+                    loadCompanyIntel(leadId, company, role, location, false);
+                });
+            });
+
+            if (intelRefreshBtn) {
+                intelRefreshBtn.addEventListener('click', function() {
+                    if (currentLeadInfo) {
+                        loadCompanyIntel(
+                            currentLeadInfo.leadId,
+                            currentLeadInfo.company,
+                            currentLeadInfo.role,
+                            currentLeadInfo.location,
+                            true
+                        );
+                    }
+                });
+            }
+
+            if (intelCopyBtn) {
+                intelCopyBtn.addEventListener('click', async () => {
+                    if (!currentLeadIntelData || !currentLeadInfo) return;
+                    const d = currentLeadIntelData;
+                    const stack = d.tech_stack || {};
+                    const brief = `🏢 COMPANY INTEL DOSSIER
+Company: ${currentLeadInfo.company || 'Hiring Company'}
+Role: ${currentLeadInfo.role || 'Full Stack Developer'}
+Industry Domain: ${d.industry_domain || 'Tech'}
+Business Model: ${d.business_model || 'SaaS'}
+
+🛠️ ESTIMATED TECH STACK:
+- Backend: ${(stack.backend || []).join(', ')}
+- Databases: ${(stack.databases || []).join(', ')}
+- Cloud & DevOps: ${(stack.cloud || []).join(', ')}
+- Frontend: ${(stack.frontend || []).join(', ')}
+
+⚡ CORE CHALLENGES:
+${(d.core_challenges || []).map(c => `• ${c}`).join('\n')}
+
+🎯 SHAHBAZ ALAM VALUE ANGLE:
+${d.shahbaz_value_angle || ''}`;
+
+                    try {
+                        await navigator.clipboard.writeText(brief.trim());
+                        const origText = intelCopyBtn.innerHTML;
+                        intelCopyBtn.innerHTML = '<span>✓ Copied Brief!</span>';
+                        setTimeout(() => { intelCopyBtn.innerHTML = origText; }, 1800);
+                    } catch (err) {
+                        console.error('Clipboard copy failed:', err);
                     }
                 });
             }

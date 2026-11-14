@@ -435,3 +435,52 @@
 - [x] **Automated Regression Test Suite Expansion**:
   - Authored 9 unit and integration tests in `mailer/tests.py` (`InterviewPrepDossierTest`) covering prompt construction, JSON parsing, database caching, forced refresh, view authentication, and AJAX endpoint response.
   - Verified 100% test pass rate with `--keepdb` (86/86 tests passing in 501.2s).
+
+---
+
+## Phase 20: Lead Context / Company Intelligence & Tech Stack Dossier (Completed)
+- [x] **Data Model & Schema Migration (`mailer/models.py`)**:
+  - Added `company_intel_data = models.JSONField(null=True, blank=True, help_text="Cached Gemini Pro company intelligence dossier")` to `RecruiterLead`.
+  - Created and applied Django migration `0012_recruiterlead_company_intel_data` on Neon PostgreSQL.
+- [x] **Gemini Pro Company Intelligence Service (`mailer/services/company_intel.py`)**:
+  - Implemented `generate_company_intel_dossier(company, role, snippet, location)` to synthesize domain, business model, estimated tech stack (backend, databases, cloud, frontend), engineering bottlenecks, and Shahbaz's tailored value angle.
+  - Implemented resilient heuristic fallback for offline or zero-quota execution.
+- [x] **RESTful Controller & Routing (`mailer/views.py`, `mailer/urls.py`)**:
+  - Registered authenticated endpoint `POST /api/leads/<int:lead_id>/company-intel/`.
+  - Checked database cache: if `company_intel_data` exists and `force_refresh` is false, returns cached JSON directly (0ms, 0 API quota).
+  - Otherwise, generates via `company_intel.py`, saves to `lead.company_intel_data`, and returns JSON.
+- [x] **Dispatcher Transfer Integration (`mailer/views.py`)**:
+  - In `lead_harvester_view`, bundled `company_intel_data` into `request.session['prefill_company_intel']` during batch lead transfer.
+  - In `send_application_view`, loaded prefilled company intel into template context.
+- [x] **Interactive Lead Harvester UI Modal (`mailer/templates/mailer/leads.html`)**:
+  - Added **"🏢 Intel"** button to table rows.
+  - Built `#companyIntelModal` displaying domain & business model badges, tech stack pill matrix, core engineering bottlenecks, and Shahbaz's value angle.
+  - Added 1-click **"📋 Copy Intel Brief"** and **"↺ Regenerate"** buttons with micro-interaction feedback.
+- [x] **Automated Regression Test Suite Expansion (`mailer/tests.py`)**:
+  - Authored 8 unit and integration tests in `CompanyIntelTest` covering prompt construction, heuristic fallback, mocked Gemini Pro responses, database caching, forced refresh, view authentication, and transfer payload preservation.
+  - Verified 100% test pass rate on Neon PostgreSQL across all 94 automated tests (`Ran 94 tests in 1510.7s — OK`).
+
+---
+
+## Phase 21: Bespoke Cold Pitch Generator (Gemini Pro) (Completed)
+- [x] **Bespoke Cold Pitch Generation Service (`mailer/services/bespoke_pitch.py`)**:
+  - Implemented `generate_bespoke_pitch(company, role, tone, jd_text, company_intel)` with multi-source context fusion.
+  - Supported 3 distinct engineering tones: `Engineering Impact`, `Startup / Founder Direct`, and `Enterprise / Architecture`.
+  - Output structured JSON: `{ subject, body, tone, key_angle }`.
+  - Implemented resilient heuristic fallback for zero downtime.
+- [x] **RESTful AJAX Endpoints & Controllers (`mailer/views.py`, `mailer/urls.py`)**:
+  - Registered `POST /api/generate-bespoke-pitch/` to generate complete bespoke subject and body.
+  - Registered `POST /api/save-bespoke-template/` to persist the bespoke pitch as a reusable `EmailTemplate` in Neon PostgreSQL.
+- [x] **Dispatcher UI Component (`mailer/templates/mailer/send_mail.html`)**:
+  - Added collapsible **"✨ Gemini Pro Bespoke Email Architect"** accordion card with tone preset selector.
+  - Added **"⚡ Generate Bespoke Cold Pitch"** action with real-time loading feedback.
+  - Rendered generated subject with 1-click **"Apply Subject"** button.
+  - Rendered generated 3-paragraph body with 1-click **"✨ Inject into Email Body"** button.
+  - Added 1-click **"💾 Save as New Template"** button that dynamically adds the template to the database and dropdown.
+- [x] **Automated Regression Test Suite Expansion (`mailer/tests.py`)**:
+  - Authored comprehensive test suite in `mailer/tests.py` (`BespokePitchTest`) covering prompt construction, tone presets, fallback generation, mocked Gemini Pro responses, template persistence, and view authentication.
+  - Verified 100% test pass rate across all automated tests on Neon PostgreSQL (102/102 tests passing in 381.8s).
+
+
+
+

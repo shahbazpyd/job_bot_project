@@ -92,6 +92,7 @@ def send_application_view(request):
         prefill_emails = request.session.pop('prefill_dispatch_emails', '')
         prefill_template_id = request.session.pop('prefill_template_id', None)
         prefill_resume_id = request.session.pop('prefill_resume_id', None)
+        prefill_company_intel = request.session.pop('prefill_company_intel', None)
 
         initial_data = {}
         if prefill_emails:
@@ -118,8 +119,8 @@ def send_application_view(request):
     followup_sequences = FollowUpSequence.objects.select_related('initial_log', 'initial_log__template', 'initial_log__resume').order_by('status', 'scheduled_at')[:30]
 
     return render(request, 'mailer/send_mail.html', {
-        'form': form, 
-        'logs': recent_logs,
+        'form': form,
+        'recent_logs': recent_logs,
         'templates': templates,
         'resumes': resumes,
         'sent_today': sent_today,
@@ -127,6 +128,7 @@ def send_application_view(request):
         'quota_percent': quota_percent,
         'followup_stats': followup_stats,
         'followup_sequences': followup_sequences,
+        'prefill_company_intel': json.dumps(prefill_company_intel) if prefill_company_intel else '',
     })
 
 @login_required
@@ -332,6 +334,18 @@ def lead_harvester_view(request):
                 leads = RecruiterLead.objects.filter(id__in=selected_ids)
                 emails_str = "\n".join(leads.values_list('email', flat=True))
                 request.session['prefill_dispatch_emails'] = emails_str
+
+                # Bundle company intelligence if available on transferred leads (Phase 20)
+                intel_bundle = {}
+                for lead in leads:
+                    if lead.company_intel_data:
+                        intel_bundle[lead.email.strip().lower()] = {
+                            'company': lead.company,
+                            'role': lead.role,
+                            'intel': lead.company_intel_data
+                        }
+                if intel_bundle:
+                    request.session['prefill_company_intel'] = intel_bundle
 
                 # Determine dominant location to pair template & resume
                 locations = [l.location for l in leads]
@@ -719,6 +733,146 @@ def prep_dossier_view(request, app_id):
         'dossier': result,
         'error': result.get('error')
     })
+
+
+@login_required
+@require_POST
+def lead_company_intel_view(request, lead_id):
+    """
+    RESTful AJAX endpoint for retrieving or generating a Company Intelligence Dossier (Gemini Pro).
+    Checks RecruiterLead.company_intel_data for cached results.
+    Accepts JSON body or POST form: {"force_refresh": bool}.
+    If cached and not force_refresh, returns saved data immediately (0ms, 0 API quota).
+    Otherwise, invokes Gemini Pro, saves to database, and returns structured JSON.
+    """
+    lead = get_object_or_404(RecruiterLead, id=lead_id)
+
+    force_refresh = False
+    if request.content_type == 'application/json' and request.body:
+        try:
+            body = json.loads(request.body.decode('utf-8'))
+            force_refresh = bool(body.get('force_refresh', False))
+        except json.JSONDecodeError:
+            pass
+    elif request.POST.get('force_refresh'):
+        force_refresh = request.POST.get('force_refresh').lower() in ('true', '1', 'yes')
+
+    # Return cached data if available and not forced
+    if lead.company_intel_data and not force_refresh:
+        return JsonResponse({
+            'success': True,
+            'is_cached': True,
+            'lead_id': lead.id,
+            'company': lead.company,
+            'role': lead.role,
+            'location': lead.location,
+            'dossier': lead.company_intel_data
+        })
+
+    # Generate new dossier via Gemini Pro service
+    from .services.company_intel import generate_company_intel_dossier
+    result = generate_company_intel_dossier(
+        company=lead.company,
+        role=lead.role,
+        snippet=lead.source_url,
+        location=lead.location
+    )
+
+    if result.get('success'):
+        # Persist structured company intel dossier to database
+        lead.company_intel_data = result
+        lead.save(update_fields=['company_intel_data'])
+
+    return JsonResponse({
+        'success': result.get('success', False),
+        'is_cached': False,
+        'lead_id': lead.id,
+        'company': lead.company,
+        'role': lead.role,
+        'location': lead.location,
+        'dossier': result,
+        'error': result.get('error')
+    })
+
+
+@login_required
+@require_POST
+def generate_bespoke_pitch_view(request):
+    """
+    RESTful AJAX endpoint for generating an end-to-end bespoke cold pitch (Gemini Pro).
+    Fuses target company, role, tone preset, company intelligence, and job description.
+    Returns JSON: { success, subject, body, tone, key_angle }.
+    """
+    payload = {}
+    if request.content_type == 'application/json' and request.body:
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except json.JSONDecodeError:
+            pass
+    else:
+        payload = request.POST.dict()
+
+    company = payload.get('company', '').strip()
+    role = payload.get('role', '').strip()
+    tone = payload.get('tone', 'engineering_impact').strip()
+    jd_text = payload.get('jd_text', '').strip()
+    company_intel = payload.get('company_intel')
+
+    from .services.bespoke_pitch import generate_bespoke_pitch
+    result = generate_bespoke_pitch(
+        company=company,
+        role=role,
+        tone=tone,
+        jd_text=jd_text,
+        company_intel=company_intel
+    )
+
+    return JsonResponse(result)
+
+
+@login_required
+@require_POST
+def save_bespoke_template_view(request):
+    """
+    RESTful AJAX endpoint to persist a generated bespoke pitch as a permanent
+    reusable EmailTemplate in Neon PostgreSQL.
+    Accepts JSON body: { title, subject, body }.
+    Returns JSON: { success, template_id, template_title, template_subject, template_body }.
+    """
+    payload = {}
+    if request.content_type == 'application/json' and request.body:
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except json.JSONDecodeError:
+            pass
+    else:
+        payload = request.POST.dict()
+
+    title = payload.get('title', '').strip()
+    subject = payload.get('subject', '').strip()
+    body = payload.get('body', '').strip()
+
+    if not title or not subject or not body:
+        return JsonResponse({
+            'success': False,
+            'error': 'Title, subject, and body are required to save a template.'
+        }, status=400)
+
+    template = EmailTemplate.objects.create(
+        title=title[:150],
+        subject=subject[:255],
+        body=body
+    )
+
+    return JsonResponse({
+        'success': True,
+        'template_id': template.id,
+        'template_title': template.title,
+        'template_subject': template.subject,
+        'template_body': template.body,
+    })
+
+
 
 
 
