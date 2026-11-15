@@ -280,32 +280,33 @@
             padding: 0.22rem 0.55rem;
             border-radius: 6px;
             letter-spacing: 0.04em;
+            color: #ffffff !important;
         }
         .priority-HIGH {
-            background: rgba(244, 63, 94, 0.18);
-            color: #fda4af;
-            border: 1px solid rgba(244, 63, 94, 0.35);
+            background: rgba(244, 63, 94, 0.35);
+            color: #ffffff !important;
+            border: 1px solid rgba(244, 63, 94, 0.6);
         }
         .priority-MEDIUM {
-            background: rgba(245, 158, 11, 0.18);
-            color: #fde68a;
-            border: 1px solid rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.35);
+            color: #ffffff !important;
+            border: 1px solid rgba(245, 158, 11, 0.6);
         }
         .priority-LOW {
-            background: rgba(148, 163, 184, 0.18);
-            color: #cbd5e1;
-            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(148, 163, 184, 0.35);
+            color: #ffffff !important;
+            border: 1px solid rgba(148, 163, 184, 0.6);
         }
 
         /* Telemetry Beacon Pill */
         .telemetry-chip {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(148, 163, 184, 0.14);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.2);
             border-radius: 6px;
             padding: 0.2rem 0.5rem;
             font-size: 0.75rem;
             font-family: var(--font-mono);
-            color: #cbd5e1;
+            color: #ffffff !important;
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
@@ -313,31 +314,66 @@
 
         /* Modal Glass Styling */
         .modal-content.glass-modal {
-            background: rgba(15, 23, 42, 0.95);
+            background: rgba(15, 23, 42, 0.98);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 18px;
-            color: #f8fafc;
+            color: #ffffff;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
         }
         .modal-header, .modal-footer {
-            border-color: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.12);
         }
-        .form-control-glass, .form-select-glass {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+
+        /* High-contrast pure white text for form inputs and dropdowns */
+        .form-control, .form-select, .form-control-glass, .form-select-glass, select, input, textarea {
+            color: #ffffff !important;
+            background-color: #0f172a !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        .form-control:focus, .form-select:focus, .form-control-glass:focus, .form-select-glass:focus, select:focus, input:focus, textarea:focus {
+            color: #ffffff !important;
+            background-color: #1e293b !important;
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.3) !important;
+        }
+        .form-control::placeholder, .form-control-glass::placeholder, textarea::placeholder, input::placeholder {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+        select option, .form-select option, .form-select-glass option {
+            background-color: #0f172a !important;
+            color: #ffffff !important;
+        }
+
+        /* Chrome / Edge autofill text color fix */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus,
+        textarea:-webkit-autofill,
+        textarea:-webkit-autofill:hover,
+        textarea:-webkit-autofill:focus,
+        select:-webkit-autofill,
+        select:-webkit-autofill:hover,
+        select:-webkit-autofill:focus {
+            -webkit-text-fill-color: #ffffff !important;
+            -webkit-box-shadow: 0 0 0px 1000px #0f172a inset !important;
+            box-shadow: 0 0 0px 1000px #0f172a inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        /* Universal high-contrast text overrides */
+        body, p, span, div, label, li, td, th {
             color: #ffffff;
-            border-radius: 8px;
         }
-        .form-control-glass:focus, .form-select-glass:focus {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: var(--accent-indigo);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
-            color: #ffffff;
+        .text-white-50, .text-muted, .text-secondary, .text-secondary-emphasis, 
+        .text-primary-emphasis, .text-success-emphasis, .text-danger-emphasis, 
+        .text-warning-emphasis, .text-info-emphasis, .text-dark {
+            color: #ffffff !important;
         }
-        .form-control-glass::placeholder { color: #64748b; }
-        .form-select-glass option { background-color: #0f172a; color: #ffffff; }
+        .badge {
+            color: #ffffff !important;
+        }
 
         /* Notification Toast */
         #ats-toast-container {
@@ -421,7 +457,7 @@
                 </a>
                 <form method="post" action="{% url 'logout' %}" class="m-0">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-glass-subtle text-danger-emphasis fw-semibold px-2 py-1 small" title="Logout">
+                    <button type="submit" class="btn btn-sm btn-glass-subtle text-white fw-semibold px-2 py-1 small" title="Logout">
                         <i class="fa-solid fa-arrow-right-from-bracket"></i>
                     </button>
                 </form>
@@ -550,7 +586,7 @@
                                 <!-- Salary Target (if set) -->
                                 {% if app.salary_notes %}
                                     <div class="mb-2">
-                                        <span class="badge bg-cyan-500 bg-opacity-20 text-info border border-info border-opacity-30 py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                                        <span class="badge bg-cyan-500 bg-opacity-25 text-white border border-info border-opacity-40 py-1 px-2 d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;">
                                             <i class="fa-solid fa-coins"></i>
                                             {{ app.salary_notes }}
                                         </span>
@@ -561,7 +597,7 @@
                                 {% with latest_reply=app.inbound_replies.all|first %}
                                     {% if latest_reply %}
                                         <div class="mb-2">
-                                            <span class="badge {% if latest_reply.classification == 'INTERVIEW_REQUEST' %}bg-success text-success-emphasis border-success{% elif latest_reply.classification == 'REJECTION' %}bg-danger text-danger-emphasis border-danger{% elif latest_reply.classification == 'CLARIFICATION' %}bg-warning text-warning-emphasis border-warning{% else %}bg-info text-info border-info{% endif %} bg-opacity-20 border border-opacity-30 py-1 px-2 d-inline-flex align-items-center gap-1 w-100 text-truncate" style="font-size: 0.75rem;" title="{{ latest_reply.summary }}">
+                                            <span class="badge {% if latest_reply.classification == 'INTERVIEW_REQUEST' %}bg-success text-white border-success{% elif latest_reply.classification == 'REJECTION' %}bg-danger text-white border-danger{% elif latest_reply.classification == 'CLARIFICATION' %}bg-warning text-white border-warning{% else %}bg-info text-white border-info{% endif %} bg-opacity-20 border border-opacity-30 py-1 px-2 d-inline-flex align-items-center gap-1 w-100 text-truncate" style="font-size: 0.75rem;" title="{{ latest_reply.summary }}">
                                                 <i class="fa-solid fa-reply"></i>
                                                 <strong>{{ latest_reply.get_classification_display }}:</strong> {{ latest_reply.summary|truncatechars:28 }}
                                             </span>

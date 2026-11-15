@@ -189,28 +189,73 @@
             font-size: 0.8rem;
         }
 
-        /* Form Controls Dark Glass Styling */
-        .form-control, .form-select {
-            background-color: rgba(15, 23, 42, 0.6) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            color: #f8fafc !important;
+        /* Form Controls Dark Glass Styling & High Contrast */
+        .form-control, .form-select, textarea, input, select {
+            background-color: #0f172a !important;
+            border: 1px solid rgba(255, 255, 255, 0.22) !important;
+            color: #ffffff !important;
             border-radius: 12px !important;
             padding: 0.65rem 0.95rem;
             font-size: 0.875rem;
             transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
         }
-        .form-control:focus, .form-select:focus {
-            background-color: rgba(22, 32, 54, 0.85) !important;
+        .form-control:focus, .form-select:focus, textarea:focus, input:focus, select:focus {
+            background-color: #1e293b !important;
             border-color: var(--accent-indigo) !important;
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.28) !important;
-            color: #f8fafc !important;
+            color: #ffffff !important;
         }
-        .form-control::placeholder {
-            color: #64748b !important;
+        .form-control::placeholder, textarea::placeholder, input::placeholder {
+            color: rgba(255, 255, 255, 0.6) !important;
         }
-        .form-select option {
-            background-color: #0f172a;
-            color: #f8fafc;
+        select option, .form-select option {
+            background-color: #0f172a !important;
+            color: #ffffff !important;
+        }
+
+        /* Prevent Chrome Autofill from turning background white and text dark */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus,
+        textarea:-webkit-autofill,
+        textarea:-webkit-autofill:hover,
+        textarea:-webkit-autofill:focus,
+        select:-webkit-autofill,
+        select:-webkit-autofill:hover,
+        select:-webkit-autofill:focus {
+            -webkit-text-fill-color: #ffffff !important;
+            -webkit-box-shadow: 0 0 0px 1000px #0f172a inset !important;
+            box-shadow: 0 0 0px 1000px #0f172a inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        /* Universal Pure White Text Overrides */
+        body, p, span, div, label, li, td, th, h1, h2, h3, h4, h5, h6 {
+            color: #ffffff;
+        }
+        .text-white-50, .text-muted, .text-secondary, .text-secondary-emphasis, 
+        .text-primary-emphasis, .text-success-emphasis, .text-danger-emphasis, 
+        .text-warning-emphasis, .text-info-emphasis, .text-dark {
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        .table, .glass-table, table {
+            color: #ffffff !important;
+            --bs-table-color: #ffffff !important;
+        }
+        .table td, .table th, .glass-table td, .glass-table th, table td, table th {
+            color: #ffffff !important;
+        }
+        .form-label {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+        .badge {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+        .badge * {
+            color: #ffffff !important;
         }
 
         /* 3D Tactile Buttons */
@@ -393,7 +438,7 @@
                             </a>
                             <form method="post" action="{% url 'logout' %}" class="m-0">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-glass-subtle text-danger-emphasis fw-semibold px-2 py-1 small" title="Logout">
+                                <button type="submit" class="btn btn-sm btn-glass-subtle text-white fw-semibold px-2 py-1 small" title="Logout">
                                     ✕
                                 </button>
                             </form>
@@ -795,11 +840,11 @@
                                                     <div class="small text-white-50">{{ seq.company_name|default:"Company" }} • {{ seq.role_title|default:"Developer" }}</div>
                                                     {% if seq.initial_log and seq.initial_log.open_count > 0 %}
                                                         <div class="mt-1 d-flex gap-1 flex-wrap">
-                                                            <span class="badge rounded-pill bg-info bg-opacity-20 text-info border border-info border-opacity-30" style="font-size: 0.65rem;" title="Recruiter opened previous email {{ seq.initial_log.open_count }} times">
+                                                            <span class="badge rounded-pill bg-info bg-opacity-25 text-white border border-info border-opacity-40" style="font-size: 0.65rem;" title="Recruiter opened previous email {{ seq.initial_log.open_count }} times">
                                                                 👁️ Viewed {{ seq.initial_log.open_count }}x
                                                             </span>
                                                             {% if seq.initial_log.click_count > 0 %}
-                                                                <span class="badge rounded-pill bg-success bg-opacity-20 text-success border border-success border-opacity-30" style="font-size: 0.65rem;" title="Recruiter clicked your project link {{ seq.initial_log.click_count }} times">
+                                                                <span class="badge rounded-pill bg-success bg-opacity-25 text-white border border-success border-opacity-40" style="font-size: 0.65rem;" title="Recruiter clicked your project link {{ seq.initial_log.click_count }} times">
                                                                     🔗 Clicked Portfolio ({{ seq.initial_log.click_count }}x)
                                                                 </span>
                                                             {% endif %}
@@ -812,19 +857,19 @@
                                                             ✓ Dispatched
                                                         </span>
                                                     {% elif seq.status == 'REPLIED' %}
-                                                        <span class="badge rounded-pill bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 px-2 py-1 small" title="Sequence halted because recruiter responded">
+                                                        <span class="badge rounded-pill bg-warning bg-opacity-25 text-white border border-warning border-opacity-40 px-2 py-1 small" title="Sequence halted because recruiter responded">
                                                             🛡️ Replied / Halted
                                                         </span>
                                                     {% elif seq.status == 'CANCELLED' %}
-                                                        <span class="badge rounded-pill bg-secondary bg-opacity-20 text-secondary border border-secondary border-opacity-30 px-2 py-1 small">
+                                                        <span class="badge rounded-pill bg-secondary bg-opacity-25 text-white border border-secondary border-opacity-40 px-2 py-1 small">
                                                             ✕ Cancelled
                                                         </span>
                                                     {% elif seq.is_due %}
-                                                        <span class="badge rounded-pill bg-danger bg-opacity-20 text-danger border border-danger border-opacity-30 px-2 py-1 small fw-bold">
+                                                        <span class="badge rounded-pill bg-danger bg-opacity-25 text-white border border-danger border-opacity-40 px-2 py-1 small fw-bold">
                                                             ⚡ Ready for Bump
                                                         </span>
                                                     {% else %}
-                                                        <span class="badge rounded-pill bg-info bg-opacity-20 text-info border border-info border-opacity-30 px-2 py-1 small">
+                                                        <span class="badge rounded-pill bg-info bg-opacity-25 text-white border border-info border-opacity-40 px-2 py-1 small">
                                                             ⏳ Waiting ({{ seq.days_until_due }}d left)
                                                         </span>
                                                     {% endif %}
@@ -1498,7 +1543,7 @@
 
                     const origText = btnApplySubject.textContent;
                     btnApplySubject.textContent = '✓ Copied & Applied!';
-                    btnApplySubject.className = 'btn btn-sm btn-info text-dark fw-semibold';
+                    btnApplySubject.className = 'btn btn-sm btn-info text-white fw-semibold';
                     setTimeout(() => {
                         btnApplySubject.textContent = origText;
                         btnApplySubject.className = 'btn btn-sm btn-outline-info';

@@ -481,6 +481,26 @@
   - Authored comprehensive test suite in `mailer/tests.py` (`BespokePitchTest`) covering prompt construction, tone presets, fallback generation, mocked Gemini Pro responses, template persistence, and view authentication.
   - Verified 100% test pass rate across all automated tests on Neon PostgreSQL (102/102 tests passing in 381.8s).
 
+---
+
+## Phase 22: Universal High-Contrast White Text & Visual Accessibility Overhaul (Completed)
+- [x] **Universal Pure White Typography Standard**:
+  - Eliminated all low-contrast Bootstrap 5 dark-mode classes across all views: `.text-primary-emphasis`, `.text-success-emphasis`, `.text-danger-emphasis`, `.text-warning-emphasis`, `.text-secondary-emphasis`, and dim `.text-white-50`.
+  - Enforced pure white text (`#ffffff` / `#f8fafc`) on all base tags: `body`, `p`, `span`, `div`, `label`, `li`, `td`, `th`, and `.badge`.
+- [x] **Browser Autofill Inversion Defense (`-webkit-autofill`)**:
+  - Implemented WebKit autofill styling fix preventing Chrome and Edge from overriding input text colors to dark or white-on-white.
+  - Configured `-webkit-text-fill-color: #ffffff !important` with deep inset box shadow across all text inputs, textareas, and select elements.
+- [x] **Form Controls & Dropdown Menu Contrast**:
+  - Standardized `.form-control`, `.form-select`, `.form-control-glass`, `.form-select-glass`, `select`, `input`, and `textarea` with background `#0f172a` and text `#ffffff !important`.
+  - Enforced dark background `#0f172a` and `#ffffff !important` on `<option>` tags, preventing Windows OS-level white backgrounds on dropdown menus.
+- [x] **Complete Template Modernization**:
+  - Updated [send_mail.html](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/mailer/templates/mailer/send_mail.html): all form fields, follower queue badges, live preview labels, and action buttons.
+  - Updated [leads.html](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/mailer/templates/mailer/leads.html): tech stack badges, platform badges (Remotive, WWR, HN, Wellfound, LinkedIn), verification tags, and copy buttons.
+  - Updated [kanban.html](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/mailer/templates/mailer/kanban.html): priority pills (`.priority-HIGH`, `.priority-MEDIUM`, `.priority-LOW`), recruiter inbound reply badges, telemetry chips, modal inputs, and logout action.
+  - Updated [recent_logs.html](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/mailer/templates/mailer/partials/recent_logs.html): activity feed table rows, status pills (`SUCCESS`, `FAILED`, `Unopened`), and timestamps.
+  - Modernized [login.html](file:///c:/Users/sbzal/Desktop/Clone_Projects/job_bot_project/mailer/templates/registration/login.html) with matching glassmorphism and pure white typography.
+
+
 
 
 

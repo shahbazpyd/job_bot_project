@@ -172,28 +172,73 @@
             text-shadow: 0 0 24px rgba(168, 85, 247, 0.45);
         }
 
-        /* Form Controls Dark Glass Styling */
-        .form-control, .form-select {
-            background-color: rgba(15, 23, 42, 0.6) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            color: #f8fafc !important;
+        /* Form Controls Dark Glass Styling & High Contrast */
+        .form-control, .form-select, textarea, input, select {
+            background-color: #0f172a !important;
+            border: 1px solid rgba(255, 255, 255, 0.22) !important;
+            color: #ffffff !important;
             border-radius: 12px !important;
             padding: 0.6rem 0.9rem;
             font-size: 0.875rem;
             transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
         }
-        .form-control:focus, .form-select:focus {
-            background-color: rgba(22, 32, 54, 0.85) !important;
+        .form-control:focus, .form-select:focus, textarea:focus, input:focus, select:focus {
+            background-color: #1e293b !important;
             border-color: var(--accent-indigo) !important;
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.28) !important;
-            color: #f8fafc !important;
+            color: #ffffff !important;
         }
-        .form-control::placeholder {
-            color: #64748b !important;
+        .form-control::placeholder, textarea::placeholder, input::placeholder {
+            color: rgba(255, 255, 255, 0.6) !important;
         }
-        .form-select option {
-            background-color: #0f172a;
-            color: #f8fafc;
+        select option, .form-select option {
+            background-color: #0f172a !important;
+            color: #ffffff !important;
+        }
+
+        /* Prevent Chrome Autofill from turning background white and text dark */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus,
+        textarea:-webkit-autofill,
+        textarea:-webkit-autofill:hover,
+        textarea:-webkit-autofill:focus,
+        select:-webkit-autofill,
+        select:-webkit-autofill:hover,
+        select:-webkit-autofill:focus {
+            -webkit-text-fill-color: #ffffff !important;
+            -webkit-box-shadow: 0 0 0px 1000px #0f172a inset !important;
+            box-shadow: 0 0 0px 1000px #0f172a inset !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        /* Universal Pure White Text Overrides */
+        body, p, span, div, label, li, td, th, h1, h2, h3, h4, h5, h6 {
+            color: #ffffff;
+        }
+        .text-white-50, .text-muted, .text-secondary, .text-secondary-emphasis, 
+        .text-primary-emphasis, .text-success-emphasis, .text-danger-emphasis, 
+        .text-warning-emphasis, .text-info-emphasis, .text-dark {
+            color: #ffffff !important;
+            opacity: 1 !important;
+        }
+        .table, .glass-table, table {
+            color: #ffffff !important;
+            --bs-table-color: #ffffff !important;
+        }
+        .table td, .table th, .glass-table td, .glass-table th, table td, table th {
+            color: #ffffff !important;
+        }
+        .form-label {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+        .badge {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+        .badge * {
+            color: #ffffff !important;
         }
 
         /* 3D Tactile Buttons */
@@ -372,7 +417,7 @@
                 </a>
                 <form method="post" action="{% url 'logout' %}" class="m-0">
                     {% csrf_token %}
-                    <button type="submit" class="btn-glass-nav text-white-emphasis border-danger border-opacity-25" style="background: rgba(244, 63, 94, 0.08);">
+                    <button type="submit" class="btn-glass-nav text-white border-danger border-opacity-25" style="background: rgba(244, 63, 94, 0.08);">
                         <span>🚪</span> Logout
                     </button>
                 </form>
@@ -438,7 +483,7 @@
                                 Active (08:30 AM IST)
                             </span>
                         {% else %}
-                            <span class="badge rounded-pill bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30 px-2.5 py-1" style="font-size: 0.75rem;">
+                            <span class="badge rounded-pill bg-warning bg-opacity-20 text-white border border-warning border-opacity-30 px-2.5 py-1" style="font-size: 0.75rem;">
                                 Paused
                             </span>
                         {% endif %}
@@ -667,7 +712,7 @@
                                         </td>
                                         <td>
                                             <div class="d-flex flex-column gap-1">
-                                                <span class="badge rounded-pill {% if lead.location == 'Gurugram' %}bg-info bg-opacity-10 text-info border border-info border-opacity-25{% elif lead.location == 'Hyderabad' %}bg-primary bg-opacity-10 text-primary-emphasis border border-primary border-opacity-25{% elif lead.location == 'Remote' %}bg-success bg-opacity-10 text-success border border-success border-opacity-25{% elif lead.location == 'Bengaluru' %}bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25{% else %}bg-secondary bg-opacity-10 text-white-50 border border-secondary border-opacity-25{% endif %}" style="width: fit-content; font-size: 0.75rem;">
+                                                <span class="badge rounded-pill {% if lead.location == 'Gurugram' %}bg-info bg-opacity-10 text-white border border-info border-opacity-25{% elif lead.location == 'Hyderabad' %}bg-primary bg-opacity-10 text-white border border-primary border-opacity-25{% elif lead.location == 'Remote' %}bg-success bg-opacity-10 text-white border border-success border-opacity-25{% elif lead.location == 'Bengaluru' %}bg-warning bg-opacity-10 text-white border border-warning border-opacity-25{% else %}bg-secondary bg-opacity-10 text-white border border-secondary border-opacity-25{% endif %}" style="width: fit-content; font-size: 0.75rem;">
                                                     {{ lead.location }}
                                                 </span>
                                                 <span class="badge rounded-pill {% if lead.experience_tag == '0-3 Years' %}bg-success text-white border border-success{% else %}bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10{% endif %}" style="font-size: 0.75rem; width: fit-content;">
@@ -677,31 +722,31 @@
                                         </td>
                                         <td>
                                             {% if lead.source_platform == 'Remotive' %}
-                                                <span class="badge rounded-pill bg-info bg-opacity-15 text-info border border-info border-opacity-30" style="font-size: 0.75rem;">⚡ Remotive</span>
+                                                <span class="badge rounded-pill bg-info bg-opacity-25 text-white border border-info border-opacity-40" style="font-size: 0.75rem;">⚡ Remotive</span>
                                             {% elif lead.source_platform == 'We Work Remotely' %}
-                                                <span class="badge rounded-pill bg-danger bg-opacity-15 text-danger border border-danger border-opacity-30" style="font-size: 0.75rem;">💼 WWR</span>
+                                                <span class="badge rounded-pill bg-danger bg-opacity-25 text-white border border-danger border-opacity-40" style="font-size: 0.75rem;">💼 WWR</span>
                                             {% elif lead.source_platform == 'Hacker News' %}
-                                                <span class="badge rounded-pill bg-warning bg-opacity-15 text-white border border-warning border-opacity-30" style="font-size: 0.75rem;">🔶 HN</span>
+                                                <span class="badge rounded-pill bg-warning bg-opacity-25 text-white border border-warning border-opacity-40" style="font-size: 0.75rem;">🔶 HN</span>
                                             {% elif lead.source_platform == 'Wellfound' %}
-                                                <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary border border-primary border-opacity-30" style="font-size: 0.75rem;">✌️ Wellfound</span>
+                                                <span class="badge rounded-pill bg-primary bg-opacity-25 text-white border border-primary border-opacity-40" style="font-size: 0.75rem;">✌️ Wellfound</span>
                                             {% elif lead.source_platform == 'LinkedIn' %}
-                                                <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary-emphasis border border-primary border-opacity-30" style="font-size: 0.75rem;">💼 LinkedIn</span>
+                                                <span class="badge rounded-pill bg-primary bg-opacity-25 text-white border border-primary border-opacity-40" style="font-size: 0.75rem;">💼 LinkedIn</span>
                                             {% else %}
-                                                <span class="badge rounded-pill bg-secondary bg-opacity-15 text-white-50 border border-secondary border-opacity-30" style="font-size: 0.75rem;">📝 {{ lead.source_platform|default:"Manual" }}</span>
+                                                <span class="badge rounded-pill bg-secondary bg-opacity-25 text-white border border-secondary border-opacity-40" style="font-size: 0.75rem;">📝 {{ lead.source_platform|default:"Manual" }}</span>
                                             {% endif %}
                                         </td>
                                         <td>
                                             {% if lead.is_contacted %}
-                                                <span class="badge rounded-pill bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10" style="font-size: 0.75rem;">
+                                                <span class="badge rounded-pill bg-white bg-opacity-15 text-white border border-white border-opacity-20" style="font-size: 0.75rem;">
                                                     Contacted
                                                 </span>
                                             {% elif lead.is_verified %}
-                                                <span class="badge rounded-pill bg-success bg-opacity-10 text-white border border-success border-opacity-25 px-2 py-1" style="font-size: 0.75rem;">
+                                                <span class="badge rounded-pill bg-success bg-opacity-25 text-white border border-success border-opacity-40 px-2 py-1" style="font-size: 0.75rem;">
                                                     <span class="d-inline-block rounded-circle me-1" style="width: 5px; height: 5px; background: #10b981;"></span>
                                                     MX Verified
                                                 </span>
                                             {% else %}
-                                                <span class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" style="font-size: 0.75rem;">
+                                                <span class="badge rounded-pill bg-warning bg-opacity-25 text-white border border-warning border-opacity-40" style="font-size: 0.75rem;">
                                                     Unverified
                                                 </span>
                                             {% endif %}
@@ -798,7 +843,7 @@
                         </div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span id="intel-badge-cache" class="badge rounded-pill bg-info bg-opacity-25 text-info border border-info border-opacity-35 px-2.5 py-1" style="font-size: 0.72rem;">
+                        <span id="intel-badge-cache" class="badge rounded-pill bg-info bg-opacity-25 text-white border border-info border-opacity-35 px-2.5 py-1" style="font-size: 0.72rem;">
                             Gemini Pro
                         </span>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1067,10 +1112,10 @@
 
                     // Tech Stack Matrix
                     const stack = dossier.tech_stack || {};
-                    renderPills(intelStackBackend, stack.backend || [], 'bg-primary bg-opacity-20 text-primary-emphasis border border-primary border-opacity-30');
-                    renderPills(intelStackDatabases, stack.databases || [], 'bg-info bg-opacity-20 text-info border border-info border-opacity-30');
-                    renderPills(intelStackCloud, stack.cloud || [], 'bg-warning bg-opacity-20 text-warning border border-warning border-opacity-30');
-                    renderPills(intelStackFrontend, stack.frontend || [], 'bg-success bg-opacity-20 text-success border border-success border-opacity-30');
+                    renderPills(intelStackBackend, stack.backend || [], 'bg-primary bg-opacity-25 text-white border border-primary border-opacity-40');
+                    renderPills(intelStackDatabases, stack.databases || [], 'bg-info bg-opacity-25 text-white border border-info border-opacity-40');
+                    renderPills(intelStackCloud, stack.cloud || [], 'bg-warning bg-opacity-25 text-white border border-warning border-opacity-40');
+                    renderPills(intelStackFrontend, stack.frontend || [], 'bg-success bg-opacity-25 text-white border border-success border-opacity-40');
 
                     // Core Challenges
                     if (intelChallengesList) {
@@ -1213,7 +1258,7 @@ ${d.shahbaz_value_angle || ''}`;
                         try {
                             await navigator.clipboard.writeText(email);
                             const origHTML = el.innerHTML;
-                            el.innerHTML = `<span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50 py-0 px-1" style="font-size: 0.7rem;">✓ Copied!</span>`;
+                            el.innerHTML = `<span class="badge bg-success bg-opacity-25 text-white border border-success border-opacity-50 py-0 px-1" style="font-size: 0.7rem;">✓ Copied!</span>`;
                             setTimeout(() => { el.innerHTML = origHTML; }, 1400);
                         } catch (err) {
                             console.error('Copy failed:', err);
