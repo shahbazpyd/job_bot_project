@@ -531,7 +531,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label text-white-50 fw-semibold text-uppercase" style="font-size: 0.75rem;">Target Location Hub</label>
+                            <label class="form-label text-white fw-semibold text-uppercase" style="font-size: 0.75rem;">Target Location Hub</label>
                             <select name="location" class="form-select">
                                 <option value="All">All Locations / Any Hub</option>
                                 <option value="Remote">Remote (Pan-India)</option>
@@ -667,7 +667,7 @@
                                         </td>
                                         <td>
                                             <div class="d-flex flex-column gap-1">
-                                                <span class="badge rounded-pill {% if lead.location == 'Gurugram' %}bg-info bg-opacity-10 text-info border border-info border-opacity-25{% elif lead.location == 'Hyderabad' %}bg-primary bg-opacity-10 text-primary-emphasis border border-primary border-opacity-25{% elif lead.location == 'Remote' %}bg-success bg-opacity-10 text-success border border-success border-opacity-25{% elif lead.location == 'Bengaluru' %}bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25{% else %}bg-secondary bg-opacity-10 text-secondary-emphasis border border-secondary border-opacity-25{% endif %}" style="width: fit-content; font-size: 0.75rem;">
+                                                <span class="badge rounded-pill {% if lead.location == 'Gurugram' %}bg-info bg-opacity-10 text-info border border-info border-opacity-25{% elif lead.location == 'Hyderabad' %}bg-primary bg-opacity-10 text-primary-emphasis border border-primary border-opacity-25{% elif lead.location == 'Remote' %}bg-success bg-opacity-10 text-success border border-success border-opacity-25{% elif lead.location == 'Bengaluru' %}bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25{% else %}bg-secondary bg-opacity-10 text-white-50 border border-secondary border-opacity-25{% endif %}" style="width: fit-content; font-size: 0.75rem;">
                                                     {{ lead.location }}
                                                 </span>
                                                 <span class="badge rounded-pill {% if lead.experience_tag == '0-3 Years' %}bg-success text-white border border-success{% else %}bg-white bg-opacity-10 text-white-50 border border-white border-opacity-10{% endif %}" style="font-size: 0.75rem; width: fit-content;">
