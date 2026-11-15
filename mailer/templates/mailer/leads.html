@@ -625,7 +625,7 @@
                                 <a href="{% url 'lead_harvester' %}" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-white-50" style="font-size: 0.78rem;">All</a>
                                 <a href="{% url 'lead_harvester' %}?platform=Remotive" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-info" style="font-size: 0.78rem;">⚡ Remotive</a>
                                 <a href="{% url 'lead_harvester' %}?platform=We Work Remotely" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-danger" style="font-size: 0.78rem;">💼 WWR</a>
-                                <a href="{% url 'lead_harvester' %}?platform=Hacker News" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-warning" style="font-size: 0.78rem;">🔶 HN</a>
+                                <a href="{% url 'lead_harvester' %}?platform=Hacker News" class="btn btn-sm btn-glass-subtle py-1 px-2.5 text-white" style="font-size: 0.78rem;">🔶 HN</a>
                                 <button type="submit" class="btn btn-gradient-success fw-semibold px-3 py-1.5 small ms-1">
                                     <span>🚀 Dispatch Selected</span>
                                 </button>
@@ -681,7 +681,7 @@
                                             {% elif lead.source_platform == 'We Work Remotely' %}
                                                 <span class="badge rounded-pill bg-danger bg-opacity-15 text-danger border border-danger border-opacity-30" style="font-size: 0.75rem;">💼 WWR</span>
                                             {% elif lead.source_platform == 'Hacker News' %}
-                                                <span class="badge rounded-pill bg-warning bg-opacity-15 text-warning border border-warning border-opacity-30" style="font-size: 0.75rem;">🔶 HN</span>
+                                                <span class="badge rounded-pill bg-warning bg-opacity-15 text-white border border-warning border-opacity-30" style="font-size: 0.75rem;">🔶 HN</span>
                                             {% elif lead.source_platform == 'Wellfound' %}
                                                 <span class="badge rounded-pill bg-primary bg-opacity-15 text-primary border border-primary border-opacity-30" style="font-size: 0.75rem;">✌️ Wellfound</span>
                                             {% elif lead.source_platform == 'LinkedIn' %}
@@ -696,7 +696,7 @@
                                                     Contacted
                                                 </span>
                                             {% elif lead.is_verified %}
-                                                <span class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1" style="font-size: 0.75rem;">
+                                                <span class="badge rounded-pill bg-success bg-opacity-10 text-white border border-success border-opacity-25 px-2 py-1" style="font-size: 0.75rem;">
                                                     <span class="d-inline-block rounded-circle me-1" style="width: 5px; height: 5px; background: #10b981;"></span>
                                                     MX Verified
                                                 </span>
