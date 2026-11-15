@@ -3,7 +3,7 @@ services:
     name: job-bot-dispatcher
     runtime: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn job_bot_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+    startCommand: "python manage.py qcluster & gunicorn job_bot_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
@@ -14,7 +14,7 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: EMAIL_HOST
-        value: smtp.gmail.com
+        value: smtp-relay.brevo.com
       - key: EMAIL_PORT
         value: "587"
       - key: EMAIL_HOST_USER
@@ -23,3 +23,7 @@ services:
         sync: false
       - key: DEFAULT_FROM_EMAIL
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_PRO_MODEL
+        value: "gemini-3.1-pro-preview"
