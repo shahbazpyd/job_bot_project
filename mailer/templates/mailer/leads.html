@@ -372,7 +372,7 @@
                 </a>
                 <form method="post" action="{% url 'logout' %}" class="m-0">
                     {% csrf_token %}
-                    <button type="submit" class="btn-glass-nav text-danger-emphasis border-danger border-opacity-25" style="background: rgba(244, 63, 94, 0.08);">
+                    <button type="submit" class="btn-glass-nav text-white-emphasis border-danger border-opacity-25" style="background: rgba(244, 63, 94, 0.08);">
                         <span>🚪</span> Logout
                     </button>
                 </form>
@@ -433,7 +433,7 @@
                             <h6 class="fw-bold text-white mb-0 fs-6">Daily Morning Automation</h6>
                         </div>
                         {% if schedule_status.is_active %}
-                            <span class="badge rounded-pill bg-success bg-opacity-20 text-success border border-success border-opacity-30 px-2.5 py-1" style="font-size: 0.75rem;">
+                            <span class="badge rounded-pill bg-success bg-opacity-20 text-white border border-success border-opacity-30 px-2.5 py-1" style="font-size: 0.75rem;">
                                 <span class="d-inline-block rounded-circle me-1" style="width: 6px; height: 6px; background: #10b981;"></span>
                                 Active (08:30 AM IST)
                             </span>
